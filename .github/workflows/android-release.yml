@@ -1,0 +1,121 @@
+# Builds the Android robot app and publishes it as a GitHub Release.
+#
+# Start it by pushing a version tag:   git tag v1.0.1 && git push origin v1.0.1
+# or from the Actions tab (Run workflow) with a tag name.
+#
+# Optional repository secrets (Settings > Secrets and variables > Actions):
+#   GOOGLE_SERVICES_JSON_BASE64  your Firebase google-services.json, base64.
+#                                Without it the dummy placeholder in
+#                                robot/android/ci is used: the app works, but
+#                                Google sign-in and Drive features do not.
+#   KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+#                                your release signing key. Without them the
+#                                APK is signed with a debug key (still
+#                                installable, the same as upstream OpenBot).
+
+name: Android release APK
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, for example v1.0.1'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build APK and publish release
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    defaults:
+      run:
+        working-directory: robot/android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the app-versioning plugin reads the version from the latest tag
+
+      - name: Check the tag
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$RELEASE_TAG' must look like v<major>.<minor>.<patch>, for example v1.0.1"
+            exit 1
+          fi
+          # A manual run may name a tag that does not exist yet. Create it locally
+          # so the version is right; the release step creates it on GitHub.
+          if ! git rev-parse -q --verify "refs/tags/$RELEASE_TAG" >/dev/null; then
+            git tag "$RELEASE_TAG"
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: zulu
+          cache: gradle
+
+      - name: Add google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > app/google-services.json
+            echo "Using the Firebase config from the GOOGLE_SERVICES_JSON_BASE64 secret."
+          else
+            cp ci/google-services.placeholder.json app/google-services.json
+            echo "::notice::No GOOGLE_SERVICES_JSON_BASE64 secret, so the dummy Firebase config is used. Google sign-in and Drive features will not work."
+          fi
+          cp app/google-services.json app/src/main/assets/google-services.json
+
+      - name: Build APK
+        id: build
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            ./gradlew :robot:assembleRelease \
+              -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.keystore" \
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+            echo "kind=release" >> "$GITHUB_OUTPUT"
+            apk=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          else
+            echo "::notice::No KEYSTORE_BASE64 secret, so the APK is signed with a debug key."
+            ./gradlew :robot:assembleDebug
+            echo "kind=debug" >> "$GITHUB_OUTPUT"
+            apk=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          fi
+          echo "apk=$apk" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          name="OpenBot-Ackermann-${version}-${{ steps.build.outputs.kind }}.apk"
+          cp "${{ steps.build.outputs.apk }}" "$name"
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Android app $RELEASE_TAG" \
+              --notes-file ci/RELEASE_NOTES.md
+          fi
+          gh release upload "$RELEASE_TAG" "$name" --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Keep the APK as a build artifact too
+        uses: actions/upload-artifact@v4
+        with:
+          name: openbot-ackermann-apk
+          path: robot/android/OpenBot-Ackermann-*.apk

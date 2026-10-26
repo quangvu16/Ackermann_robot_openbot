@@ -29,6 +29,8 @@ docs/                       Guides and the pinout map
 3. **Check** with the wheels off the ground: the indicators blink left then right at boot, and the Serial Monitor (115200) shows the LiDAR.
 4. **Connect** an app: Android by USB cable, iPhone by Bluetooth ("OpenBot"). See the [app guide](docs/APPS_GUIDE.md).
 
+**Android APK:** download it from [Releases](https://github.com/quangvu16/Ackermann_robot_openbot/releases). A new release is built automatically when a version tag such as `v1.0.1` is pushed (see `.github/workflows/android-release.yml`).
+
 ## Not included
 
 The Firebase config files (`google-services.json`, `GoogleService-Info.plist`) are not in this repo, because they hold API keys. Add your own before building the Android or iOS app.
