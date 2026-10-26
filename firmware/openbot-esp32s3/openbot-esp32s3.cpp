@@ -43,6 +43,10 @@
 // To keep your settings across firmware updates, copy this section (between
 // #else and #endif) into a new file openbot_settings.h next to this sketch. If
 // that file exists it is used instead, and git ignores it.
+// RC_PROTOCOL values for section 12 (defined here so a settings file can use them).
+#define RC_IBUS 1  // FlySky FS-iA6B and other iBUS receivers: one signal wire
+#define RC_PWM 2   // FlySky FS-iA6 and other plain receivers: one wire per channel
+
 #if __has_include("openbot_settings.h")
 #include "openbot_settings.h"
 #ifndef OPENBOT_BOARD
@@ -172,6 +176,34 @@ static const uint32_t CANDIDATE_BAUD[] = {115200, 230400, 460800, 921600};
 #define HAS_LEDS_STATUS 1
 #define HAS_BLUETOOTH 1  // BLE link to the phone
 
+// 12. RC receiver and the MANUAL / AUTO / HOLD switch (FlySky FS-i6 transmitter).
+//     A transmitter switch picks who drives: MANUAL = the RC sticks,
+//     AUTO = the phone or computer, HOLD = stopped. With no receiver wired the
+//     car behaves as before (the app drives). See rc_input.h and
+//     docs/FIRMWARE_GUIDE.md for the transmitter setup, including its failsafe.
+#define HAS_RC 1
+#define RC_PROTOCOL RC_IBUS   // RC_IBUS (FS-iA6B, "SERVO" port) or RC_PWM (FS-iA6)
+#define RC_IBUS_PIN 14        // iBUS signal -> here (UART2 RX)
+#define RC_PWM_PIN_STEER 14   // RC_PWM only: CH1 -> here
+#define RC_PWM_PIN_THROTTLE 15  // RC_PWM only: CH2 -> here
+#define RC_PWM_PIN_MODE 16    // RC_PWM only: CH5 -> here
+// Channels (iBUS only; with RC_PWM the wiring decides). On a mode-2 FS-i6 the
+// right stick springs back to centre on both axes, so it drives the car:
+// CH1 = right stick left/right, CH2 = right stick up/down. The left stick
+// (CH3) has no spring and would leave the car running.
+#define RC_CH_STEER 1
+#define RC_CH_THROTTLE 2
+#define RC_CH_MODE 5          // assign SwC (3-position) to CH5 on the transmitter
+// What each switch position means: RC_MANUAL, RC_AUTO or RC_HOLD.
+// For a 2-position switch use LOW and HIGH only (e.g. HIGH = RC_AUTO).
+#define RC_MODE_LOW RC_MANUAL   // about 1000 us (SwC up)
+#define RC_MODE_MID RC_AUTO     // about 1500 us (SwC middle)
+#define RC_MODE_HIGH RC_HOLD    // about 2000 us (SwC down)
+#define RC_DEADBAND_US 30       // centred stick within +/-30 us = stop / straight
+#define RC_TIMEOUT_MS 250       // no valid RC frame for this long = link lost
+#define RC_LOST_ACTION 0        // on link loss: 0 = hold, 1 = keep driving if in AUTO
+#define RC_MANUAL_OBSTACLE_STOP 1  // the LiDAR stop also guards MANUAL driving
+
 #endif
 //------------------------------------------------------//
 
@@ -182,6 +214,57 @@ static const uint32_t CANDIDATE_BAUD[] = {115200, 230400, 460800, 921600};
 #endif
 #ifndef SERIAL_SCAN_STEP
 #define SERIAL_SCAN_STEP 2
+#endif
+// An openbot_settings.h written before section 12 existed has no receiver.
+#ifndef HAS_RC
+#define HAS_RC 0
+#endif
+#if (HAS_RC)
+#ifndef RC_PROTOCOL
+#define RC_PROTOCOL RC_IBUS
+#endif
+#ifndef RC_IBUS_PIN
+#define RC_IBUS_PIN 14
+#endif
+#ifndef RC_PWM_PIN_STEER
+#define RC_PWM_PIN_STEER 14
+#endif
+#ifndef RC_PWM_PIN_THROTTLE
+#define RC_PWM_PIN_THROTTLE 15
+#endif
+#ifndef RC_PWM_PIN_MODE
+#define RC_PWM_PIN_MODE 16
+#endif
+#ifndef RC_CH_STEER
+#define RC_CH_STEER 1
+#endif
+#ifndef RC_CH_THROTTLE
+#define RC_CH_THROTTLE 2
+#endif
+#ifndef RC_CH_MODE
+#define RC_CH_MODE 5
+#endif
+#ifndef RC_MODE_LOW
+#define RC_MODE_LOW RC_MANUAL
+#endif
+#ifndef RC_MODE_MID
+#define RC_MODE_MID RC_AUTO
+#endif
+#ifndef RC_MODE_HIGH
+#define RC_MODE_HIGH RC_HOLD
+#endif
+#ifndef RC_DEADBAND_US
+#define RC_DEADBAND_US 30
+#endif
+#ifndef RC_TIMEOUT_MS
+#define RC_TIMEOUT_MS 250
+#endif
+#ifndef RC_LOST_ACTION
+#define RC_LOST_ACTION 0
+#endif
+#ifndef RC_MANUAL_OBSTACLE_STOP
+#define RC_MANUAL_OBSTACLE_STOP 1
+#endif
 #endif
 
 #if (OPENBOT_BOARD != ESP32S3)
@@ -205,6 +288,7 @@ const unsigned int MAX_SONAR_DISTANCE = 300;  // cm
 // are written out here. Keep in sync with the definitions below.
 void stop_vehicle();
 void stop_at_obstacle();
+void drive_from_rc();
 void update_vehicle();
 void write_throttle(int throttle);
 void write_steering(int steering);
@@ -249,6 +333,10 @@ static bool lidarProximityCm(unsigned int out_cm[PROX_SECTORS]) {
   return false;
 }
 #endif
+
+// RC receiver and the MANUAL / AUTO / HOLD switch. Stubs itself out when
+// HAS_RC is 0, so loop() needs no #ifs.
+#include "rc_input.h"
 
 //------------------------------------------------------//
 // LEDC helpers
@@ -441,6 +529,8 @@ void setup() {
   xTaskCreatePinnedToCore(lidarTask, "lidar", 4096, NULL, 2, NULL, 0);
 #endif
 
+  rcBegin();  // no-op unless HAS_RC
+
   Serial.println("Waiting for a client connection...");
 
 #if (HAS_BLUETOOTH)
@@ -525,18 +615,41 @@ void loop() {
     on_serial_rx();
   }
 
-  // Failsafe: without a heartbeat the car stops and straightens.
-  if (heartbeat_interval > 0 && (millis() - heartbeat_time) >= heartbeat_interval) {
+  // Who drives: the RC switch decides. Without a receiver this is always
+  // RC_NOT_FITTED and the app drives, exactly as before.
+  rcPoll();
+  RcMode rc_mode = rcMode();
+  static RcMode rc_mode_prev = RC_NOT_FITTED;
+  if (rc_mode != rc_mode_prev) {
+    // Forget the last app command on every switch, so flipping back to AUTO
+    // waits for a fresh command instead of replaying an old one.
     ctrl_left = 0;
     ctrl_right = 0;
-    stop_vehicle();
+    Serial.print("RC mode: ");
+    Serial.println(rcModeName(rc_mode));
+    rc_mode_prev = rc_mode;
   }
 
-  // Hold the car back from whatever is in front. This has to run after the
-  // failsafe and before update_vehicle(), so the override is what gets driven.
-  stop_at_obstacle();
+  if (rc_mode == RC_MANUAL) {
+    drive_from_rc();
+  } else if (rc_mode == RC_HOLD || rc_mode == RC_LOST) {
+    stop_vehicle();
+  } else {
+    // RC_AUTO or no receiver: the app drives.
 
-  update_vehicle();
+    // Failsafe: without a heartbeat the car stops and straightens.
+    if (heartbeat_interval > 0 && (millis() - heartbeat_time) >= heartbeat_interval) {
+      ctrl_left = 0;
+      ctrl_right = 0;
+      stop_vehicle();
+    }
+
+    // Hold the car back from whatever is in front. This has to run after the
+    // failsafe and before update_vehicle(), so the override is what gets driven.
+    stop_at_obstacle();
+
+    update_vehicle();
+  }
 
 #if (HAS_LIDAR)
   // Report the forward-cone distance on the OpenBot 's' channel at the rate
@@ -612,6 +725,24 @@ void stop_vehicle() {
   pwm_write(PIN_ESC, CH_ESC, us_to_duty(ESC_NEUTRAL_US));
   unsigned int us = (int)SERVO_CENTER_US + SERVO_TRIM_US;
   pwm_write(PIN_SERVO, CH_SERVO, us_to_duty(us));
+}
+
+// MANUAL mode: the RC sticks drive the ESC and servo directly. Unlike the app
+// path there is no left/right mixing and no steering flip in reverse - the
+// steering stick is the steering wheel, as on any RC car. Reverse a channel on
+// the transmitter if it runs the wrong way. The servo trim, SERVO_REVERSED and
+// the ESC/servo limits in SETTINGS still apply.
+void drive_from_rc() {
+  int throttle = rcUsToDrive(rcThrottleUs(), RC_DEADBAND_US);
+  int steering = rcUsToDrive(rcSteerUs(), RC_DEADBAND_US);
+#if (HAS_RC && RC_MANUAL_OBSTACLE_STOP)
+  // Same rule as stop_at_obstacle(): block forward, allow backing away.
+  if (STOP_DISTANCE > 0 && throttle > 0 && lidarObstacleCm() <= (unsigned int)STOP_DISTANCE) {
+    throttle = 0;
+  }
+#endif
+  write_throttle(throttle);
+  write_steering(steering);
 }
 
 // Stop the car driving forward when something in the LiDAR's forward cone is

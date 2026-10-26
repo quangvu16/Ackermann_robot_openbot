@@ -1,6 +1,6 @@
 # Ackermann Robot (OpenBot, ESP32-S3)
 
-An off-road 4WD car with Ackermann steering, controlled by an ESP32-S3 and driven by a phone or a Linux computer using the [OpenBot](https://github.com/ob-f/OpenBot) apps. A LiDAR stops the car before it hits things, and the phone's own GPS drives waypoint missions.
+An off-road 4WD car with Ackermann steering, controlled by an ESP32-S3 and driven by a phone or a Linux computer using the [OpenBot](https://github.com/ob-f/OpenBot) apps. A LiDAR stops the car before it hits things, and the phone's own GPS drives waypoint missions. A FlySky FS-i6 RC transmitter can take over at any time: one switch picks MANUAL (RC sticks), AUTO (phone) or HOLD (stop) - see the [firmware guide](docs/FIRMWARE_GUIDE.md#9-rc-controller-manual-and-auto).
 
 ![ESP32-S3 pinout and wiring](docs/ESP32S3_PINOUT.svg)
 

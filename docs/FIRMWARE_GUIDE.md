@@ -14,10 +14,11 @@ This guide explains the ESP32-S3 firmware in `firmware/openbot-esp32s3/` in simp
 6. [First power-on checks](#6-first-power-on-checks)
 7. [Calibrate throttle and steering](#7-calibrate-throttle-and-steering)
 8. [Connect a phone or computer](#8-connect-a-phone-or-computer)
-9. [Commands the firmware understands](#9-commands-the-firmware-understands)
-10. [Safety features](#10-safety-features)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Questions to understand deeply](#12-questions-to-understand-deeply)
+9. [RC controller: manual and auto](#9-rc-controller-manual-and-auto)
+10. [Commands the firmware understands](#10-commands-the-firmware-understands)
+11. [Safety features](#11-safety-features)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Questions to understand deeply](#13-questions-to-understand-deeply)
 
 See also: [APPS_GUIDE.md](APPS_GUIDE.md) for the Android, iOS and Linux apps.
 
@@ -50,6 +51,7 @@ The firmware turns the phone's drive commands into signals for one **ESC** (moto
 | Steering servo | Front-axle steering | header comment |
 | LDROBOT LD14 or LD14P LiDAR | Obstacles and scans | settings section 6–7 |
 | LEDs + resistors | 2 indicators, 2 front, 2 rear, 3 status (yellow, green, blue) | settings section 5 |
+| FlySky FS-i6 + FS-iA6B receiver (optional) | MANUAL / AUTO / HOLD switch | settings section 12 |
 | 5 V supply | Board and LiDAR (about 200 mA for the LiDAR) | `lidar_ld14.h` wiring comment |
 | USB-C OTG cable (Android) | Phone link and power | `robot/README.md` |
 
@@ -71,6 +73,8 @@ The full map is in [ESP32S3_PINOUT.svg](ESP32S3_PINOUT.svg). The map uses GPIO n
 | 8 / 9 | Left / right rear light LED | brightness 0–255 (PWM) | `PIN_LED_LB`, `PIN_LED_RB` |
 | 10 / 11 / 12 | Status LED yellow / green / blue | on/off, set by the app | `PIN_LED_Y/G/B`, `process_notification_msg()` |
 | 13 | LiDAR **TX** wire | UART1 input | `LIDAR_RX_PIN`, `lidar_ld14.h` |
+| 14 | RC receiver iBUS signal (or CH1 in PWM mode) | UART2 input | `RC_IBUS_PIN`, section 9 |
+| 15 / 16 | RC CH2 / CH5 (PWM mode only) | pulse input | `RC_PWM_PIN_*`, section 9 |
 
 **LiDAR (4 wires):**
 - LiDAR TX → GPIO 13. It is 3.3 V logic, so no level shifter is needed.
@@ -119,6 +123,9 @@ The settings you most likely need:
 | `SERIAL_SCAN_STEP` | 2 | Set 1 on the native USB port | section 10b |
 | `SERVO_REVERSED` | 0 | The car steers the wrong way | section 3 |
 | `HAS_...` | 1 | A part is not fitted on your car | section 11 |
+| `HAS_RC`, `RC_PROTOCOL` | 1, `RC_IBUS` | `RC_PWM` for an FS-iA6 receiver; see section 9 | section 12 |
+| `RC_MODE_LOW/MID/HIGH` | MANUAL / AUTO / HOLD | What each switch position does | section 12 |
+| `RC_LOST_ACTION` | 0 (stop) | 1 = keep driving in AUTO when the radio drops | section 12 |
 
 - *Example:* your LiDAR is mounted turned 90° clockwise. Set `LIDAR_FORWARD_DEG` to the angle in the LiDAR's own clockwise frame where the car's nose sits, then check on the plan view that "front" is really in front.
 
@@ -190,7 +197,93 @@ The app finds the car by its Bluetooth service UUID `61653dc3-4021-4d1e-ba83-8b4
 
 ---
 
-## 9. Commands the firmware understands
+## 9. RC controller: manual and auto
+
+A FlySky FS-i6 transmitter can take over the car. A 3-position switch picks who drives:
+
+| Switch SwC (CH5) | Mode | Who drives |
+|---|---|---|
+| Up (about 1000 µs) | **MANUAL** | Your RC sticks. App drive commands are ignored; lights still work. |
+| Middle (about 1500 µs) | **AUTO** | The phone or computer, exactly as without a receiver. |
+| Down (about 2000 µs) | **HOLD** | Nobody. Throttle neutral, wheels straight. |
+
+- *Source:* `firmware/openbot-esp32s3/rc_input.h` and settings section 12 in `openbot-esp32s3.cpp`.
+- *Example:* the phone is driving a GPS mission and heads for a ditch. Flip SwC up and steer away with the sticks. Flip it to the middle and the phone drives again.
+
+**Why a 3-position switch?** Two positions would give MANUAL and AUTO only. The third, HOLD, is a quick stop you can reach with one finger, whoever is driving.
+
+### 9.1 Wiring
+
+**FS-iA6B receiver (has iBUS, recommended):** one cable from its **SERVO** iBUS port (not the **SENS** port).
+
+| Receiver SERVO port | ESP32-S3 |
+|---|---|
+| Signal | GPIO 14 |
+| + | 5 V rail |
+| − | GND |
+
+**FS-iA6 receiver (no iBUS):** one signal wire per channel, and set `RC_PROTOCOL RC_PWM`.
+
+| Receiver | ESP32-S3 |
+|---|---|
+| CH1 signal (steering) | GPIO 14 |
+| CH2 signal (throttle) | GPIO 15 |
+| CH5 signal (mode switch) | GPIO 16 |
+| + and − of any channel | 5 V and GND |
+
+- *Source:* settings section 12 (`RC_IBUS_PIN`, `RC_PWM_PIN_*`); the map is in [ESP32S3_PINOUT.svg](ESP32S3_PINOUT.svg).
+- iBUS uses the ESP32's third UART (UART2). UART0 is the USB link to the phone and UART1 is the LiDAR.
+- Many projects wire FlySky receiver signals straight to 3.3 V ESP32 pins. A 1 kΩ resistor in series on each signal wire adds protection. *(general practice)*
+- The firmware refuses to build if you set an RC pin to a reserved one (26–37, 0, 3, 45, 46, 19, 20, 43, 44).
+
+**Why iBUS?** One wire carries all channels, and every frame has a checksum, so a noisy wire gives "no data" instead of a wrong stick position.
+
+### 9.2 Set up the FS-i6 transmitter
+
+Menu names are from the FS-i6 manual and can differ slightly between firmware versions.
+
+1. **Pick the sticks.** The firmware steers with **CH1** and drives with **CH2**. On a mode-2 FS-i6 both are the **right stick**, which springs back to centre on both axes. Do **not** use the left stick (CH3) for throttle: it has no spring, so the car would keep driving when you let go.
+2. **Put SwC on CH5.** Hold **OK** → *Functions setup* → *Aux. channels* → *Channel 5* → **SwC**. Hold **CANCEL** to save.
+3. **Turn on iBUS (FS-iA6B only).** *System setup* → *Output mode* → *Serial*: **i-BUS**. It is usually on already.
+4. **Set the failsafe. This matters most.** *Functions setup* → *Failsafe*. Set **CH5 = SwC down (HOLD)** and **CH2 = stick centre**, then save. Without this, a FlySky receiver may keep sending the last stick positions after the radio link drops.
+5. **Fix directions.** If steering or throttle runs the wrong way in MANUAL, use *Functions setup* → *Reverse* for CH1 or CH2.
+
+- *Source:* channel choice and failsafe reason are in settings section 12 and the `rc_input.h` header comment.
+- *Example:* if you prefer a 2-position switch (SwA, SwB or SwD), put it on CH5 and set `RC_MODE_HIGH RC_AUTO`. Then up = MANUAL and down = AUTO.
+
+### 9.3 What happens if the radio link drops
+
+| Situation | What the firmware does | Source |
+|---|---|---|
+| No receiver heard since power-on | Acts as if none is fitted: the app drives | `rcDecideMode()` |
+| Receiver heard, then no valid frame for 250 ms | **Stops** (mode "LOST") | `RC_TIMEOUT_MS`, `RC_LOST_ACTION 0` |
+| Transmitter failsafe set as in 9.2 | Receiver sends CH5 = down, so the car **holds** | your transmitter |
+| `RC_LOST_ACTION 1` | Keeps driving **only if** it was in AUTO. MANUAL always stops | `rcDecideMode()` |
+
+**Why stop even in AUTO?** If you can't reach the car by radio, you can't take over. Stopping is the safe default. Use `RC_LOST_ACTION 1` only if the phone must finish missions beyond radio range.
+
+### 9.4 Good to know
+
+- **In MANUAL the LiDAR still blocks forward driving** into something closer than `STOP_DISTANCE`. Reverse is allowed. Set `RC_MANUAL_OBSTACLE_STOP 0` to turn this off.
+  - *Source:* `drive_from_rc()`.
+- **In MANUAL the steering stick works like a steering wheel,** also in reverse. (The app path flips steering in reverse; the RC path does not.)
+  - *Source:* `drive_from_rc()` comment.
+- **A centred stick really stops the car:** anything within ±30 µs of centre counts as zero (`RC_DEADBAND_US`).
+- **Every mode change clears the last app command.** Back in AUTO, the car waits for a fresh command from the app.
+  - *Source:* the "Who drives" block in `loop()`.
+- **The app does not yet know about MANUAL.** A GPS mission keeps running on the phone while you drive by hand, and it takes over again when you flip back to AUTO. Pause the mission first if you don't want that.
+
+### 9.5 Test it on blocks
+
+1. Power on. The Serial Monitor (115200) shows `RC     iBUS on GPIO14: CH1 steering, CH2 throttle, CH5 mode switch`.
+2. Flip SwC through all three positions. You should see `RC mode: MANUAL`, `RC mode: AUTO` and `RC mode: HOLD`.
+3. In **MANUAL**, the sticks move the wheels and the app's joystick does nothing.
+4. In **AUTO**, the app drives and the sticks do nothing.
+5. **Failsafe test:** in MANUAL, hold a little throttle, then switch the transmitter **off**. The wheels must stop within a quarter of a second, and the monitor shows `RC mode: HOLD` or `RC mode: LOST (failsafe)`. If the wheels keep turning, set the failsafe (9.2 step 4) before driving on the ground.
+
+---
+
+## 10. Commands the firmware understands
 
 Each message is one text line ending in a newline. The first letter says what it is.
 - *Source:* the "Protocol" comment in `openbot-esp32s3.cpp`.
@@ -221,7 +314,7 @@ Each message is one text line ending in a newline. The first letter says what it
 
 ---
 
-## 10. Safety features
+## 11. Safety features
 
 - **Failsafe from power-on.** If no command arrives for `CONTROL_TIMEOUT_MS` (1000 ms), throttle goes to neutral and the wheels straighten. It is active from boot, unlike the original OpenBot firmware.
   - *Source:* heartbeat comment and `stop_vehicle()`.
@@ -239,7 +332,7 @@ Each message is one text line ending in a newline. The first letter says what it
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 | Problem | What to check | Source |
 |---|---|---|
@@ -249,12 +342,14 @@ Each message is one text line ending in a newline. The first letter says what it
 | Car steers the wrong way | `SERVO_REVERSED 1` | settings section 3 |
 | Car stops on its own every second | No heartbeat or commands arrive; check the app link | heartbeat comment |
 | Phone connects but no data | Wrong USB socket for your **USB CDC On Boot** setting | `robot/README.md` |
+| RC sticks do nothing | Mode is not MANUAL, or the receiver is not heard; check the Serial Monitor for `RC mode:` lines and use the SERVO port, not SENS | section 9 |
+| Car keeps driving after the transmitter is off | Receiver holds the last values; set the transmitter failsafe | section 9.2 |
 | Build error: "Select an ESP32-S3 board" | Choose *ESP32S3 Dev Module* in Tools → Board | `#error` in `openbot-esp32s3.cpp` |
 | Build error: "openbot_settings.h must set OPENBOT_BOARD" | Your settings file is missing `#define OPENBOT_BOARD ESP32S3` | settings block |
 
 ---
 
-## 12. Questions to understand deeply
+## 13. Questions to understand deeply
 
 Try to answer each one before reading the source.
 
@@ -264,10 +359,12 @@ Try to answer each one before reading the source.
 4. **Why does the LiDAR get its own task on core 0?** What is worse: a late scan or a late drive command? *(`setup()`)*
 5. **Why are GPIO 26–37 forbidden on the N16R8 but not on every ESP32-S3?** What changes with octal PSRAM? *(settings section 5)*
 6. **Why is the obstacle distance capped at 300 cm when the LiDAR sees 8 m?** What draws that value in the app? *(`MAX_SONAR_DISTANCE`)*
-7. **Why keep your settings in `openbot_settings.h`?** What happens to edits in the `.cpp` when you update the firmware? *(settings block comment)*
+7. **Why does the RC stick steer the same way in reverse, while the app flips it?** Which feels right with a steering wheel, and which with a tank joystick? *(`drive_from_rc()`, `update_vehicle()`)*
+8. **Why should losing the radio stop the car even when the phone is driving?** *(section 9.3)*
+9. **Why keep your settings in `openbot_settings.h`?** What happens to edits in the `.cpp` when you update the firmware? *(settings block comment)*
 
 **Why ask these?** Each answer explains a safety or design choice. Knowing the reason lets you change the car without breaking what protects it.
 
 ---
 
-*Not verified on hardware:* this guide was written from the firmware code. The firmware has not been compiled with the Arduino toolchain or bench-tested as part of writing it. Test on blocks first.
+*Verification:* the firmware (including the RC code) compiles with the ESP32 Arduino core 3.3.12 for an ESP32-S3 with 16 MB flash and OPI PSRAM, in iBUS, PWM and no-receiver builds. The RC decoding and mode logic passed 25 host tests. It has not been tested on real hardware: test on blocks first.

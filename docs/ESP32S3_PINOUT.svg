@@ -1,154 +1,187 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1235" viewBox="0 0 1400 1235" font-family="Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1330" viewBox="0 0 1400 1330" font-family="Helvetica, Arial, sans-serif">
 <title>ESP32-S3 pinout and wiring map: OpenBot Ackermann robot</title>
 <desc>GPIO map of firmware/openbot-esp32s3. Left: pins the firmware drives and what they connect to. Right: phone link, power, LiDAR wiring and pins to avoid.</desc>
-<rect width="1400" height="1235" fill="#ffffff"/>
+<rect width="1400" height="1330" fill="#ffffff"/>
 <text x="700" y="54" text-anchor="middle" font-size="34" font-weight="700" fill="#202124">ESP32-S3 Pinout and Wiring: OpenBot Ackermann Robot</text>
 <text x="700" y="86" text-anchor="middle" font-size="17" fill="#5f6368">Firmware: firmware/openbot-esp32s3 (robot type RC_S3). Logical map by GPIO number, not the physical pad order of your board.</text>
-<rect x="600" y="130" width="200" height="760" rx="16" fill="#263238"/>
+<rect x="600" y="130" width="200" height="830" rx="16" fill="#263238"/>
 <text x="700.0" y="166" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">ESP32-S3</text>
 <text x="700.0" y="190" text-anchor="middle" font-size="14" fill="#cfd8dc">N16R8</text>
 <text x="30" y="160" font-size="19" font-weight="700" fill="#202124">Pins the firmware uses</text>
-<rect x="30" y="183" width="450" height="46" rx="8" fill="#e6f4ea" stroke="#1b7f3b" stroke-width="1.5"/>
-<text x="44" y="211" font-size="18" font-weight="700" fill="#1b7f3b">GPIO 1</text>
-<text x="140" y="202" font-size="16" font-weight="700" fill="#202124">ESC signal (throttle)</text>
-<text x="140" y="221" font-size="13.5" fill="#3c4043">50 Hz pulse 1000-2000 us, 1500 us = stop</text>
-<line x1="480" y1="205" x2="594" y2="205" stroke="#1b7f3b" stroke-width="2.5"/>
-<circle cx="600" cy="205" r="7" fill="#1b7f3b"/>
-<text x="614" y="210" font-size="14" fill="#eceff1">IO1</text>
-<rect x="30" y="239" width="450" height="46" rx="8" fill="#e6f4ea" stroke="#1b7f3b" stroke-width="1.5"/>
-<text x="44" y="267" font-size="18" font-weight="700" fill="#1b7f3b">GPIO 2</text>
-<text x="140" y="258" font-size="16" font-weight="700" fill="#202124">Steering servo signal</text>
-<text x="140" y="277" font-size="13.5" fill="#3c4043">50 Hz pulse 1000-2000 us, 1500 us = straight</text>
-<line x1="480" y1="261" x2="594" y2="261" stroke="#1b7f3b" stroke-width="2.5"/>
-<circle cx="600" cy="261" r="7" fill="#1b7f3b"/>
-<text x="614" y="266" font-size="14" fill="#eceff1">IO2</text>
-<rect x="30" y="295" width="450" height="46" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
-<text x="44" y="323" font-size="18" font-weight="700" fill="#b06000">GPIO 4</text>
-<text x="140" y="314" font-size="16" font-weight="700" fill="#202124">Left turn indicator LED</text>
-<text x="140" y="333" font-size="13.5" fill="#3c4043">on/off, blinks every 500 ms</text>
-<line x1="480" y1="317" x2="594" y2="317" stroke="#b06000" stroke-width="2.5"/>
-<circle cx="600" cy="317" r="7" fill="#b06000"/>
-<text x="614" y="322" font-size="14" fill="#eceff1">IO4</text>
-<rect x="30" y="351" width="450" height="46" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
-<text x="44" y="379" font-size="18" font-weight="700" fill="#b06000">GPIO 5</text>
-<text x="140" y="370" font-size="16" font-weight="700" fill="#202124">Right turn indicator LED</text>
-<text x="140" y="389" font-size="13.5" fill="#3c4043">on/off, blinks every 500 ms</text>
-<line x1="480" y1="373" x2="594" y2="373" stroke="#b06000" stroke-width="2.5"/>
-<circle cx="600" cy="373" r="7" fill="#b06000"/>
-<text x="614" y="378" font-size="14" fill="#eceff1">IO5</text>
-<rect x="30" y="407" width="450" height="46" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
-<text x="44" y="435" font-size="18" font-weight="700" fill="#b06000">GPIO 6</text>
-<text x="140" y="426" font-size="16" font-weight="700" fill="#202124">Left front light LED</text>
-<text x="140" y="445" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
-<line x1="480" y1="429" x2="594" y2="429" stroke="#b06000" stroke-width="2.5"/>
-<circle cx="600" cy="429" r="7" fill="#b06000"/>
-<text x="614" y="434" font-size="14" fill="#eceff1">IO6</text>
-<rect x="30" y="463" width="450" height="46" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
-<text x="44" y="491" font-size="18" font-weight="700" fill="#b06000">GPIO 7</text>
-<text x="140" y="482" font-size="16" font-weight="700" fill="#202124">Right front light LED</text>
-<text x="140" y="501" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
-<line x1="480" y1="485" x2="594" y2="485" stroke="#b06000" stroke-width="2.5"/>
-<circle cx="600" cy="485" r="7" fill="#b06000"/>
-<text x="614" y="490" font-size="14" fill="#eceff1">IO7</text>
-<rect x="30" y="519" width="450" height="46" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
-<text x="44" y="547" font-size="18" font-weight="700" fill="#b06000">GPIO 8</text>
-<text x="140" y="538" font-size="16" font-weight="700" fill="#202124">Left rear light LED</text>
-<text x="140" y="557" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
-<line x1="480" y1="541" x2="594" y2="541" stroke="#b06000" stroke-width="2.5"/>
-<circle cx="600" cy="541" r="7" fill="#b06000"/>
-<text x="614" y="546" font-size="14" fill="#eceff1">IO8</text>
-<rect x="30" y="575" width="450" height="46" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
-<text x="44" y="603" font-size="18" font-weight="700" fill="#b06000">GPIO 9</text>
-<text x="140" y="594" font-size="16" font-weight="700" fill="#202124">Right rear light LED</text>
-<text x="140" y="613" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
-<line x1="480" y1="597" x2="594" y2="597" stroke="#b06000" stroke-width="2.5"/>
-<circle cx="600" cy="597" r="7" fill="#b06000"/>
-<text x="614" y="602" font-size="14" fill="#eceff1">IO9</text>
-<rect x="30" y="631" width="450" height="46" rx="8" fill="#e8f0fe" stroke="#1a5fb4" stroke-width="1.5"/>
-<text x="44" y="659" font-size="18" font-weight="700" fill="#1a5fb4">GPIO 10</text>
-<text x="140" y="650" font-size="16" font-weight="700" fill="#202124">Status LED yellow</text>
-<text x="140" y="669" font-size="13.5" fill="#3c4043">on/off, set by the app</text>
-<line x1="480" y1="653" x2="594" y2="653" stroke="#1a5fb4" stroke-width="2.5"/>
-<circle cx="600" cy="653" r="7" fill="#1a5fb4"/>
-<text x="614" y="658" font-size="14" fill="#eceff1">IO10</text>
-<rect x="30" y="687" width="450" height="46" rx="8" fill="#e8f0fe" stroke="#1a5fb4" stroke-width="1.5"/>
-<text x="44" y="715" font-size="18" font-weight="700" fill="#1a5fb4">GPIO 11</text>
-<text x="140" y="706" font-size="16" font-weight="700" fill="#202124">Status LED green</text>
-<text x="140" y="725" font-size="13.5" fill="#3c4043">on/off, set by the app</text>
-<line x1="480" y1="709" x2="594" y2="709" stroke="#1a5fb4" stroke-width="2.5"/>
-<circle cx="600" cy="709" r="7" fill="#1a5fb4"/>
-<text x="614" y="714" font-size="14" fill="#eceff1">IO11</text>
-<rect x="30" y="743" width="450" height="46" rx="8" fill="#e8f0fe" stroke="#1a5fb4" stroke-width="1.5"/>
-<text x="44" y="771" font-size="18" font-weight="700" fill="#1a5fb4">GPIO 12</text>
-<text x="140" y="762" font-size="16" font-weight="700" fill="#202124">Status LED blue</text>
-<text x="140" y="781" font-size="13.5" fill="#3c4043">on/off, set by the app</text>
-<line x1="480" y1="765" x2="594" y2="765" stroke="#1a5fb4" stroke-width="2.5"/>
-<circle cx="600" cy="765" r="7" fill="#1a5fb4"/>
-<text x="614" y="770" font-size="14" fill="#eceff1">IO12</text>
-<rect x="30" y="799" width="450" height="46" rx="8" fill="#f3e8fd" stroke="#7b3fb0" stroke-width="1.5"/>
-<text x="44" y="827" font-size="18" font-weight="700" fill="#7b3fb0">GPIO 13</text>
-<text x="140" y="818" font-size="16" font-weight="700" fill="#202124">LiDAR TX (input)</text>
-<text x="140" y="837" font-size="13.5" fill="#3c4043">UART1 RX: 115200 baud LD14, 230400 LD14P</text>
-<line x1="480" y1="821" x2="594" y2="821" stroke="#7b3fb0" stroke-width="2.5"/>
-<circle cx="600" cy="821" r="7" fill="#7b3fb0"/>
-<text x="614" y="826" font-size="14" fill="#eceff1">IO13</text>
-<rect x="880" y="190" width="490" height="140" rx="10" fill="#e0f2f1" stroke="#00796b" stroke-width="1.5"/>
-<text x="896" y="218" font-size="18" font-weight="700" fill="#00796b">Phone link</text>
-<text x="896" y="244" font-size="14.5" fill="#202124">USB-C cable, 115200 baud (Android drives over USB):</text>
-<text x="896" y="265" font-size="14.5" fill="#202124">• COM/UART port: UART0 = GPIO 43 (TX), 44 (RX)</text>
-<text x="896" y="286" font-size="14.5" fill="#202124">• native USB port: GPIO 19 (D-), 20 (D+)</text>
-<text x="896" y="307" font-size="14.5" fill="#202124">Bluetooth LE: device name "OpenBot" (iPhone drives here)</text>
-<line x1="806" y1="230" x2="880" y2="230" stroke="#00796b" stroke-width="2.5"/>
-<circle cx="800" cy="230" r="7" fill="#00796b"/>
-<text x="786" y="235" text-anchor="end" font-size="14" fill="#eceff1">IO43/44</text>
-<rect x="880" y="350" width="490" height="140" rx="10" fill="#fef7e0" stroke="#3c4043" stroke-width="1.5"/>
-<text x="896" y="378" font-size="18" font-weight="700" fill="#3c4043">Power and ground</text>
-<text x="896" y="404" font-size="14.5" fill="#202124">5 V rail: ESP32 5V pin and LiDAR VCC (about 200 mA).</text>
-<text x="896" y="425" font-size="14.5" fill="#202124">Join every GND: ESP32, ESC, servo, LiDAR and LEDs.</text>
-<text x="896" y="446" font-size="14.5" fill="#202124">Never power the LiDAR from the 3V3 pin.</text>
-<text x="896" y="467" font-size="14.5" fill="#202124">Servo power: from the ESC's BEC (general practice).</text>
-<line x1="806" y1="390" x2="880" y2="390" stroke="#3c4043" stroke-width="2.5"/>
-<circle cx="800" cy="390" r="7" fill="#3c4043"/>
-<text x="786" y="395" text-anchor="end" font-size="14" fill="#eceff1">5V/GND</text>
-<rect x="880" y="510" width="490" height="140" rx="10" fill="#f3e8fd" stroke="#7b3fb0" stroke-width="1.5"/>
-<text x="896" y="538" font-size="18" font-weight="700" fill="#7b3fb0">LiDAR LD14 / LD14P wiring</text>
-<text x="896" y="564" font-size="14.5" fill="#202124">LiDAR TX   -&gt;  GPIO 13 (3.3 V logic, no level shifter)</text>
-<text x="896" y="585" font-size="14.5" fill="#202124">LiDAR RX   -&gt;  not wired (LIDAR_TX_PIN = -1)</text>
-<text x="896" y="606" font-size="14.5" fill="#202124">LiDAR GND  -&gt;  GND (shared with the ESP32)</text>
-<text x="896" y="627" font-size="14.5" fill="#202124">LiDAR VCC  -&gt;  5 V rail</text>
-<line x1="806" y1="550" x2="880" y2="550" stroke="#7b3fb0" stroke-width="2.5"/>
-<circle cx="800" cy="550" r="7" fill="#7b3fb0"/>
-<text x="786" y="555" text-anchor="end" font-size="14" fill="#eceff1">IO13</text>
-<rect x="880" y="670" width="490" height="190" rx="10" fill="#fce8e6" stroke="#b3261e" stroke-width="1.5"/>
-<text x="896" y="698" font-size="18" font-weight="700" fill="#b3261e">Do not use for anything else</text>
-<text x="896" y="724" font-size="14.5" fill="#202124">• GPIO 26 to 37: in-package flash and octal PSRAM.</text>
-<text x="896" y="745" font-size="14.5" fill="#202124">   Wiring anything here makes the board unbootable.</text>
-<text x="896" y="766" font-size="14.5" fill="#202124">• GPIO 0, 3, 45, 46: strapping pins (boot mode, JTAG,</text>
-<text x="896" y="787" font-size="14.5" fill="#202124">   VDD_SPI voltage, ROM print).</text>
-<text x="896" y="808" font-size="14.5" fill="#202124">• GPIO 19, 20, 43, 44: the phone link above.</text>
-<text x="896" y="829" font-size="14.5" fill="#202124">Free GPIOs not listed here can be used for add-ons.</text>
-<line x1="806" y1="710" x2="880" y2="710" stroke="#b3261e" stroke-width="2.5"/>
-<circle cx="800" cy="710" r="7" fill="#b3261e"/>
-<text x="786" y="715" text-anchor="end" font-size="14" fill="#eceff1">26-37</text>
-<text x="30" y="935" font-size="19" font-weight="700" fill="#202124">Legend</text>
-<rect x="30" y="953" width="22" height="22" rx="4" fill="#1b7f3b"/>
-<text x="62" y="970" font-size="16" fill="#202124">Drive: throttle and steering</text>
-<rect x="370" y="953" width="22" height="22" rx="4" fill="#b06000"/>
-<text x="402" y="970" font-size="16" fill="#202124">Lights: indicators, front, rear</text>
-<rect x="710" y="953" width="22" height="22" rx="4" fill="#1a5fb4"/>
-<text x="742" y="970" font-size="16" fill="#202124">Status LEDs</text>
-<rect x="1050" y="953" width="22" height="22" rx="4" fill="#7b3fb0"/>
-<text x="1082" y="970" font-size="16" fill="#202124">LiDAR data</text>
-<rect x="30" y="989" width="22" height="22" rx="4" fill="#00796b"/>
-<text x="62" y="1006" font-size="16" fill="#202124">Phone link</text>
-<rect x="370" y="989" width="22" height="22" rx="4" fill="#3c4043"/>
-<text x="402" y="1006" font-size="16" fill="#202124">Power and ground</text>
-<rect x="710" y="989" width="22" height="22" rx="4" fill="#b3261e"/>
-<text x="742" y="1006" font-size="16" fill="#202124">Reserved: do not use</text>
-<text x="30" y="1060" font-size="19" font-weight="700" fill="#202124">Notes</text>
-<text x="30" y="1092" font-size="15.5" fill="#202124">- LEDs are active-high: GPIO -&gt; resistor -&gt; LED -&gt; GND. A 220-330 ohm resistor suits most LEDs (general practice).</text>
-<text x="30" y="1119" font-size="15.5" fill="#202124">- At boot the left, then the right indicator blinks once: a quick check that GPIO 4 and 5 are wired.</text>
-<text x="30" y="1146" font-size="15.5" fill="#202124">- The ESC sees neutral (1500 us) at boot so it can arm. Calibrate with the wheels off the ground.</text>
-<text x="30" y="1173" font-size="15.5" fill="#202124">- Failsafe: no command for CONTROL_TIMEOUT_MS (1000 ms) -&gt; throttle neutral, wheels straight.</text>
-<text x="30" y="1200" font-size="15.5" fill="#202124">- Pins are set in the SETTINGS block of openbot-esp32s3.cpp (or your openbot_settings.h). Change both if you rewire.</text>
+<rect x="30" y="179" width="450" height="43" rx="8" fill="#e6f4ea" stroke="#1b7f3b" stroke-width="1.5"/>
+<text x="44" y="206" font-size="18" font-weight="700" fill="#1b7f3b">GPIO 1</text>
+<text x="140" y="197" font-size="16" font-weight="700" fill="#202124">ESC signal (throttle)</text>
+<text x="140" y="216" font-size="13.5" fill="#3c4043">50 Hz pulse 1000-2000 us, 1500 us = stop</text>
+<line x1="480" y1="200" x2="594" y2="200" stroke="#1b7f3b" stroke-width="2.5"/>
+<circle cx="600" cy="200" r="7" fill="#1b7f3b"/>
+<text x="614" y="205" font-size="14" fill="#eceff1">IO1</text>
+<rect x="30" y="231" width="450" height="43" rx="8" fill="#e6f4ea" stroke="#1b7f3b" stroke-width="1.5"/>
+<text x="44" y="258" font-size="18" font-weight="700" fill="#1b7f3b">GPIO 2</text>
+<text x="140" y="249" font-size="16" font-weight="700" fill="#202124">Steering servo signal</text>
+<text x="140" y="268" font-size="13.5" fill="#3c4043">50 Hz pulse 1000-2000 us, 1500 us = straight</text>
+<line x1="480" y1="252" x2="594" y2="252" stroke="#1b7f3b" stroke-width="2.5"/>
+<circle cx="600" cy="252" r="7" fill="#1b7f3b"/>
+<text x="614" y="257" font-size="14" fill="#eceff1">IO2</text>
+<rect x="30" y="283" width="450" height="43" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
+<text x="44" y="310" font-size="18" font-weight="700" fill="#b06000">GPIO 4</text>
+<text x="140" y="301" font-size="16" font-weight="700" fill="#202124">Left turn indicator LED</text>
+<text x="140" y="320" font-size="13.5" fill="#3c4043">on/off, blinks every 500 ms</text>
+<line x1="480" y1="304" x2="594" y2="304" stroke="#b06000" stroke-width="2.5"/>
+<circle cx="600" cy="304" r="7" fill="#b06000"/>
+<text x="614" y="309" font-size="14" fill="#eceff1">IO4</text>
+<rect x="30" y="335" width="450" height="43" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
+<text x="44" y="362" font-size="18" font-weight="700" fill="#b06000">GPIO 5</text>
+<text x="140" y="353" font-size="16" font-weight="700" fill="#202124">Right turn indicator LED</text>
+<text x="140" y="372" font-size="13.5" fill="#3c4043">on/off, blinks every 500 ms</text>
+<line x1="480" y1="356" x2="594" y2="356" stroke="#b06000" stroke-width="2.5"/>
+<circle cx="600" cy="356" r="7" fill="#b06000"/>
+<text x="614" y="361" font-size="14" fill="#eceff1">IO5</text>
+<rect x="30" y="387" width="450" height="43" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
+<text x="44" y="414" font-size="18" font-weight="700" fill="#b06000">GPIO 6</text>
+<text x="140" y="405" font-size="16" font-weight="700" fill="#202124">Left front light LED</text>
+<text x="140" y="424" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
+<line x1="480" y1="408" x2="594" y2="408" stroke="#b06000" stroke-width="2.5"/>
+<circle cx="600" cy="408" r="7" fill="#b06000"/>
+<text x="614" y="413" font-size="14" fill="#eceff1">IO6</text>
+<rect x="30" y="439" width="450" height="43" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
+<text x="44" y="466" font-size="18" font-weight="700" fill="#b06000">GPIO 7</text>
+<text x="140" y="457" font-size="16" font-weight="700" fill="#202124">Right front light LED</text>
+<text x="140" y="476" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
+<line x1="480" y1="460" x2="594" y2="460" stroke="#b06000" stroke-width="2.5"/>
+<circle cx="600" cy="460" r="7" fill="#b06000"/>
+<text x="614" y="465" font-size="14" fill="#eceff1">IO7</text>
+<rect x="30" y="491" width="450" height="43" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
+<text x="44" y="518" font-size="18" font-weight="700" fill="#b06000">GPIO 8</text>
+<text x="140" y="509" font-size="16" font-weight="700" fill="#202124">Left rear light LED</text>
+<text x="140" y="528" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
+<line x1="480" y1="512" x2="594" y2="512" stroke="#b06000" stroke-width="2.5"/>
+<circle cx="600" cy="512" r="7" fill="#b06000"/>
+<text x="614" y="517" font-size="14" fill="#eceff1">IO8</text>
+<rect x="30" y="543" width="450" height="43" rx="8" fill="#fef3e2" stroke="#b06000" stroke-width="1.5"/>
+<text x="44" y="570" font-size="18" font-weight="700" fill="#b06000">GPIO 9</text>
+<text x="140" y="561" font-size="16" font-weight="700" fill="#202124">Right rear light LED</text>
+<text x="140" y="580" font-size="13.5" fill="#3c4043">brightness 0-255 (PWM)</text>
+<line x1="480" y1="564" x2="594" y2="564" stroke="#b06000" stroke-width="2.5"/>
+<circle cx="600" cy="564" r="7" fill="#b06000"/>
+<text x="614" y="569" font-size="14" fill="#eceff1">IO9</text>
+<rect x="30" y="595" width="450" height="43" rx="8" fill="#e8f0fe" stroke="#1a5fb4" stroke-width="1.5"/>
+<text x="44" y="622" font-size="18" font-weight="700" fill="#1a5fb4">GPIO 10</text>
+<text x="140" y="613" font-size="16" font-weight="700" fill="#202124">Status LED yellow</text>
+<text x="140" y="632" font-size="13.5" fill="#3c4043">on/off, set by the app</text>
+<line x1="480" y1="616" x2="594" y2="616" stroke="#1a5fb4" stroke-width="2.5"/>
+<circle cx="600" cy="616" r="7" fill="#1a5fb4"/>
+<text x="614" y="621" font-size="14" fill="#eceff1">IO10</text>
+<rect x="30" y="647" width="450" height="43" rx="8" fill="#e8f0fe" stroke="#1a5fb4" stroke-width="1.5"/>
+<text x="44" y="674" font-size="18" font-weight="700" fill="#1a5fb4">GPIO 11</text>
+<text x="140" y="665" font-size="16" font-weight="700" fill="#202124">Status LED green</text>
+<text x="140" y="684" font-size="13.5" fill="#3c4043">on/off, set by the app</text>
+<line x1="480" y1="668" x2="594" y2="668" stroke="#1a5fb4" stroke-width="2.5"/>
+<circle cx="600" cy="668" r="7" fill="#1a5fb4"/>
+<text x="614" y="673" font-size="14" fill="#eceff1">IO11</text>
+<rect x="30" y="699" width="450" height="43" rx="8" fill="#e8f0fe" stroke="#1a5fb4" stroke-width="1.5"/>
+<text x="44" y="726" font-size="18" font-weight="700" fill="#1a5fb4">GPIO 12</text>
+<text x="140" y="717" font-size="16" font-weight="700" fill="#202124">Status LED blue</text>
+<text x="140" y="736" font-size="13.5" fill="#3c4043">on/off, set by the app</text>
+<line x1="480" y1="720" x2="594" y2="720" stroke="#1a5fb4" stroke-width="2.5"/>
+<circle cx="600" cy="720" r="7" fill="#1a5fb4"/>
+<text x="614" y="725" font-size="14" fill="#eceff1">IO12</text>
+<rect x="30" y="751" width="450" height="43" rx="8" fill="#f3e8fd" stroke="#7b3fb0" stroke-width="1.5"/>
+<text x="44" y="778" font-size="18" font-weight="700" fill="#7b3fb0">GPIO 13</text>
+<text x="140" y="769" font-size="16" font-weight="700" fill="#202124">LiDAR TX (input)</text>
+<text x="140" y="788" font-size="13.5" fill="#3c4043">UART1 RX: 115200 baud LD14, 230400 LD14P</text>
+<line x1="480" y1="772" x2="594" y2="772" stroke="#7b3fb0" stroke-width="2.5"/>
+<circle cx="600" cy="772" r="7" fill="#7b3fb0"/>
+<text x="614" y="777" font-size="14" fill="#eceff1">IO13</text>
+<rect x="30" y="803" width="450" height="43" rx="8" fill="#fce4ec" stroke="#c2185b" stroke-width="1.5"/>
+<text x="44" y="830" font-size="18" font-weight="700" fill="#c2185b">GPIO 14</text>
+<text x="140" y="821" font-size="16" font-weight="700" fill="#202124">RC receiver iBUS (input)</text>
+<text x="140" y="840" font-size="13.5" fill="#3c4043">FS-iA6B SERVO port; or CH1 steering (PWM mode)</text>
+<line x1="480" y1="824" x2="594" y2="824" stroke="#c2185b" stroke-width="2.5"/>
+<circle cx="600" cy="824" r="7" fill="#c2185b"/>
+<text x="614" y="829" font-size="14" fill="#eceff1">IO14</text>
+<rect x="30" y="855" width="450" height="43" rx="8" fill="#fce4ec" stroke="#c2185b" stroke-width="1.5"/>
+<text x="44" y="882" font-size="18" font-weight="700" fill="#c2185b">GPIO 15</text>
+<text x="140" y="873" font-size="16" font-weight="700" fill="#202124">RC CH2 throttle (input)</text>
+<text x="140" y="892" font-size="13.5" fill="#3c4043">PWM mode only (FS-iA6)</text>
+<line x1="480" y1="876" x2="594" y2="876" stroke="#c2185b" stroke-width="2.5"/>
+<circle cx="600" cy="876" r="7" fill="#c2185b"/>
+<text x="614" y="881" font-size="14" fill="#eceff1">IO15</text>
+<rect x="30" y="907" width="450" height="43" rx="8" fill="#fce4ec" stroke="#c2185b" stroke-width="1.5"/>
+<text x="44" y="934" font-size="18" font-weight="700" fill="#c2185b">GPIO 16</text>
+<text x="140" y="925" font-size="16" font-weight="700" fill="#202124">RC CH5 mode switch (input)</text>
+<text x="140" y="944" font-size="13.5" fill="#3c4043">PWM mode only (FS-iA6)</text>
+<line x1="480" y1="928" x2="594" y2="928" stroke="#c2185b" stroke-width="2.5"/>
+<circle cx="600" cy="928" r="7" fill="#c2185b"/>
+<text x="614" y="933" font-size="14" fill="#eceff1">IO16</text>
+<rect x="880" y="175" width="490" height="140" rx="10" fill="#e0f2f1" stroke="#00796b" stroke-width="1.5"/>
+<text x="896" y="203" font-size="18" font-weight="700" fill="#00796b">Phone link</text>
+<text x="896" y="229" font-size="14.5" fill="#202124">USB-C cable, 115200 baud (Android drives over USB):</text>
+<text x="896" y="250" font-size="14.5" fill="#202124">• COM/UART port: UART0 = GPIO 43 (TX), 44 (RX)</text>
+<text x="896" y="271" font-size="14.5" fill="#202124">• native USB port: GPIO 19 (D-), 20 (D+)</text>
+<text x="896" y="292" font-size="14.5" fill="#202124">Bluetooth LE: device name "OpenBot" (iPhone drives here)</text>
+<line x1="806" y1="215" x2="880" y2="215" stroke="#00796b" stroke-width="2.5"/>
+<circle cx="800" cy="215" r="7" fill="#00796b"/>
+<text x="786" y="220" text-anchor="end" font-size="14" fill="#eceff1">IO43/44</text>
+<rect x="880" y="330" width="490" height="140" rx="10" fill="#fef7e0" stroke="#3c4043" stroke-width="1.5"/>
+<text x="896" y="358" font-size="18" font-weight="700" fill="#3c4043">Power and ground</text>
+<text x="896" y="384" font-size="14.5" fill="#202124">5 V rail: ESP32 5V pin and LiDAR VCC (about 200 mA).</text>
+<text x="896" y="405" font-size="14.5" fill="#202124">Join every GND: ESP32, ESC, servo, LiDAR and LEDs.</text>
+<text x="896" y="426" font-size="14.5" fill="#202124">Never power the LiDAR from the 3V3 pin.</text>
+<text x="896" y="447" font-size="14.5" fill="#202124">Servo power: from the ESC's BEC (general practice).</text>
+<line x1="806" y1="370" x2="880" y2="370" stroke="#3c4043" stroke-width="2.5"/>
+<circle cx="800" cy="370" r="7" fill="#3c4043"/>
+<text x="786" y="375" text-anchor="end" font-size="14" fill="#eceff1">5V/GND</text>
+<rect x="880" y="485" width="490" height="140" rx="10" fill="#f3e8fd" stroke="#7b3fb0" stroke-width="1.5"/>
+<text x="896" y="513" font-size="18" font-weight="700" fill="#7b3fb0">LiDAR LD14 / LD14P wiring</text>
+<text x="896" y="539" font-size="14.5" fill="#202124">LiDAR TX   -&gt;  GPIO 13 (3.3 V logic, no level shifter)</text>
+<text x="896" y="560" font-size="14.5" fill="#202124">LiDAR RX   -&gt;  not wired (LIDAR_TX_PIN = -1)</text>
+<text x="896" y="581" font-size="14.5" fill="#202124">LiDAR GND  -&gt;  GND (shared with the ESP32)</text>
+<text x="896" y="602" font-size="14.5" fill="#202124">LiDAR VCC  -&gt;  5 V rail</text>
+<line x1="806" y1="525" x2="880" y2="525" stroke="#7b3fb0" stroke-width="2.5"/>
+<circle cx="800" cy="525" r="7" fill="#7b3fb0"/>
+<text x="786" y="530" text-anchor="end" font-size="14" fill="#eceff1">IO13</text>
+<rect x="880" y="640" width="490" height="160" rx="10" fill="#fce4ec" stroke="#c2185b" stroke-width="1.5"/>
+<text x="896" y="668" font-size="18" font-weight="700" fill="#c2185b">RC receiver (FlySky FS-i6)</text>
+<text x="896" y="694" font-size="14.5" fill="#202124">FS-iA6B: iBUS SERVO port signal -&gt; GPIO 14, + -&gt; 5 V, - -&gt; GND</text>
+<text x="896" y="715" font-size="14.5" fill="#202124">FS-iA6 (PWM): CH1 -&gt; GPIO 14, CH2 -&gt; GPIO 15, CH5 -&gt; GPIO 16</text>
+<text x="896" y="736" font-size="14.5" fill="#202124">Switch SwC on CH5: up = MANUAL (RC drives),</text>
+<text x="896" y="757" font-size="14.5" fill="#202124">   middle = AUTO (phone drives), down = HOLD (stop)</text>
+<text x="896" y="778" font-size="14.5" fill="#202124">RC link lost for 250 ms -&gt; stop.</text>
+<line x1="806" y1="680" x2="880" y2="680" stroke="#c2185b" stroke-width="2.5"/>
+<circle cx="800" cy="680" r="7" fill="#c2185b"/>
+<text x="786" y="685" text-anchor="end" font-size="14" fill="#eceff1">IO14</text>
+<rect x="880" y="815" width="490" height="172" rx="10" fill="#fce8e6" stroke="#b3261e" stroke-width="1.5"/>
+<text x="896" y="843" font-size="18" font-weight="700" fill="#b3261e">Do not use for anything else</text>
+<text x="896" y="869" font-size="14.5" fill="#202124">• GPIO 26 to 37: in-package flash and octal PSRAM.</text>
+<text x="896" y="890" font-size="14.5" fill="#202124">   Wiring anything here makes the board unbootable.</text>
+<text x="896" y="911" font-size="14.5" fill="#202124">• GPIO 0, 3, 45, 46: strapping pins (boot mode, JTAG,</text>
+<text x="896" y="932" font-size="14.5" fill="#202124">   VDD_SPI voltage, ROM print).</text>
+<text x="896" y="953" font-size="14.5" fill="#202124">• GPIO 19, 20, 43, 44: the phone link above.</text>
+<text x="896" y="974" font-size="14.5" fill="#202124">Still free: GPIO 17, 18, 21, 38-42, 47, 48 (check your board).</text>
+<line x1="806" y1="855" x2="880" y2="855" stroke="#b3261e" stroke-width="2.5"/>
+<circle cx="800" cy="855" r="7" fill="#b3261e"/>
+<text x="786" y="860" text-anchor="end" font-size="14" fill="#eceff1">26-37</text>
+<text x="30" y="1005" font-size="19" font-weight="700" fill="#202124">Legend</text>
+<rect x="30" y="1023" width="22" height="22" rx="4" fill="#1b7f3b"/>
+<text x="62" y="1040" font-size="16" fill="#202124">Drive: throttle and steering</text>
+<rect x="370" y="1023" width="22" height="22" rx="4" fill="#b06000"/>
+<text x="402" y="1040" font-size="16" fill="#202124">Lights: indicators, front, rear</text>
+<rect x="710" y="1023" width="22" height="22" rx="4" fill="#1a5fb4"/>
+<text x="742" y="1040" font-size="16" fill="#202124">Status LEDs</text>
+<rect x="1050" y="1023" width="22" height="22" rx="4" fill="#7b3fb0"/>
+<text x="1082" y="1040" font-size="16" fill="#202124">LiDAR data</text>
+<rect x="30" y="1059" width="22" height="22" rx="4" fill="#c2185b"/>
+<text x="62" y="1076" font-size="16" fill="#202124">RC receiver</text>
+<rect x="370" y="1059" width="22" height="22" rx="4" fill="#00796b"/>
+<text x="402" y="1076" font-size="16" fill="#202124">Phone link</text>
+<rect x="710" y="1059" width="22" height="22" rx="4" fill="#3c4043"/>
+<text x="742" y="1076" font-size="16" fill="#202124">Power and ground</text>
+<rect x="1050" y="1059" width="22" height="22" rx="4" fill="#b3261e"/>
+<text x="1082" y="1076" font-size="16" fill="#202124">Reserved: do not use</text>
+<text x="30" y="1125" font-size="19" font-weight="700" fill="#202124">Notes</text>
+<text x="30" y="1157" font-size="15.5" fill="#202124">- LEDs are active-high: GPIO -&gt; resistor -&gt; LED -&gt; GND. A 220-330 ohm resistor suits most LEDs (general practice).</text>
+<text x="30" y="1184" font-size="15.5" fill="#202124">- At boot the left, then the right indicator blinks once: a quick check that GPIO 4 and 5 are wired.</text>
+<text x="30" y="1211" font-size="15.5" fill="#202124">- The ESC sees neutral (1500 us) at boot so it can arm. Calibrate with the wheels off the ground.</text>
+<text x="30" y="1238" font-size="15.5" fill="#202124">- Failsafe: no command for CONTROL_TIMEOUT_MS (1000 ms) -&gt; throttle neutral, wheels straight.</text>
+<text x="30" y="1265" font-size="15.5" fill="#202124">- Pins are set in the SETTINGS block of openbot-esp32s3.cpp (or your openbot_settings.h). Change both if you rewire.</text>
 </svg>
