@@ -1,5 +1,8 @@
 # Builds the Android robot app and runs its unit tests on every push that
-# touches it. The debug APK is kept as a build artifact (Actions tab).
+# touches it. The debug APK is kept as a build artifact (Actions tab) and, for
+# pushes to main, published to the apk-latest branch so a phone can download it
+# without a GitHub account:
+#   https://github.com/quangvu16/Ackermann_robot_openbot/raw/apk-latest/OpenBot-Ackermann-debug.apk
 name: Android build
 
 on:
@@ -12,6 +15,9 @@ on:
     paths:
       - 'robot/android/**'
   workflow_dispatch:
+
+permissions:
+  contents: write  # to publish the APK to the apk-latest branch
 
 jobs:
   build:
@@ -53,3 +59,33 @@ jobs:
         with:
           name: robot-debug-apk
           path: robot/android/app/build/outputs/apk/debug/*.apk
+
+      # One commit on an orphan branch, force-pushed each time, so the repo history
+      # does not grow with every APK.
+      - name: Publish the APK to the apk-latest branch
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          out="$RUNNER_TEMP/apk-latest"
+          mkdir -p "$out"
+          cp "$apk" "$out/OpenBot-Ackermann-debug.apk"
+          cd "$out"
+          {
+            echo "# OpenBot Ackermann - latest debug APK"
+            echo
+            echo "Built from commit ${GITHUB_SHA::7} on $(date -u '+%Y-%m-%d %H:%M UTC')."
+            echo
+            echo "Download on the phone:"
+            echo "https://github.com/${GITHUB_REPOSITORY}/raw/apk-latest/OpenBot-Ackermann-debug.apk"
+            echo
+            echo "Signed with a debug key. Uninstall an OpenBot app signed with another key first."
+          } > README.md
+          git init -q -b apk-latest
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add OpenBot-Ackermann-debug.apk README.md
+          git commit -q -m "Debug APK for ${GITHUB_SHA::7}"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk-latest
+          echo "::notice::APK published: https://github.com/${GITHUB_REPOSITORY}/raw/apk-latest/OpenBot-Ackermann-debug.apk"
