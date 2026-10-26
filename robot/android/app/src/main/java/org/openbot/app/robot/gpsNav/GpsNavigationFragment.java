@@ -2,6 +2,8 @@ package org.openbot.app.robot.gpsNav;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.net.ConnectivityManager;
@@ -21,6 +23,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.BufferedReader;
 import java.io.File;
@@ -178,6 +181,65 @@ public class GpsNavigationFragment extends ControlsFragment
     updateHud(null);
     setupObjectAvoidanceControls(
         binding.objectAvoidance.avoidToggle, binding.objectAvoidance.avoidInfo);
+    setupPanel();
+  }
+
+  private static final String PREF_PANEL_OPEN = "gps_mission_panel_open";
+
+  /**
+   * The bottom sheet works like Object Tracking's: drag it, tap the handle, or tap "Hide data".
+   * Collapsed, it still shows the header (status, connection, Start / Stop / Return home), so a
+   * running mission can always be paused or stopped. The choice is remembered.
+   */
+  private void setupPanel() {
+    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(requireContext());
+    BottomSheetBehavior<View> sheet = BottomSheetBehavior.from(binding.missionBottomSheet);
+    binding.sheetHeader.post(
+        () -> {
+          if (binding != null) sheet.setPeekHeight(binding.sheetHeader.getHeight());
+        });
+    boolean open = prefs.getBoolean(PREF_PANEL_OPEN, true);
+    sheet.setState(open ? BottomSheetBehavior.STATE_EXPANDED : BottomSheetBehavior.STATE_COLLAPSED);
+    showPanelLabel(open);
+    sheet.addBottomSheetCallback(
+        new BottomSheetBehavior.BottomSheetCallback() {
+          @Override
+          public void onStateChanged(@NonNull View bottomSheet, int newState) {
+            if (newState == BottomSheetBehavior.STATE_EXPANDED
+                || newState == BottomSheetBehavior.STATE_COLLAPSED) {
+              boolean nowOpen = newState == BottomSheetBehavior.STATE_EXPANDED;
+              prefs.edit().putBoolean(PREF_PANEL_OPEN, nowOpen).apply();
+              showPanelLabel(nowOpen);
+            }
+          }
+
+          @Override
+          public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
+        });
+    View.OnClickListener toggle =
+        v ->
+            sheet.setState(
+                sheet.getState() == BottomSheetBehavior.STATE_EXPANDED
+                    ? BottomSheetBehavior.STATE_COLLAPSED
+                    : BottomSheetBehavior.STATE_EXPANDED);
+    binding.sheetHandleArea.setOnClickListener(toggle);
+    binding.togglePanelButton.setOnClickListener(toggle);
+    updateConnectionIcon();
+  }
+
+  private void showPanelLabel(boolean open) {
+    if (binding == null) return;
+    binding.togglePanelButton.setText(open ? R.string.gps_panel_hide : R.string.gps_panel_show);
+  }
+
+  /** USB or Bluetooth icon, green while the car is connected, grey otherwise. */
+  private void updateConnectionIcon() {
+    if (binding == null) return;
+    boolean bluetooth = vehicle != null && "Bluetooth".equals(vehicle.getConnectionType());
+    boolean connected = vehicle != null && vehicle.isConnected();
+    binding.connectionIcon.setImageResource(bluetooth ? R.drawable.ic_bluetooth : R.drawable.ic_usb);
+    binding.connectionIcon.setImageTintList(
+        ColorStateList.valueOf(connected ? Color.rgb(0x2E, 0x7D, 0x32) : Color.rgb(0x9E, 0x9E, 0x9E)));
   }
 
   @Override
@@ -762,6 +824,7 @@ public class GpsNavigationFragment extends ControlsFragment
     if (binding == null) {
       return;
     }
+    updateConnectionIcon();
     Waypoint target = currentTarget();
     if (target == null || lastLocation == null) {
       binding.hudDistance.setText(R.string.gps_nav_distance_placeholder);

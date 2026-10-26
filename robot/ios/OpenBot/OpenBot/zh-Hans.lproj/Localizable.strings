@@ -275,3 +275,9 @@
 "dash_setup_desc" = "检查传感器、灯光和避障。";
 "dash_more_show" = "更多功能";
 "dash_more_hide" = "收起功能";
+
+/* GPS Mission panel */
+"gps_panel_hide" = "隐藏数据";
+"gps_panel_show" = "显示数据";
+"gps_panel_toggle" = "显示或隐藏任务数据";
+"gps_panel_connection" = "小车连接";

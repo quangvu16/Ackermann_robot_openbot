@@ -275,3 +275,9 @@
 "dash_setup_desc" = "Vérifier capteurs, lumières et évitement d'obstacles.";
 "dash_more_show" = "Plus de fonctions";
 "dash_more_hide" = "Moins de fonctions";
+
+/* GPS Mission panel */
+"gps_panel_hide" = "Masquer les données";
+"gps_panel_show" = "Afficher les données";
+"gps_panel_toggle" = "Afficher ou masquer les données de mission";
+"gps_panel_connection" = "Connexion à la voiture";

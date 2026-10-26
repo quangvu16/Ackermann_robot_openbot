@@ -275,3 +275,9 @@
 "dash_setup_desc" = "Sensoren, Licht und Hindernis-Stopp prüfen.";
 "dash_more_show" = "Weitere Funktionen";
 "dash_more_hide" = "Weniger Funktionen";
+
+/* GPS Mission panel */
+"gps_panel_hide" = "Daten ausblenden";
+"gps_panel_show" = "Daten anzeigen";
+"gps_panel_toggle" = "Missionsdaten ein- oder ausblenden";
+"gps_panel_connection" = "Verbindung zum Auto";

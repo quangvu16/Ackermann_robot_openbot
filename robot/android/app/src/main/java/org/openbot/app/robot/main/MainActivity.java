@@ -68,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
 
   // The big red STOP button: on every screen while the car is connected (or while stopped).
   private StopButtonView stopButton;
+  // Where STOP sits: bottom-right above the bottom bar on the home screens, top-right on driving
+  // screens (no toolbar there, and the bottom belongs to their control sheets).
+  private boolean stopOnHomeScreen = true;
+  private int systemBarTop = 0;
+  private int systemBarBottom = 0;
   private final Runnable stopButtonRefresh =
       new Runnable() {
         @Override
@@ -84,28 +89,24 @@ public class MainActivity extends AppCompatActivity {
     // STOP first, the RC face after it: in MANUAL the face covers STOP, because then the RC
     // transmitter drives and the app's STOP does not apply.
     stopButton = new StopButtonView(this);
-    // Bottom-right, where a floating action button lives on Android, above the bottom navigation
-    // bar and the system bars (the window is edge-to-edge, so their height is added below).
     float density = getResources().getDisplayMetrics().density;
     int stopSize = (int) (88 * density);
-    int stopBottomBase = (int) ((56 + 20) * density);
     FrameLayout.LayoutParams stopParams =
         new FrameLayout.LayoutParams(stopSize, stopSize, Gravity.END | Gravity.BOTTOM);
     stopParams.setMarginEnd((int) (16 * density));
-    stopParams.bottomMargin = stopBottomBase;
     stopButton.setVisibility(View.GONE);
     stopButton.setOnClickListener(
         v -> {
           if (vehicle != null) vehicle.getEmergencyStop().toggle();
         });
     ((ViewGroup) getWindow().getDecorView()).addView(stopButton, stopParams);
+    // The window is edge-to-edge, so the system bars' height is added to STOP's margins.
     ViewCompat.setOnApplyWindowInsetsListener(
         stopButton,
         (v, insets) -> {
-          FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
-          lp.bottomMargin =
-              stopBottomBase + insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
-          v.setLayoutParams(lp);
+          systemBarTop = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+          systemBarBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+          placeStopButton();
           return insets;
         });
 
@@ -219,10 +220,13 @@ public class MainActivity extends AppCompatActivity {
               || destination.getId() == R.id.profileFragment) {
             toolbar.setVisibility(View.VISIBLE);
             bottomNavigationView.setVisibility(View.VISIBLE);
+            stopOnHomeScreen = true;
           } else {
             toolbar.setVisibility(View.GONE);
             bottomNavigationView.setVisibility(View.GONE);
+            stopOnHomeScreen = false;
           }
+          placeStopButton();
 
           // To update the toolbar icon according to the Fragment.
           Menu menu = toolbar.getMenu();
@@ -316,6 +320,26 @@ public class MainActivity extends AppCompatActivity {
     viewModel.setRcMode(mode);
     rcModeHandler.removeCallbacks(rcModeTimeout);
     rcModeHandler.postDelayed(rcModeTimeout, RC_REPORT_TIMEOUT_MS);
+  }
+
+  /**
+   * Home screens: bottom-right, above the bottom navigation bar (the usual floating-button spot).
+   * Driving screens: top-right, where the hidden toolbar was, clear of their bottom control sheets.
+   */
+  private void placeStopButton() {
+    if (stopButton == null) return;
+    float density = getResources().getDisplayMetrics().density;
+    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) stopButton.getLayoutParams();
+    if (stopOnHomeScreen) {
+      lp.gravity = Gravity.END | Gravity.BOTTOM;
+      lp.topMargin = 0;
+      lp.bottomMargin = (int) ((56 + 20) * density) + systemBarBottom;
+    } else {
+      lp.gravity = Gravity.END | Gravity.TOP;
+      lp.topMargin = (int) (12 * density) + systemBarTop;
+      lp.bottomMargin = 0;
+    }
+    stopButton.setLayoutParams(lp);
   }
 
   /** Shows STOP while connected, RESUME while stopped, nothing otherwise. */

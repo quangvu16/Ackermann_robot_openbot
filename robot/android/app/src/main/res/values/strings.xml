@@ -371,4 +371,9 @@
     <string name="dash_setup_desc">Check sensors, lights and obstacle avoidance.</string>
     <string name="dash_more_show">More features</string>
     <string name="dash_more_hide">Fewer features</string>
+    <!-- GPS Mission panel -->
+    <string name="gps_panel_hide">Hide data</string>
+    <string name="gps_panel_show">Show data</string>
+    <string name="gps_panel_toggle">Show or hide the mission data</string>
+    <string name="gps_panel_connection">Car connection</string>
 </resources>

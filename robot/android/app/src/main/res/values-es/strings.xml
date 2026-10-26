@@ -212,4 +212,9 @@
     <string name="dash_setup_desc">Revisa sensores, luces y la evitación de obstáculos.</string>
     <string name="dash_more_show">Más funciones</string>
     <string name="dash_more_hide">Menos funciones</string>
+    <!-- GPS Mission panel -->
+    <string name="gps_panel_hide">Ocultar datos</string>
+    <string name="gps_panel_show">Mostrar datos</string>
+    <string name="gps_panel_toggle">Mostrar u ocultar los datos de la misión</string>
+    <string name="gps_panel_connection">Conexión con el coche</string>
 </resources>

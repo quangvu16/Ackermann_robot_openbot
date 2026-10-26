@@ -275,3 +275,9 @@
 "dash_setup_desc" = "센서, 조명, 장애물 회피를 확인합니다.";
 "dash_more_show" = "더 많은 기능";
 "dash_more_hide" = "기능 줄이기";
+
+/* GPS Mission panel */
+"gps_panel_hide" = "데이터 숨기기";
+"gps_panel_show" = "데이터 보기";
+"gps_panel_toggle" = "미션 데이터 보기/숨기기";
+"gps_panel_connection" = "차량 연결";

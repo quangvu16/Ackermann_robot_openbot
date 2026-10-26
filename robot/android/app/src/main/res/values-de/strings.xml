@@ -212,4 +212,9 @@
     <string name="dash_setup_desc">Sensoren, Licht und Hindernis-Stopp prüfen.</string>
     <string name="dash_more_show">Weitere Funktionen</string>
     <string name="dash_more_hide">Weniger Funktionen</string>
+    <!-- GPS Mission panel -->
+    <string name="gps_panel_hide">Daten ausblenden</string>
+    <string name="gps_panel_show">Daten anzeigen</string>
+    <string name="gps_panel_toggle">Missionsdaten ein- oder ausblenden</string>
+    <string name="gps_panel_connection">Verbindung zum Auto</string>
 </resources>

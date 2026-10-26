@@ -212,4 +212,9 @@
     <string name="dash_setup_desc">Vérifier capteurs, lumières et évitement d\'obstacles.</string>
     <string name="dash_more_show">Plus de fonctions</string>
     <string name="dash_more_hide">Moins de fonctions</string>
+    <!-- GPS Mission panel -->
+    <string name="gps_panel_hide">Masquer les données</string>
+    <string name="gps_panel_show">Afficher les données</string>
+    <string name="gps_panel_toggle">Afficher ou masquer les données de mission</string>
+    <string name="gps_panel_connection">Connexion à la voiture</string>
 </resources>

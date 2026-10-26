@@ -212,4 +212,9 @@
     <string name="dash_setup_desc">检查传感器、灯光和避障。</string>
     <string name="dash_more_show">更多功能</string>
     <string name="dash_more_hide">收起功能</string>
+    <!-- GPS Mission panel -->
+    <string name="gps_panel_hide">隐藏数据</string>
+    <string name="gps_panel_show">显示数据</string>
+    <string name="gps_panel_toggle">显示或隐藏任务数据</string>
+    <string name="gps_panel_connection">小车连接</string>
 </resources>

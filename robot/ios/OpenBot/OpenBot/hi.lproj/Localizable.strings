@@ -275,3 +275,9 @@
 "dash_setup_desc" = "सेंसर, लाइट और बाधा से बचाव जाँचें।";
 "dash_more_show" = "और सुविधाएँ";
 "dash_more_hide" = "कम सुविधाएँ";
+
+/* GPS Mission panel */
+"gps_panel_hide" = "डेटा छिपाएँ";
+"gps_panel_show" = "डेटा दिखाएँ";
+"gps_panel_toggle" = "मिशन डेटा दिखाएँ या छिपाएँ";
+"gps_panel_connection" = "कार कनेक्शन";

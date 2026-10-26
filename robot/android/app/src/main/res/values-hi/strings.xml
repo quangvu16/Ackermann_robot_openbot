@@ -212,4 +212,9 @@
     <string name="dash_setup_desc">सेंसर, लाइट और बाधा से बचाव जाँचें।</string>
     <string name="dash_more_show">और सुविधाएँ</string>
     <string name="dash_more_hide">कम सुविधाएँ</string>
+    <!-- GPS Mission panel -->
+    <string name="gps_panel_hide">डेटा छिपाएँ</string>
+    <string name="gps_panel_show">डेटा दिखाएँ</string>
+    <string name="gps_panel_toggle">मिशन डेटा दिखाएँ या छिपाएँ</string>
+    <string name="gps_panel_connection">कार कनेक्शन</string>
 </resources>
