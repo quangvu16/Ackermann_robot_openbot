@@ -6,7 +6,6 @@ import Foundation
 import AVFoundation
 import Starscream
 import WebRTC
-import FirebaseAuth
 /// function to create webRTC Delegate
 class ServerWebrtcDelegate: WebRTCClientDelegate {
     /// tracks the active web controller delegate to avoid duplicate message handling
@@ -14,7 +13,7 @@ class ServerWebrtcDelegate: WebRTCClientDelegate {
     var mSocket = NativeWebSocket.shared;
     var useCustomCapturer: Bool = true
     let webSocketMsgHandler = WebSocketMessageHandler();
-    let roomId =  FirebaseSupport.auth?.currentUser?.email ?? ""
+    let roomId =  GoogleAccount.email ?? ""
 
     /// callback to check the generate candidate and send to the controller
     func didGenerateCandidate(iceCandidate: RTCIceCandidate) {

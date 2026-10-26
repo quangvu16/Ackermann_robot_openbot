@@ -5,7 +5,6 @@
 import UIKit
 import AVFoundation
 import Network
-import FirebaseAuth
 
 /// Implementation of the FreeRoamController
 class FreeRoamController: CameraController, UIGestureRecognizerDelegate {
@@ -27,7 +26,7 @@ class FreeRoamController: CameraController, UIGestureRecognizerDelegate {
     var audioPlayer = AudioPlayer.shared
     private let mainView = UIView()
     let mSocket = NativeWebSocket.shared;
-    let roomId: String = FirebaseSupport.auth?.currentUser?.email ?? ""
+    let roomId: String = GoogleAccount.email ?? ""
     private var serverWebrtcDelegate: ServerWebrtcDelegate?
     let webSocketMsgHandler = WebSocketMessageHandler();
     let fragmentType = FragmentType.shared

@@ -145,7 +145,7 @@ Source folder: `robot/ios/OpenBot/`. Build details: `robot/ios/README.md`.
 ### 4.1 Build
 
 1. Open the project in **Xcode** and choose the **OpenBot** configuration.
-2. Set up your own **Firebase** project, as described in `robot/ios/OpenBot/OpenBot/Authentication/README.md`.
+2. Run `pod install` in `robot/ios/OpenBot`, then open `OpenBot.xcworkspace` (not the `.xcodeproj`). The iOS app no longer uses **Firebase**, so no Firebase project is needed. Google sign-in (for Google Drive projects) only needs an OAuth client ID, set as `GIDClientID` in `Info.plist`; without one, sign-in is simply off.
 3. Use your own Apple ID team for signing (*Automatically manage signing* is on).
    - *Source:* `robot/ios/README.md`, Prerequisites.
    - *Note:* the README lists deployment target iOS 15.5 and also says iOS 13 or later. Check the target in Xcode.

@@ -4,10 +4,8 @@
 
 import Foundation
 import GoogleSignIn
-import FirebaseCore
 import GoogleAPIClientForREST
 import GTMSessionFetcher
-import FirebaseAuth
 
 class Authentication {
     private let service: GTLRDriveService = GTLRDriveService()
@@ -20,7 +18,7 @@ class Authentication {
     }
 
     func googleAuthLogin() {
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
+        guard let clientID = GoogleAccount.clientID else {
             return
         }
         googleSignInFunc(clientId: clientID);
@@ -61,10 +59,6 @@ class Authentication {
             let user = signInResult?.user
             let userId = user?.userID ?? ""
             let idToken = user?.idToken?.tokenString
-            let credential = GoogleAuthProvider.credential(withIDToken: idToken!,
-                    accessToken: user?.accessToken.tokenString ?? "")
-            FirebaseSupport.auth?.signIn(with: credential) { result, error in
-            }
             NotificationCenter.default.post(name: .googleSignIn, object: nil)
             do {
                 try self.saveConfigJsonToDrive()
@@ -77,7 +71,7 @@ class Authentication {
             let userLastName = user?.profile?.familyName ?? ""
             let userEmail = user?.profile?.email ?? ""
             let googleProfilePicURL = user?.profile?.imageURL(withDimension: 150)?.absoluteString ?? ""
-            let imgUrl = FirebaseSupport.auth?.currentUser?.photoURL;
+            let imgUrl = GoogleAccount.photoURL(dimension: 150)
             let driveScope = "https://www.googleapis.com/auth/drive.file"
             let grantedScopes = user?.grantedScopes
             if grantedScopes == nil || !grantedScopes!.contains(driveScope) {

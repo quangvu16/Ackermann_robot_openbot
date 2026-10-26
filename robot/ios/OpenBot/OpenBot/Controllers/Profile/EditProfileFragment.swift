@@ -5,9 +5,6 @@
 import Foundation
 import UIKit
 import GoogleSignIn
-import FirebaseAuth
-import FirebaseStorage
-import FirebaseFirestore
 /***
  class for fragment of edit profile section
  */
@@ -83,7 +80,9 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
         profileIcon = UIImageView(frame: CGRect(x: (width - 121) / 2, y: safeAreaLayoutValue.top + adapted(dimensionSize: 20, to: .height), width: adapted(dimensionSize: 100, to: .height), height: adapted(dimensionSize: 100, to: .height)));
         profileIcon.layer.cornerRadius = profileIcon.frame.size.width / 2
         profileIcon.clipsToBounds = true
-        if let imgUrl = FirebaseSupport.auth?.currentUser?.photoURL ?? authentication.googleSignIn.currentUser?.profile?.imageURL(withDimension: 100) {
+        if let saved = LocalProfile.photo {
+            profileIcon.image = saved
+        } else if let imgUrl = GoogleAccount.photoURL(dimension: 100) {
             profileIcon.load(url: imgUrl)
         }
         view.addSubview(profileIcon)
@@ -118,9 +117,9 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
     private func createTextFields() {
         firstNameField = CustomTextField(frame: CGRect(x: 17, y: firstName.frame.origin.y + adapted(dimensionSize: 30, to: .height), width: width - 34, height: 47));
         view.addSubview(firstNameField);
-        setTextField(textField: firstNameField, value: getFirstName(name: FirebaseSupport.auth?.currentUser?.displayName ?? Strings.unknownFallback));
+        setTextField(textField: firstNameField, value: getFirstName(name: LocalProfile.displayName ?? GoogleAccount.displayName ?? Strings.unknownFallback));
         lastNameField = CustomTextField(frame: CGRect(x: 17, y: lastName.frame.origin.y + adapted(dimensionSize: 30, to: .height), width: width - 34, height: 47));
-        setTextField(textField: lastNameField, value: getLastName(name: FirebaseSupport.auth?.currentUser?.displayName ?? ""));
+        setTextField(textField: lastNameField, value: getLastName(name: LocalProfile.displayName ?? GoogleAccount.displayName ?? ""));
         dobField = CustomTextField(frame: CGRect(x: 17, y: dob.frame.origin.y + adapted(dimensionSize: 30, to: .height), width: width - 34, height: 47));
         self.setTextField(textField: self.dobField, value: Date.getCurrentDate());
         getDOB { dob in
@@ -269,106 +268,15 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
      - Parameter sender:
      */
     @objc func saveChanges(_ sender: UIButton) {
-        createOverlayAlert();
-        updateDOb(date: dobField.text ?? Date.getCurrentDate());
-        let credential = GoogleAuthProvider.credential(withIDToken: (authentication.googleSignIn.currentUser?.idToken!.tokenString)!, accessToken: (authentication.googleSignIn.currentUser?.accessToken.tokenString)!)
-        FirebaseSupport.auth?.signIn(with: credential) { result, error in
-            if let user = result?.user {
-                let changeRequest = user.createProfileChangeRequest()
-                let firstName = self.firstNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let lastName = self.lastNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                changeRequest.displayName = firstName + " " + lastName
-                self.uploadImage();
-                changeRequest.commitChanges { error in
-                    if let error = error {
-                        print("Error updating profile: \(error.localizedDescription)")
-                    } else {
-                        self.alert.dismiss(animated: true);
-                        self.showToast(Strings.profileUpdatedSuccessToast, icon: UIImage(named: "check")!);
-                    }
-                }
-            }
+        // The profile is kept on this phone (the app no longer uses Firebase).
+        updateDOb(date: dobField.text ?? Date.getCurrentDate())
+        let firstName = firstNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let lastName = lastNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        LocalProfile.displayName = (firstName + " " + lastName).trimmingCharacters(in: .whitespaces)
+        if let image = profileIcon.image {
+            LocalProfile.photo = image
         }
-    }
-
-    /**
-     A function for update of user image. Calls after done button tap
-     */
-    private func uploadImage() {
-        // Get a reference to the storage service (none when Firebase is off)
-        guard FirebaseSupport.isConfigured else { return }
-        let storage = Storage.storage()
-
-// Create a reference to the image file in Firebase storage using the user's UID as the filename
-        let uid = FirebaseSupport.auth?.currentUser?.uid ?? ""
-        let imageRef = storage.reference().child("profile_pictures/\(uid).jpg")
-
-// Convert the image to data
-        guard let image = profileIcon.image, let imageData = image.jpegData(compressionQuality: 0.5) else {
-            print("Error converting image to data")
-            return
-        }
-
-        let maxSize: CGFloat = 1024 // maximum size of the image
-        let actualHeight = image.size.height
-        let actualWidth = image.size.width
-        var maxHeight = maxSize
-        var maxWidth = maxSize
-
-// Check the aspect ratio of the image
-        let aspectRatio = actualWidth / actualHeight
-
-        if aspectRatio > 1 {
-            // Landscape image
-            maxWidth = maxSize
-            maxHeight = maxSize / aspectRatio
-        } else {
-            // Portrait image
-            maxHeight = maxSize
-            maxWidth = maxSize * aspectRatio
-        }
-
-        let rect = CGRect(x: 0.0, y: 0.0, width: maxWidth, height: maxHeight)
-        UIGraphicsBeginImageContext(rect.size)
-        image.draw(in: rect)
-        let compressedImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-
-        guard (compressedImage?.jpegData(compressionQuality: 0.5)) != nil else {
-            print("Error compressing image")
-            return
-        }
-// Upload the image data to Firebase storage
-        let uploadTask = imageRef.putData(imageData, metadata: nil) { metadata, error in
-            if let error = error {
-                print("Error uploading image: \(error.localizedDescription)")
-            } else {
-                // Get the download URL of the uploaded image
-                imageRef.downloadURL { url, error in
-                    if let error = error {
-                        print("Error getting download URL: \(error.localizedDescription)")
-                    } else {
-                        // Update the user's profile with the download URL of the uploaded image
-                        let changeRequest = FirebaseSupport.auth?.currentUser?.createProfileChangeRequest()
-                        changeRequest?.photoURL = url
-                        changeRequest?.commitChanges { error in
-                            if let error = error {
-                                print("Error updating profile: \(error.localizedDescription)")
-                            } else {
-                                print("Profile updated successfully")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-// Observe the upload progress
-        uploadTask.observe(.progress) { snapshot in
-            let percentComplete = Double(snapshot.progress!.completedUnitCount) / Double(snapshot.progress!.totalUnitCount) * 100.0
-            print("Upload progress: \(percentComplete)%")
-        }
-
+        showToast(Strings.profileUpdatedSuccessToast, icon: UIImage(named: "check") ?? UIImage())
     }
 
     /**
@@ -415,30 +323,7 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
     }
 
     private func updateDOb(date : String) {
-        let dateString = date // The string representation of the DOB
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd/MM/yyyy"
-
-        if let date = dateFormatter.date(from: dateString) {
-            let timestamp = Timestamp(date: date)
-
-
-            if let uid = FirebaseSupport.auth?.currentUser?.uid {
-                let userRef = Firestore.firestore().collection("users").document(uid)
-                let data: [String: Any] = [
-                    "dob": timestamp
-                ]
-                userRef.setData(data, merge: true) { error in
-                    if let error = error {
-                        // Handle the error
-                        print("Error updating user profile: \(error.localizedDescription)")
-                    } else {
-                        // User profile updated successfully
-                        print("User profile updated successfully!")
-                    }
-                }
-            }
-        }
+        LocalProfile.dateOfBirth = date
     }
 
     func textFieldDidBeginEditing(_ textField: UITextField) {
@@ -484,33 +369,38 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
      - Parameter completion:
      */
     private func getDOB(completion: @escaping (String?) -> Void) {
-        if let uid = FirebaseSupport.auth?.currentUser?.uid {
-            let userRef = Firestore.firestore().collection("users").document(uid)
-
-            userRef.getDocument { (document, error) in
-                if let document = document, document.exists {
-                    if let dobTimestamp = document.data()?["dob"] as? Timestamp {
-                        let dobDate = dobTimestamp.dateValue()
-
-                        let dateFormatter = DateFormatter()
-                        dateFormatter.dateFormat = "dd/MM/yyyy"
-                        let dobString = dateFormatter.string(from: dobDate)
-
-                        completion(dobString)
-                    } else {
-                        completion(nil)
-                    }
-                } else {
-                    completion(nil)
-                }
-            }
-        } else {
-            completion(nil)
-        }
+        completion(LocalProfile.dateOfBirth)
     }
 }
 
+/// Profile details kept on this phone: display name, date of birth and photo.
+enum LocalProfile {
+    private static let defaults = UserDefaults.standard
 
+    static var displayName: String? {
+        get { defaults.string(forKey: "profile.displayName") }
+        set { defaults.set(newValue, forKey: "profile.displayName") }
+    }
 
+    static var dateOfBirth: String? {
+        get { defaults.string(forKey: "profile.dateOfBirth") }
+        set { defaults.set(newValue, forKey: "profile.dateOfBirth") }
+    }
 
+    private static var photoFile: URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("profile.jpg")
+    }
 
+    static var photo: UIImage? {
+        get { photoFile.flatMap { UIImage(contentsOfFile: $0.path) } }
+        set {
+            guard let file = photoFile else { return }
+            if let data = newValue?.jpegData(compressionQuality: 0.7) {
+                try? data.write(to: file)
+            } else {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
+    }
+}

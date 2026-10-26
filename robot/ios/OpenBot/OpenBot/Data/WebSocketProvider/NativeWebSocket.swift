@@ -4,7 +4,6 @@
 
 import Foundation
 import GoogleSignIn
-import FirebaseAuth
 
 @available(iOS 13.0, *)
 class NativeWebSocket: NSObject, WebSocketProvider {
@@ -15,7 +14,7 @@ class NativeWebSocket: NSObject, WebSocketProvider {
     }
 
     var roomId: String {
-        FirebaseSupport.auth?.currentUser?.email ?? ""
+        GoogleAccount.email ?? ""
     }
     static let shared: NativeWebSocket = NativeWebSocket();
     var delegate: WebSocketProviderDelegate?

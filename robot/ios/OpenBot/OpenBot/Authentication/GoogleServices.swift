@@ -4,7 +4,6 @@
 
 import Foundation
 import GoogleSignIn
-import FirebaseCore
 import GoogleAPIClientForREST
 import GTMSessionFetcher
 
@@ -19,7 +18,7 @@ class GoogleServices {
     }
 
     func googleAuthLogin() {
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
+        guard let clientID = GoogleAccount.clientID else {
             return
         }
         googleSignInFunc(clientId: clientID);

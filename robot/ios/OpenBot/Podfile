@@ -8,13 +8,10 @@ target 'OpenBot' do
   pod 'DropDown'
   pod 'Starscream', '~> 3.0.1'
   pod 'GoogleWebRTC'
-  pod 'Firebase/Core'
-  pod 'Firebase/Storage'
-  pod 'Firebase/Auth'
+  # No Firebase: Google sign-in (for Google Drive projects) works on its own.
   pod 'GoogleSignIn'
   pod 'GoogleSignInSwiftSupport'
   pod 'GoogleAPIClientForREST/Drive'
-  pod 'FirebaseFirestore'
   pod 'ZIPFoundation', '~> 0.9'
   # Pods for OpenBot
 

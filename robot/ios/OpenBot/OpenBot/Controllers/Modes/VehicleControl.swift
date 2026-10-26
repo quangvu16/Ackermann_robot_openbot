@@ -4,7 +4,6 @@
 
 import Foundation
 import UIKit
-import FirebaseAuth
 
 class VehicleControl: UIView {
     var controlMode: ControlMode = ControlMode.PHONE;
@@ -18,7 +17,7 @@ class VehicleControl: UIView {
     var downSwipe: Bool = false
     let audioPlayer = AudioPlayer.shared;
     let mSocket = NativeWebSocket.shared;
-    let roomId: String = FirebaseSupport.auth?.currentUser?.email ?? ""
+    let roomId: String = GoogleAccount.email ?? ""
     private var serverWebrtcDelegate: ServerWebrtcDelegate?
     var preferencesManager : SharedPreferencesManager = SharedPreferencesManager()
 

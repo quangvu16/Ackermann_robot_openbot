@@ -33,7 +33,7 @@ docs/                       Guides and the pinout map
 
 ## Not included
 
-The Firebase config files (`google-services.json`, `GoogleService-Info.plist`) are not in this repo, because they hold API keys. Add your own before building the Android or iOS app.
+The Android app's Firebase config (`google-services.json`) is not in this repo, because it holds API keys; the build uses a dummy one. The iOS app no longer uses Firebase at all: it only needs `pod install`. Google sign-in on iOS (for Google Drive projects) turns on when you add an OAuth client ID as `GIDClientID` in `Info.plist`.
 
 ## Safety
 
