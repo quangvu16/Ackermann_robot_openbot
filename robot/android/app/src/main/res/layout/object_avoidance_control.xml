@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Object avoidance controls, shared by every screen that drives the car.
+
+     The checkbox is the quick-disable ArduPilot insists on having within reach before first use
+     (their RCx_OPTION = 40 safety switch): when the car is misreading the room, turning the law
+     off has to be one tap from whatever screen you happen to be on, not a detour through settings.
+
+     The TextView underneath is the live status - clear, holding at a distance, backing away, or
+     blind because the LiDAR stopped reporting. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <CheckBox
+        android:id="@+id/avoidToggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:padding="4dp"
+        android:text="@string/objectAvoidance"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/avoid_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="32dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:text="@string/objectAvoidanceIdle"
+        android:textColor="@android:color/black"
+        android:textSize="13sp"
+        tools:text="Object avoidance on — clear" />
+</LinearLayout>

@@ -1,0 +1,19 @@
+# build output and caches
+build/
+.gradle/
+.idea/
+__pycache__/
+.pytest_cache/
+.venv*/
+Pods/
+DerivedData/
+xcuserdata/
+.DS_Store
+
+# local and secret files: keep these out of GitHub
+local.properties
+google-services.json
+GoogleService-Info.plist
+*.jks
+*.keystore
+openbot_settings.h
