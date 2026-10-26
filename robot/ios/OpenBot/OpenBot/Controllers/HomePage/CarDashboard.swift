@@ -119,7 +119,6 @@ final class StopButtonOverlay {
         stopButton.titleLabel?.font = UIFont.systemFont(ofSize: 20, weight: .heavy)
         stopButton.titleLabel?.adjustsFontSizeToFitWidth = true
         stopButton.titleLabel?.minimumScaleFactor = 0.5
-        stopButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
         stopButton.setTitleColor(.white, for: .normal)
         stopButton.addTarget(self, action: #selector(tapped), for: .touchUpInside)
         return stopButton
