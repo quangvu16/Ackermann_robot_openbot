@@ -14,7 +14,7 @@ class ServerWebrtcDelegate: WebRTCClientDelegate {
     var mSocket = NativeWebSocket.shared;
     var useCustomCapturer: Bool = true
     let webSocketMsgHandler = WebSocketMessageHandler();
-    let roomId =  Auth.auth().currentUser?.email ?? ""
+    let roomId =  FirebaseSupport.auth?.currentUser?.email ?? ""
 
     /// callback to check the generate candidate and send to the controller
     func didGenerateCandidate(iceCandidate: RTCIceCandidate) {

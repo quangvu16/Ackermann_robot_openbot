@@ -15,7 +15,7 @@ class NativeWebSocket: NSObject, WebSocketProvider {
     }
 
     var roomId: String {
-        Auth.auth().currentUser?.email ?? ""
+        FirebaseSupport.auth?.currentUser?.email ?? ""
     }
     static let shared: NativeWebSocket = NativeWebSocket();
     var delegate: WebSocketProviderDelegate?

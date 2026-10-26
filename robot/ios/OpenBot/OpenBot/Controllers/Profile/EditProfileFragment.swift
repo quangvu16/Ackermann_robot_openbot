@@ -83,8 +83,9 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
         profileIcon = UIImageView(frame: CGRect(x: (width - 121) / 2, y: safeAreaLayoutValue.top + adapted(dimensionSize: 20, to: .height), width: adapted(dimensionSize: 100, to: .height), height: adapted(dimensionSize: 100, to: .height)));
         profileIcon.layer.cornerRadius = profileIcon.frame.size.width / 2
         profileIcon.clipsToBounds = true
-        let imgUrl = (Auth.auth().currentUser?.photoURL ?? authentication.googleSignIn.currentUser?.profile?.imageURL(withDimension: 100))!;
-        profileIcon.load(url: imgUrl)
+        if let imgUrl = FirebaseSupport.auth?.currentUser?.photoURL ?? authentication.googleSignIn.currentUser?.profile?.imageURL(withDimension: 100) {
+            profileIcon.load(url: imgUrl)
+        }
         view.addSubview(profileIcon)
         profileIcon.contentMode = .scaleAspectFill
         let uploadImgIcon = UIImage(named: "uploadImage");
@@ -117,9 +118,9 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
     private func createTextFields() {
         firstNameField = CustomTextField(frame: CGRect(x: 17, y: firstName.frame.origin.y + adapted(dimensionSize: 30, to: .height), width: width - 34, height: 47));
         view.addSubview(firstNameField);
-        setTextField(textField: firstNameField, value: getFirstName(name: Auth.auth().currentUser?.displayName ?? Strings.unknownFallback));
+        setTextField(textField: firstNameField, value: getFirstName(name: FirebaseSupport.auth?.currentUser?.displayName ?? Strings.unknownFallback));
         lastNameField = CustomTextField(frame: CGRect(x: 17, y: lastName.frame.origin.y + adapted(dimensionSize: 30, to: .height), width: width - 34, height: 47));
-        setTextField(textField: lastNameField, value: getLastName(name: Auth.auth().currentUser?.displayName ?? ""));
+        setTextField(textField: lastNameField, value: getLastName(name: FirebaseSupport.auth?.currentUser?.displayName ?? ""));
         dobField = CustomTextField(frame: CGRect(x: 17, y: dob.frame.origin.y + adapted(dimensionSize: 30, to: .height), width: width - 34, height: 47));
         self.setTextField(textField: self.dobField, value: Date.getCurrentDate());
         getDOB { dob in
@@ -271,7 +272,7 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
         createOverlayAlert();
         updateDOb(date: dobField.text ?? Date.getCurrentDate());
         let credential = GoogleAuthProvider.credential(withIDToken: (authentication.googleSignIn.currentUser?.idToken!.tokenString)!, accessToken: (authentication.googleSignIn.currentUser?.accessToken.tokenString)!)
-        Auth.auth().signIn(with: credential) { result, error in
+        FirebaseSupport.auth?.signIn(with: credential) { result, error in
             if let user = result?.user {
                 let changeRequest = user.createProfileChangeRequest()
                 let firstName = self.firstNameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -294,11 +295,12 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
      A function for update of user image. Calls after done button tap
      */
     private func uploadImage() {
-        // Get a reference to the storage service
+        // Get a reference to the storage service (none when Firebase is off)
+        guard FirebaseSupport.isConfigured else { return }
         let storage = Storage.storage()
 
 // Create a reference to the image file in Firebase storage using the user's UID as the filename
-        let uid = Auth.auth().currentUser?.uid ?? ""
+        let uid = FirebaseSupport.auth?.currentUser?.uid ?? ""
         let imageRef = storage.reference().child("profile_pictures/\(uid).jpg")
 
 // Convert the image to data
@@ -347,7 +349,7 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
                         print("Error getting download URL: \(error.localizedDescription)")
                     } else {
                         // Update the user's profile with the download URL of the uploaded image
-                        let changeRequest = Auth.auth().currentUser?.createProfileChangeRequest()
+                        let changeRequest = FirebaseSupport.auth?.currentUser?.createProfileChangeRequest()
                         changeRequest?.photoURL = url
                         changeRequest?.commitChanges { error in
                             if let error = error {
@@ -421,7 +423,7 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
             let timestamp = Timestamp(date: date)
 
 
-            if let uid = Auth.auth().currentUser?.uid {
+            if let uid = FirebaseSupport.auth?.currentUser?.uid {
                 let userRef = Firestore.firestore().collection("users").document(uid)
                 let data: [String: Any] = [
                     "dob": timestamp
@@ -482,7 +484,7 @@ class editProfileFragment: UIViewController, UIImagePickerControllerDelegate, UI
      - Parameter completion:
      */
     private func getDOB(completion: @escaping (String?) -> Void) {
-        if let uid = Auth.auth().currentUser?.uid {
+        if let uid = FirebaseSupport.auth?.currentUser?.uid {
             let userRef = Firestore.firestore().collection("users").document(uid)
 
             userRef.getDocument { (document, error) in

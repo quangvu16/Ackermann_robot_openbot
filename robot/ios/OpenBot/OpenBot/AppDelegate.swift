@@ -5,6 +5,7 @@
 import UIKit
 import DropDown
 import Firebase
+import FirebaseAuth
 import GoogleSignIn
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -32,13 +33,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.'
         DropDown.startListeningToKeyboard()
-        FirebaseApp.configure();
-        GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
-            if error != nil || user == nil {
-                // The user isn't signed in or there was an error restoring their session.
-            } else {
-                // The user is signed in and their session has been restored.
-
+        // Firebase (Google sign-in, Drive projects, profile) only starts with a
+        // real GoogleService-Info.plist for this bundle ID. With OpenBot's dummy
+        // placeholder the app still drives, runs missions and shows the RC faces.
+        FirebaseSupport.configureIfAvailable()
+        if FirebaseSupport.isConfigured {
+            GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+                if error != nil || user == nil {
+                    // The user isn't signed in or there was an error restoring their session.
+                } else {
+                    // The user is signed in and their session has been restored.
+                }
             }
         }
         return true
@@ -70,5 +75,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // The signed-in user is stored in the user property of the GIDSignIn instance.
         let userIdToken = user.accessToken
         print("Access Token: \(userIdToken )")
+    }
+}
+
+/// Starts Firebase only when the app has a real config for its own bundle ID,
+/// and gives the rest of the app a crash-free way to reach Firebase Auth.
+///
+/// `Auth.auth()` traps when Firebase was never configured, so every caller goes
+/// through `FirebaseSupport.auth`, which is nil in that case ("nobody signed in").
+enum FirebaseSupport {
+    private(set) static var isConfigured = false
+
+    static func configureIfAvailable() {
+        guard let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+              let options = NSDictionary(contentsOfFile: path) as? [String: Any] else {
+            print("OpenBot: no GoogleService-Info.plist - Firebase and Google sign-in are off")
+            return
+        }
+        let apiKey = options["API_KEY"] as? String ?? ""
+        let projectId = options["PROJECT_ID"] as? String ?? ""
+        let bundleId = options["BUNDLE_ID"] as? String ?? ""
+        if apiKey.contains("DUMMY") || projectId == "example-project" {
+            print("OpenBot: dummy GoogleService-Info.plist - Firebase and Google sign-in are off")
+            return
+        }
+        if bundleId != Bundle.main.bundleIdentifier {
+            print("OpenBot: GoogleService-Info.plist is for \(bundleId), not \(Bundle.main.bundleIdentifier ?? "?") - Firebase is off")
+            return
+        }
+        FirebaseApp.configure()
+        isConfigured = true
+    }
+
+    /// Firebase Auth, or nil when Firebase is off.
+    static var auth: Auth? {
+        isConfigured ? Auth.auth() : nil
     }
 }
