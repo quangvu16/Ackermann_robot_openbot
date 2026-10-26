@@ -509,7 +509,7 @@ final class LidarCoreTests: XCTestCase {
 
     func testRangeIsClampedToOuterCircle() {
         var ranges = [UInt16](repeating: 0, count: 360)
-        ranges[0] = 100_000 // 100 m, way past the 8 m max
+        ranges[0] = 60_000 // 60 m, way past the 8 m max (fits UInt16)
         let points = LidarView.scanToPoints(
             scan: makeScan(ranges), rangeMaxMeters: 8, forwardOffsetDeg: 0
         )
