@@ -14,7 +14,7 @@ This guide explains the three OpenBot apps for the ESP32-S3 Ackermann car in sim
 8. [Words used in this guide](#8-words-used-in-this-guide)
 9. [Questions to understand deeply](#9-questions-to-understand-deeply)
 
-Pinout: see [ESP32S3_PINOUT.svg](ESP32S3_PINOUT.svg).
+Pinout: see [ESP32S3_PINOUT.svg](ESP32S3_PINOUT.svg). Wiring, flashing and calibration: see [FIRMWARE_GUIDE.md](FIRMWARE_GUIDE.md).
 
 ---
 
