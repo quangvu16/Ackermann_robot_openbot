@@ -15,7 +15,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingStart="16dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="112dp">
+        <!-- paddingBottom keeps the last item clear of the floating STOP button. -->
 
         <!-- 1. Is the car connected? -->
         <com.google.android.material.card.MaterialCardView

@@ -170,6 +170,7 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
         dashboard.frame = CGRect(x: 0, y: -height, width: width, height: height)
         if abs(modesCollectionView.contentInset.top - height) > 0.5 {
             modesCollectionView.contentInset.top = height
+            modesCollectionView.contentInset.bottom = 112  // clear of the floating STOP button
             modesCollectionView.contentOffset.y = -modesCollectionView.adjustedContentInset.top
         }
     }

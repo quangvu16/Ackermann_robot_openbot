@@ -93,8 +93,10 @@ final class StopButtonOverlay {
         let title = L10n.string(latched ? "stop_button_resume" : "stop_button_stop")
         stopButton.setTitle(title, for: .normal)
         stopButton.accessibilityLabel = title
-        let x = window.bounds.width - Self.size - 12 - window.safeAreaInsets.right
-        stopButton.frame = CGRect(x: x, y: (window.bounds.height - Self.size) / 2, width: Self.size, height: Self.size)
+        // Bottom-right, above the tab bar (49 pt) and the home indicator.
+        let x = window.bounds.width - Self.size - 16 - window.safeAreaInsets.right
+        let y = window.bounds.height - Self.size - window.safeAreaInsets.bottom - 49 - 16
+        stopButton.frame = CGRect(x: x, y: y, width: Self.size, height: Self.size)
         if stopButton.superview !== window { window.addSubview(stopButton) }
         // Below the RC face: in MANUAL the transmitter drives and this STOP does not apply.
         if let face = RcModeFaceOverlay.shared.faceView, face.superview === window {

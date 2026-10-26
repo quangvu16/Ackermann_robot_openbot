@@ -9,6 +9,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -82,16 +84,30 @@ public class MainActivity extends AppCompatActivity {
     // STOP first, the RC face after it: in MANUAL the face covers STOP, because then the RC
     // transmitter drives and the app's STOP does not apply.
     stopButton = new StopButtonView(this);
-    int stopSize = (int) (88 * getResources().getDisplayMetrics().density);
+    // Bottom-right, where a floating action button lives on Android, above the bottom navigation
+    // bar and the system bars (the window is edge-to-edge, so their height is added below).
+    float density = getResources().getDisplayMetrics().density;
+    int stopSize = (int) (88 * density);
+    int stopBottomBase = (int) ((56 + 20) * density);
     FrameLayout.LayoutParams stopParams =
-        new FrameLayout.LayoutParams(stopSize, stopSize, Gravity.END | Gravity.CENTER_VERTICAL);
-    stopParams.setMarginEnd((int) (12 * getResources().getDisplayMetrics().density));
+        new FrameLayout.LayoutParams(stopSize, stopSize, Gravity.END | Gravity.BOTTOM);
+    stopParams.setMarginEnd((int) (16 * density));
+    stopParams.bottomMargin = stopBottomBase;
     stopButton.setVisibility(View.GONE);
     stopButton.setOnClickListener(
         v -> {
           if (vehicle != null) vehicle.getEmergencyStop().toggle();
         });
     ((ViewGroup) getWindow().getDecorView()).addView(stopButton, stopParams);
+    ViewCompat.setOnApplyWindowInsetsListener(
+        stopButton,
+        (v, insets) -> {
+          FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+          lp.bottomMargin =
+              stopBottomBase + insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+          v.setLayoutParams(lp);
+          return insets;
+        });
 
     // Added to the window's decor view, so it covers the toolbar, every screen and the bottom bar.
     rcModeFace = new RcModeFaceView(this);
