@@ -281,3 +281,7 @@
 "gps_panel_show" = "Mostrar datos";
 "gps_panel_toggle" = "Mostrar u ocultar los datos de la misión";
 "gps_panel_connection" = "Conexión con el coche";
+"gps_mode_idle" = "Listo: añade puntos o toca el mapa";
+"gps_mode_mission" = "Recorriendo la misión";
+"gps_mode_guided" = "Yendo al punto elegido";
+"gps_mode_rtl" = "Volviendo a casa";

@@ -281,3 +281,7 @@
 "gps_panel_show" = "显示数据";
 "gps_panel_toggle" = "显示或隐藏任务数据";
 "gps_panel_connection" = "小车连接";
+"gps_mode_idle" = "就绪——添加航点或点按地图";
+"gps_mode_mission" = "正在执行任务";
+"gps_mode_guided" = "正前往所选位置";
+"gps_mode_rtl" = "正在返回起点";

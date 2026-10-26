@@ -67,10 +67,17 @@ Both phone apps open on a **Car dashboard** that answers two questions: *is the 
 | **Three task tiles** | **Drive** (phone or game controller), **GPS Mission** (waypoints, return home), **Car setup** (sensors, lights, avoidance). |
 | **More features** | The full OpenBot list (AI, data collection, projects and more). Hidden until you open it; the app remembers your choice. |
 
-**STOP button.** While the car is connected, a big round red **STOP** sits on the right edge of every screen. Pressing it stops the car and keeps it stopped: every drive command from the app is replaced by "stop", whether it comes from the joystick, a GPS mission, an AI mode or a game controller. The button turns green **RESUME**; press it to drive again.
+**STOP button.** While the car is connected, a big round red **STOP** is always on screen: bottom-right on the home screens, top-right on driving screens (Drive, GPS Mission, Object Tracking and the others), where the bottom belongs to their control panels. Pressing it stops the car and keeps it stopped: every drive command from the app is replaced by "stop", whether it comes from the joystick, a GPS mission, an AI mode or a game controller. The button turns green **RESUME**; press it to drive again.
 - *Source:* `vehicle/EmergencyStop.java` and `Vehicle.sendControl()` (Android); `CarDashboard.swift` and `writeWire()` in `BluetoothDataController.swift` (iOS).
 - *Example:* during a GPS mission the car heads for a puddle. Press STOP; the mission stays loaded but the car does not move until you press RESUME.
 - In **MANUAL** the RC transmitter drives, so the smiling face covers the phone's STOP. Use the transmitter's **HOLD** position to stop there.
+
+**GPS Mission screen.** It now uses the same design as Object Tracking: the map fills the screen and everything else is in one bottom panel with a drag handle.
+- The panel's top part always shows: the mission status (and any warning, such as "No GPS signal"), the car connection, and **Start/Pause**, **Stop** and **Return home**.
+- The data panel below it can be hidden: drag the panel down (or swipe down on iPhone), tap the handle, or tap **Hide data**. Tap **Show data** to bring it back. The app remembers your choice.
+- The data panel holds the readouts (distance and bearing to the next waypoint, speed, GPS accuracy), mission info, the avoidance switch, the planning buttons (add waypoint, clear, save, import/export) and, on Android, the waypoint list.
+- *Source:* `res/layout/fragment_gps_navigation.xml` and `setupPanel()` in `GpsNavigationFragment.java` (Android); `setupPanel()` in `GpsMissionController.swift` (iOS).
+- *Example:* during a mission, hide the data to see more of the map. The status line still tells you if the car stops for an obstacle or loses GPS.
 
 **Why this layout?** You open the app to *do* something. Showing the car's state and the three main tasks first means no searching through a list of research features before you can drive (Hick's law), and a STOP button in the same place on every screen means you never have to look for it in a hurry.
 

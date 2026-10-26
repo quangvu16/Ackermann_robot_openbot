@@ -18,9 +18,17 @@ final class GpsMissionController: UIViewController {
     // MARK: - Outlets
 
     private let mapView = MKMapView()
-    private let hudLabel = UILabel()
-    private let statusLabel = UILabel()
-    private let buttonRow = UIStackView()
+    private let hudLabel = UILabel()        // readouts (data panel)
+    private let statusLabel = UILabel()     // warnings and messages (data panel)
+    private let buttonRow = UIStackView()   // Start / Stop / Return home (header)
+
+    // Bottom panel in the Object Tracking design: header always shown, data panel hideable.
+    private let panel = UIView()
+    private let dataPanel = UIStackView()
+    private let modeLabel = UILabel()
+    private let connectionIcon = UIImageView()
+    private let togglePanelButton = UIButton(type: .system)
+    private let panelOpenKey = "gps_mission_panel_open"
 
     // MARK: - State
 
@@ -50,8 +58,7 @@ final class GpsMissionController: UIViewController {
 
         setupNavigationBarItem()
         setupMap()
-        setupHud()
-        setupButtons()
+        setupPanel()
 
         locationProvider.delegate = self
         loadPersistedMission()
@@ -107,84 +114,176 @@ final class GpsMissionController: UIViewController {
             mapView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             mapView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             mapView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            mapView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -140),
+            mapView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
-    private func setupHud() {
-        hudLabel.translatesAutoresizingMaskIntoConstraints = false
-        hudLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
-        hudLabel.textColor = .white
-        hudLabel.numberOfLines = 2
-        hudLabel.backgroundColor = UIColor.black.withAlphaComponent(0.65)
-        hudLabel.layer.cornerRadius = 8
-        hudLabel.layer.masksToBounds = true
-        hudLabel.text = "  IDLE"
-        view.addSubview(hudLabel)
+    private enum Action: Int {
+        case startPause, stop, returnHome, addWaypoint, clear, files
+    }
 
-        statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        statusLabel.font = .systemFont(ofSize: 12)
-        statusLabel.textColor = .white
-        statusLabel.backgroundColor = UIColor.black.withAlphaComponent(0.55)
-        statusLabel.textAlignment = .center
-        view.addSubview(statusLabel)
+    private func setupPanel() {
+        panel.translatesAutoresizingMaskIntoConstraints = false
+        panel.backgroundColor = Colors.freeRoamButtonsColor ?? .secondarySystemBackground
+        panel.layer.cornerRadius = 16
+        panel.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        view.addSubview(panel)
 
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(stack)
         NSLayoutConstraint.activate([
-            hudLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            hudLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            hudLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
-            hudLabel.heightAnchor.constraint(equalToConstant: 44),
-
-            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            statusLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -140),
-            statusLabel.heightAnchor.constraint(equalToConstant: 22),
+            panel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            panel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            panel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            stack.topAnchor.constraint(equalTo: panel.topAnchor, constant: 4),
+            stack.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -16),
+            stack.bottomAnchor.constraint(equalTo: panel.safeAreaLayoutGuide.bottomAnchor, constant: -12),
         ])
-    }
 
-    private func setupButtons() {
-        buttonRow.translatesAutoresizingMaskIntoConstraints = false
+        // Handle: the same bar as Object Tracking, in a strip that is easy to hit.
+        let handleArea = UIView()
+        handleArea.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        let bar = UIView()
+        bar.backgroundColor = Colors.title ?? .systemGray
+        bar.layer.cornerRadius = 2.5
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        handleArea.addSubview(bar)
+        NSLayoutConstraint.activate([
+            bar.centerXAnchor.constraint(equalTo: handleArea.centerXAnchor),
+            bar.centerYAnchor.constraint(equalTo: handleArea.centerYAnchor),
+            bar.widthAnchor.constraint(equalToConstant: 50),
+            bar.heightAnchor.constraint(equalToConstant: 5),
+        ])
+        handleArea.isAccessibilityElement = true
+        handleArea.accessibilityLabel = L10n.string("gps_panel_toggle")
+        handleArea.accessibilityTraits = .button
+        handleArea.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(togglePanel)))
+        stack.addArrangedSubview(handleArea)
+
+        // Header row: status, connection, Hide / Show data.
+        modeLabel.font = .systemFont(ofSize: 16, weight: .bold)
+        modeLabel.textColor = .label
+        modeLabel.numberOfLines = 2
+        connectionIcon.image = UIImage(systemName: "antenna.radiowaves.left.and.right")
+        connectionIcon.contentMode = .scaleAspectFit
+        connectionIcon.accessibilityLabel = L10n.string("gps_panel_connection")
+        connectionIcon.widthAnchor.constraint(equalToConstant: 24).isActive = true
+        connectionIcon.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        togglePanelButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+        togglePanelButton.setTitleColor(Colors.gpsMissionColor, for: .normal)
+        togglePanelButton.addTarget(self, action: #selector(togglePanel), for: .touchUpInside)
+        togglePanelButton.setContentHuggingPriority(.required, for: .horizontal)
+        togglePanelButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
+        let header = UIStackView(arrangedSubviews: [modeLabel, connectionIcon, togglePanelButton])
+        header.axis = .horizontal
+        header.spacing = 10
+        header.alignment = .center
+        stack.addArrangedSubview(header)
+
+        // The three actions a running mission needs, always in reach.
         buttonRow.axis = .horizontal
         buttonRow.spacing = 8
         buttonRow.distribution = .fillEqually
-        view.addSubview(buttonRow)
+        buttonRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_start"), .startPause, filled: true))
+        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_stop"), .stop, filled: false))
+        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_rtl"), .returnHome, filled: false))
+        stack.addArrangedSubview(buttonRow)
 
-        NSLayoutConstraint.activate([
-            buttonRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            buttonRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
-            buttonRow.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
-            buttonRow.heightAnchor.constraint(equalToConstant: 44),
+        // Data panel: readouts, warnings, planning tools. Hideable.
+        dataPanel.axis = .vertical
+        dataPanel.spacing = 8
+        hudLabel.font = .monospacedDigitSystemFont(ofSize: 14, weight: .semibold)
+        hudLabel.textColor = .label
+        hudLabel.numberOfLines = 0
+        statusLabel.font = .systemFont(ofSize: 13)
+        statusLabel.textColor = .secondaryLabel
+        statusLabel.numberOfLines = 0
+        let tools = UIStackView(arrangedSubviews: [
+            makeButton(L10n.string("gps_nav_add_wp"), .addWaypoint, filled: false),
+            makeButton(L10n.string("gps_nav_clear"), .clear, filled: false),
+            makeButton(L10n.string("gps_nav_files"), .files, filled: false),
         ])
+        tools.axis = .horizontal
+        tools.spacing = 8
+        tools.distribution = .fillEqually
+        tools.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        let divider = UIView()
+        divider.backgroundColor = .separator
+        divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
+        [divider, hudLabel, statusLabel, tools].forEach { dataPanel.addArrangedSubview($0) }
+        stack.addArrangedSubview(dataPanel)
 
-        for title in [
-            L10n.string("gps_nav_start"),
-            L10n.string("gps_nav_stop"),
-            L10n.string("gps_nav_rtl"),
-            L10n.string("gps_nav_add_wp"),
-            L10n.string("gps_nav_clear"),
-            L10n.string("gps_nav_files"),
-        ] {
-            let button = UIButton(type: .system)
-            button.setTitle(title, for: .normal)
-            button.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
-            button.setTitleColor(.white, for: .normal)
+        // Swipe down to hide the data, up to show it, as on Object Tracking.
+        let down = UISwipeGestureRecognizer(target: self, action: #selector(swiped(_:)))
+        down.direction = .down
+        let up = UISwipeGestureRecognizer(target: self, action: #selector(swiped(_:)))
+        up.direction = .up
+        panel.addGestureRecognizer(down)
+        panel.addGestureRecognizer(up)
+
+        let open = UserDefaults.standard.object(forKey: panelOpenKey) as? Bool ?? true
+        setPanelOpen(open, animated: false)
+    }
+
+    private func makeButton(_ title: String, _ action: Action, filled: Bool) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setTitle(title, for: .normal)
+        button.tag = action.rawValue
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+        button.titleLabel?.adjustsFontSizeToFitWidth = true
+        button.titleLabel?.minimumScaleFactor = 0.7
+        button.layer.cornerRadius = 12
+        if filled {
             button.backgroundColor = Colors.gpsMissionColor
-            button.layer.cornerRadius = 8
-            button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
-            buttonRow.addArrangedSubview(button)
+            button.setTitleColor(.white, for: .normal)
+        } else {
+            button.backgroundColor = .clear
+            button.layer.borderWidth = 1.5
+            button.layer.borderColor = Colors.gpsMissionColor.cgColor
+            button.setTitleColor(Colors.gpsMissionColor, for: .normal)
+        }
+        button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
+        return button
+    }
+
+    @objc private func togglePanel() {
+        setPanelOpen(dataPanel.isHidden, animated: true)
+    }
+
+    @objc private func swiped(_ gesture: UISwipeGestureRecognizer) {
+        setPanelOpen(gesture.direction == .up, animated: true)
+    }
+
+    private func setPanelOpen(_ open: Bool, animated: Bool) {
+        UserDefaults.standard.set(open, forKey: panelOpenKey)
+        togglePanelButton.setTitle(L10n.string(open ? "gps_panel_hide" : "gps_panel_show"), for: .normal)
+        guard dataPanel.isHidden == open else { return }
+        let change = {
+            self.dataPanel.isHidden = !open
+            self.dataPanel.alpha = open ? 1 : 0
+            self.view.layoutIfNeeded()
+        }
+        if animated {
+            UIView.animate(withDuration: 0.25, animations: change)
+        } else {
+            change()
         }
     }
 
     @objc private func buttonTapped(_ sender: UIButton) {
-        guard let title = sender.title(for: .normal) else { return }
-        switch title {
-        case L10n.string("gps_nav_start"): toggleStartPause()
-        case L10n.string("gps_nav_stop"): stopNavigation()
-        case L10n.string("gps_nav_rtl"): startRTL()
-        case L10n.string("gps_nav_add_wp"): addWaypointAtRobot()
-        case L10n.string("gps_nav_clear"): clearMission()
-        case L10n.string("gps_nav_files"): showFileActions(from: sender)
-        default: break
+        switch Action(rawValue: sender.tag) {
+        case .startPause: toggleStartPause()
+        case .stop: stopNavigation()
+        case .returnHome: startRTL()
+        case .addWaypoint: addWaypointAtRobot()
+        case .clear: clearMission()
+        case .files: showFileActions(from: sender)
+        case .none: break
         }
     }
 
@@ -402,6 +501,7 @@ final class GpsMissionController: UIViewController {
             // position that is seconds old. Navigation resumes with the next fix.
             sendControl(control: Control())
             statusLabel.text = L10n.string("gps_nav_fix_lost")
+            modeLabel.text = L10n.string("gps_nav_fix_lost")
             return
         }
 
@@ -433,7 +533,9 @@ final class GpsMissionController: UIViewController {
 
     private func refreshHud() {
         let status = navigator.lastStatus
-        var parts = [navigator.mode.rawValue.uppercased()]
+        modeLabel.text = navigator.isPaused ? L10n.string("gps_nav_paused") : L10n.string("gps_mode_\(navigator.mode.rawValue)")
+        connectionIcon.tintColor = isBluetoothConnected ? .systemGreen : .systemGray
+        var parts: [String] = []
 
         if let index = status?.activeWaypointIndex, navigator.mode == .mission {
             parts.append("WP \(index + 1)/\(navigator.mission.count)")
@@ -450,7 +552,7 @@ final class GpsMissionController: UIViewController {
         if let fix = latestFix {
             parts.append(String(format: "acc %.1f m", fix.accuracyMeters ?? -1))
         }
-        hudLabel.text = "  " + parts.joined(separator: "   ")
+        hudLabel.text = parts.isEmpty ? "–" : parts.joined(separator: "   ")
 
         var detail: [String] = []
         if navigator.isPaused { detail.append(L10n.string("gps_nav_paused")) }
@@ -462,6 +564,10 @@ final class GpsMissionController: UIViewController {
             detail.append(L10n.string("gps_nav_compass_unreliable"))
         }
         statusLabel.text = detail.joined(separator: " · ")
+        // Warnings also go in the header, which stays visible with the data hidden.
+        if let warning = detail.last(where: { $0 != L10n.string("gps_nav_paused") }) {
+            modeLabel.text = (modeLabel.text ?? "") + "\n" + warning
+        }
 
         refreshMap()
     }
@@ -562,6 +668,7 @@ extension GpsMissionController: GpsNavLocationProviderDelegate {
 
     func locationProvider(_ provider: GpsNavLocationProvider, didFailWith message: String) {
         statusLabel.text = message
+        modeLabel.text = message
     }
 }
 

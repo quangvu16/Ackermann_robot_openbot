@@ -281,3 +281,7 @@
 "gps_panel_show" = "Show data";
 "gps_panel_toggle" = "Show or hide the mission data";
 "gps_panel_connection" = "Car connection";
+"gps_mode_idle" = "Ready — add waypoints or tap the map";
+"gps_mode_mission" = "Driving the mission";
+"gps_mode_guided" = "Going to the point you tapped";
+"gps_mode_rtl" = "Returning home";

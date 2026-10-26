@@ -281,3 +281,7 @@
 "gps_panel_show" = "डेटा दिखाएँ";
 "gps_panel_toggle" = "मिशन डेटा दिखाएँ या छिपाएँ";
 "gps_panel_connection" = "कार कनेक्शन";
+"gps_mode_idle" = "तैयार — वेपॉइंट जोड़ें या नक्शे पर टैप करें";
+"gps_mode_mission" = "मिशन चल रहा है";
+"gps_mode_guided" = "चुने हुए बिंदु की ओर जा रहा है";
+"gps_mode_rtl" = "घर लौट रहा है";

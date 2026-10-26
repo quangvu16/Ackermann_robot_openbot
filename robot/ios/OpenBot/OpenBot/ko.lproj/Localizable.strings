@@ -281,3 +281,7 @@
 "gps_panel_show" = "데이터 보기";
 "gps_panel_toggle" = "미션 데이터 보기/숨기기";
 "gps_panel_connection" = "차량 연결";
+"gps_mode_idle" = "준비됨 — 웨이포인트를 추가하거나 지도를 누르세요";
+"gps_mode_mission" = "미션 주행 중";
+"gps_mode_guided" = "선택한 지점으로 이동 중";
+"gps_mode_rtl" = "출발점으로 복귀 중";

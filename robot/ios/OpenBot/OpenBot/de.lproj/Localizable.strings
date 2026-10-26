@@ -281,3 +281,7 @@
 "gps_panel_show" = "Daten anzeigen";
 "gps_panel_toggle" = "Missionsdaten ein- oder ausblenden";
 "gps_panel_connection" = "Verbindung zum Auto";
+"gps_mode_idle" = "Bereit – Wegpunkte hinzufügen oder auf die Karte tippen";
+"gps_mode_mission" = "Mission läuft";
+"gps_mode_guided" = "Fährt zum gewählten Punkt";
+"gps_mode_rtl" = "Fährt zurück zum Start";
