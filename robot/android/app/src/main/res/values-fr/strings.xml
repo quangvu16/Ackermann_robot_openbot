@@ -176,4 +176,9 @@
     <string name="ble_connecting">Connexion en cours</string>
     <string name="ble_disconnect">Déconnecter</string>
     <string name="ble_connect">Connecter</string>
+    <!-- RC mode face (firmware 'm' report) -->
+    <string name="rc_mode_manual">MANUEL – la radiocommande conduit</string>
+    <string name="rc_mode_hold">ARRÊT – à l\'arrêt</string>
+    <string name="rc_mode_lost">Signal RC perdu – à l\'arrêt</string>
+    <string name="rc_mode_tap_hint">Touchez pour masquer</string>
 </resources>

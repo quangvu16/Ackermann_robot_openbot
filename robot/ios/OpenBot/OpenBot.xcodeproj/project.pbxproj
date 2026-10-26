@@ -69,6 +69,7 @@
 		6A00000000000000000000B3 /* LidarCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000B2 /* LidarCore.swift */; };
 		6A00000000000000000000B5 /* LidarScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000B4 /* LidarScanner.swift */; };
 		6A00000000000000000000B7 /* LidarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000B6 /* LidarView.swift */; };
+		6A00000000000000000000C1 /* RcModeFace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000C0 /* RcModeFace.swift */; };
 		6A00000000000000000000B9 /* LidarCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000B8 /* LidarCoreTests.swift */; };
 		6A00000000000000000000A5 /* GpsNavLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000A4 /* GpsNavLocationProvider.swift */; };
 		6A00000000000000000000A7 /* GpsMissionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000A6 /* GpsMissionController.swift */; };
@@ -245,6 +246,7 @@
 		6A00000000000000000000B2 /* LidarCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarCore.swift; sourceTree = "<group>"; };
 		6A00000000000000000000B4 /* LidarScanner.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarScanner.swift; sourceTree = "<group>"; };
 		6A00000000000000000000B6 /* LidarView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarView.swift; sourceTree = "<group>"; };
+		6A00000000000000000000C0 /* RcModeFace.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RcModeFace.swift; sourceTree = "<group>"; };
 		6A00000000000000000000B8 /* LidarCoreTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarCoreTests.swift; sourceTree = "<group>"; };
 		66AC71E929B885410022108A /* CameraController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
 		66AC71EB29B885410022108A /* HomePageViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomePageViewController.swift; sourceTree = "<group>"; };
@@ -652,6 +654,7 @@
 				6A00000000000000000000B2 /* LidarCore.swift */,
 				6A00000000000000000000B4 /* LidarScanner.swift */,
 				6A00000000000000000000B6 /* LidarView.swift */,
+				6A00000000000000000000C0 /* RcModeFace.swift */,
 			);
 			path = Lidar;
 			sourceTree = "<group>";
@@ -1399,6 +1402,7 @@
 				6A00000000000000000000B3 /* LidarCore.swift in Sources */,
 				6A00000000000000000000B5 /* LidarScanner.swift in Sources */,
 				6A00000000000000000000B7 /* LidarView.swift in Sources */,
+				6A00000000000000000000C1 /* RcModeFace.swift in Sources */,
 				727D3E6881E8758C94FF74F4 /* GifLoader.swift in Sources */,
 				66AC721929B885C70022108A /* Navigation.swift in Sources */,
 				06C87ABB2B3568E700454299 /* FragmentType.swift in Sources */,

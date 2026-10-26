@@ -204,6 +204,10 @@ class bluetoothDataController: CMDeviceMotion, CBCentralManagerDelegate, CBPerip
             proximityData = stringFromData
             handleProximity(stringFromData)
             break
+        case "m":
+            // RC mode switch: full-screen smile in MANUAL, cry in HOLD / LOST.
+            RcModeFaceOverlay.shared.handle(message: stringFromData)
+            break
         default:
             break
         }

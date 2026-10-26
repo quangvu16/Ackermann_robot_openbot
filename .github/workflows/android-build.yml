@@ -1,0 +1,55 @@
+# Builds the Android robot app and runs its unit tests on every push that
+# touches it. The debug APK is kept as a build artifact (Actions tab).
+name: Android build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'robot/android/**'
+      - '.github/workflows/android-build.yml'
+  pull_request:
+    paths:
+      - 'robot/android/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and unit-test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: robot/android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the app-versioning plugin reads git history and tags
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: zulu
+          cache: gradle
+
+      - name: Add the dummy google-services.json
+        run: |
+          cp ci/google-services.placeholder.json app/google-services.json
+          cp ci/google-services.placeholder.json app/src/main/assets/google-services.json
+
+      - name: Build and test
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew :robot:assembleDebug :robot:testDebugUnitTest --stacktrace 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Show compile and test errors as annotations
+        if: failure()
+        run: |
+          grep -E "error:|^e: |FAILED|What went wrong|Exception" "$RUNNER_TEMP/build.log" \
+            | head -40 | while IFS= read -r line; do echo "::error::${line//%/%25}"; done
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: robot-debug-apk
+          path: robot/android/app/build/outputs/apk/debug/*.apk

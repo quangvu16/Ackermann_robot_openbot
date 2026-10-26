@@ -606,4 +606,29 @@ extension LidarCoreTests {
         settings.enabled = true
         XCTAssertTrue(gate.apply(settings: settings).blocked)
     }
+
+    // MARK: - RC mode face
+
+    func testRcModeParsesEveryLetter() {
+        XCTAssertEqual(RcMode.parse("mM"), .manual)
+        XCTAssertEqual(RcMode.parse("mA"), .auto)
+        XCTAssertEqual(RcMode.parse("mH"), .hold)
+        XCTAssertEqual(RcMode.parse("mL"), .lost)
+        XCTAssertEqual(RcMode.parse("mH\n"), .hold)  // a trailing newline is fine
+    }
+
+    func testRcModeRejectsGarbage() {
+        XCTAssertNil(RcMode.parse(""))
+        XCTAssertNil(RcMode.parse("m"))
+        XCTAssertNil(RcMode.parse("mX"))
+        XCTAssertNil(RcMode.parse("mMA"))
+        XCTAssertNil(RcMode.parse("s42"))
+    }
+
+    func testRcModeFaces() {
+        XCTAssertEqual(RcMode.manual.face, .smile)
+        XCTAssertEqual(RcMode.hold.face, .cry)
+        XCTAssertEqual(RcMode.lost.face, .cry)
+        XCTAssertEqual(RcMode.auto.face, RcMode.Face.none)
+    }
 }

@@ -335,4 +335,9 @@
     <string name="gps_nav_arrived">Arrived at waypoint %1$d</string>
     <string name="gps_nav_mission_complete">Mission complete</string>
     <string name="gps_nav_rtl_complete">Returned to launch</string>
+    <!-- RC mode face (firmware 'm' report) -->
+    <string name="rc_mode_manual">MANUAL – RC is driving</string>
+    <string name="rc_mode_hold">HOLD – stopped</string>
+    <string name="rc_mode_lost">RC signal lost – stopped</string>
+    <string name="rc_mode_tap_hint">Tap to hide</string>
 </resources>

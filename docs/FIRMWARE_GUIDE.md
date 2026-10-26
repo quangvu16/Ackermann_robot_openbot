@@ -271,7 +271,9 @@ Menu names are from the FS-i6 manual and can differ slightly between firmware ve
 - **A centred stick really stops the car:** anything within ±30 µs of centre counts as zero (`RC_DEADBAND_US`).
 - **Every mode change clears the last app command.** Back in AUTO, the car waits for a fresh command from the app.
   - *Source:* the "Who drives" block in `loop()`.
-- **The app does not yet know about MANUAL.** A GPS mission keeps running on the phone while you drive by hand, and it takes over again when you flip back to AUTO. Pause the mission first if you don't want that.
+- **The phone shows a face for the mode.** The firmware sends `m<mode>` (section 10), and the Android and iOS apps cover the whole screen with a **smiling face in MANUAL** and a **crying face in HOLD** (also when the RC link is lost). In AUTO the normal screen is back. Tap the face to hide it until the mode changes; it also goes away if the reports stop for 3 seconds.
+  - *Source:* `send_rc_mode()` in the firmware; `RcModeFaceView.java` (Android); `RcModeFace.swift` (iOS).
+- **A GPS mission keeps running on the phone while you drive by hand,** and it takes over again when you flip back to AUTO. Tap the face away and pause the mission first if you don't want that.
 
 ### 9.5 Test it on blocks
 
@@ -309,6 +311,7 @@ Each message is one text line ending in a newline. The first letter says what it
 | `s<cm>` | Nearest obstacle in the front cone, capped at 300 cm |
 | `p<d0>,…,<d7>` | Distance in 8 directions, sector 0 = front, then clockwise every 45°; 0 = nothing in range |
 | `x<base64>` | One full LiDAR turn, only on USB after `x<ms>` |
+| `m<mode>` | RC switch: `mM` MANUAL, `mA` AUTO, `mH` HOLD, `mL` RC link lost. Sent on every change and once a second, only after a receiver is heard. The apps show a face for it (section 9.4) |
 
 - *Example:* you can test the board from the Arduino Serial Monitor (115200, newline on). Type `f` and the car replies with its feature line. Type `i1,0` and the left indicator blinks. Keep the wheels off the ground before you try `c`.
 

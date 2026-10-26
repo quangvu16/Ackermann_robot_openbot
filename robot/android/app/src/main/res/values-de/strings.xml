@@ -176,4 +176,9 @@
     <string name="ble_connecting">Verbinde …</string>
     <string name="ble_disconnect">Trennen</string>
     <string name="ble_connect">Verbinden</string>
+    <!-- RC mode face (firmware 'm' report) -->
+    <string name="rc_mode_manual">MANUELL – RC fährt</string>
+    <string name="rc_mode_hold">HALT – angehalten</string>
+    <string name="rc_mode_lost">RC-Signal verloren – angehalten</string>
+    <string name="rc_mode_tap_hint">Zum Ausblenden tippen</string>
 </resources>

@@ -338,6 +338,26 @@ static bool lidarProximityCm(unsigned int out_cm[PROX_SECTORS]) {
 // HAS_RC is 0, so loop() needs no #ifs.
 #include "rc_input.h"
 
+// RC mode report ('m'), sent on every change and repeated at this interval.
+// The app hides its MANUAL / HOLD face if reports stop for 3 s.
+const unsigned long RC_REPORT_INTERVAL_MS = 1000;
+unsigned long rc_report_time = 0;
+
+// Tells the app which mode the RC switch is in, as 'm' plus one letter. The
+// app shows a smiling face for MANUAL and a crying face for HOLD or LOST.
+static void send_rc_mode(RcMode mode) {
+  char letter;
+  switch (mode) {
+    case RC_MANUAL: letter = 'M'; break;
+    case RC_AUTO: letter = 'A'; break;
+    case RC_HOLD: letter = 'H'; break;
+    case RC_LOST: letter = 'L'; break;
+    default: return;  // no receiver: say nothing, the app shows no face
+  }
+  sendData(String("m") + letter);
+  rc_report_time = millis();
+}
+
 //------------------------------------------------------//
 // LEDC helpers
 //------------------------------------------------------//
@@ -415,6 +435,10 @@ static unsigned int drive_to_us(int drive, unsigned int min_us, unsigned int neu
 //                vmin:<v> vlow:<v> vmax:<v>  reply to v
 //                x<base64 LDS1 datagram>     one LiDAR revolution, serial
 //                                          only, after the app sent x<ms>
+//                m<mode>                     RC mode switch, on every change and
+//                                          once a second: M = MANUAL, A = AUTO,
+//                                          H = HOLD, L = RC link lost (stopped).
+//                                          Only sent once a receiver is heard.
 //
 enum msgParts { HEADER, BODY };
 
@@ -452,6 +476,7 @@ unsigned int light_back = 0;
 // its first 'h'.
 unsigned long heartbeat_interval = CONTROL_TIMEOUT_MS;
 unsigned long heartbeat_time = 0;
+
 
 #if (HAS_BLUETOOTH)
 #include <BLEDevice.h>
@@ -628,6 +653,11 @@ void loop() {
     Serial.print("RC mode: ");
     Serial.println(rcModeName(rc_mode));
     rc_mode_prev = rc_mode;
+    send_rc_mode(rc_mode);  // tell the app at once (it shows a face for MANUAL / HOLD)
+  }
+  // ...and repeat it once a second, so a phone that connects later catches up.
+  if (rc_mode != RC_NOT_FITTED && (millis() - rc_report_time) >= RC_REPORT_INTERVAL_MS) {
+    send_rc_mode(rc_mode);
   }
 
   if (rc_mode == RC_MANUAL) {

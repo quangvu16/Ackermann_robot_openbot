@@ -1,0 +1,49 @@
+# Compiles the iOS robot app and its unit tests on every push that touches it.
+# It builds for a real device without signing: the GoogleWebRTC pod has no
+# Apple-silicon simulator slice, so the tests are compiled but not run here.
+name: iOS build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'robot/ios/**'
+      - '.github/workflows/ios-build.yml'
+  pull_request:
+    paths:
+      - 'robot/ios/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build app and tests
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: robot/ios/OpenBot
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add the dummy GoogleService-Info.plist
+        run: cp ../ci/GoogleService-Info.placeholder.plist OpenBot/GoogleService-Info.plist
+
+      - name: Install CocoaPods dependencies
+        run: |
+          rm -f Podfile.lock
+          pod install
+
+      - name: Build app and unit tests
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -workspace OpenBot.xcworkspace \
+            -scheme OpenBot \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Show compile errors as annotations
+        if: failure()
+        run: |
+          grep -E "error:|\*\* BUILD FAILED|\*\* TEST BUILD FAILED" "$RUNNER_TEMP/build.log" \
+            | sort -u | head -40 | while IFS= read -r line; do echo "::error::${line//%/%25}"; done

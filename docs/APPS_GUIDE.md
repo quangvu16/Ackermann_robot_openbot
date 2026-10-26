@@ -6,6 +6,7 @@ This guide explains the three OpenBot apps for the ESP32-S3 Ackermann car in sim
 
 1. [Before you drive](#1-before-you-drive)
 2. [Which app should I use?](#2-which-app-should-i-use)
+   - [RC mode faces](#2b-rc-mode-faces-android-and-ios)
 3. [Android app](#3-android-app)
 4. [iOS app (beta)](#4-ios-app-beta)
 5. [Linux app (Python)](#5-linux-app-python)
@@ -51,6 +52,25 @@ Pinout: see [ESP32S3_PINOUT.svg](ESP32S3_PINOUT.svg). Wiring, flashing and calib
 - *Example:* you want to test GPS missions with a phone plugged into the car by cable. Use Android. An iPhone cannot use the cable for data, so it would use Bluetooth.
 
 **Why does iPhone use Bluetooth?** iOS does not let apps talk to USB serial chips like the one on the ESP32-S3. This is a limit of the platform, not a bug in OpenBot.
+
+---
+
+## 2b. RC mode faces (Android and iOS)
+
+When a FlySky RC transmitter is connected to the car (see [FIRMWARE_GUIDE.md](FIRMWARE_GUIDE.md#9-rc-controller-manual-and-auto)), the phone shows which mode the switch is in:
+
+| Switch | Screen |
+|---|---|
+| **MANUAL** (RC drives) | Full-screen **smiling face** on green |
+| **AUTO** (phone drives) | The normal app screen |
+| **HOLD** (stopped), or RC link lost | Full-screen **crying face** on grey-blue |
+
+- **Tap** the face to hide it until the mode changes, for example to pause a mission.
+- The face goes away by itself if the car stops reporting for 3 seconds (cable pulled, Bluetooth lost, car off).
+- *Source:* the firmware sends `m<mode>` once a second (`send_rc_mode()` in `openbot-esp32s3.cpp`); Android draws it in `main/RcModeFaceView.java`, iOS in `Controllers/Lidar/RcModeFace.swift`.
+- *Example:* you flip the switch to MANUAL to steer around a puddle. The phone on the car shows a big smile, so people nearby can see a person is driving.
+
+**Why a face?** It is readable from a distance. Anyone near the car can tell at a glance whether a person (smile) is in control or the car is stopped (cry).
 
 ---
 

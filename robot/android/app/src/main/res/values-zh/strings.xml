@@ -176,4 +176,9 @@
     <string name="ble_connecting">连接中</string>
     <string name="ble_disconnect">断开连接</string>
     <string name="ble_connect">连接</string>
+    <!-- RC mode face (firmware 'm' report) -->
+    <string name="rc_mode_manual">手动 – 遥控器驾驶</string>
+    <string name="rc_mode_hold">保持 – 已停止</string>
+    <string name="rc_mode_lost">遥控信号丢失 – 已停止</string>
+    <string name="rc_mode_tap_hint">点击隐藏</string>
 </resources>

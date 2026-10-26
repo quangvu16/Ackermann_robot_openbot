@@ -176,4 +176,9 @@
     <string name="ble_connecting">연결 중</string>
     <string name="ble_disconnect">연결 해제</string>
     <string name="ble_connect">연결</string>
+    <!-- RC mode face (firmware 'm' report) -->
+    <string name="rc_mode_manual">수동 – RC 조종 중</string>
+    <string name="rc_mode_hold">정지 – 멈춤</string>
+    <string name="rc_mode_lost">RC 신호 끊김 – 멈춤</string>
+    <string name="rc_mode_tap_hint">탭하여 숨기기</string>
 </resources>

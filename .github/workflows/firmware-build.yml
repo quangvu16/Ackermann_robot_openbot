@@ -1,0 +1,69 @@
+# Compiles the ESP32-S3 firmware on every push that touches it, in the three
+# RC receiver setups: iBUS (default), PWM, and no receiver.
+name: Firmware build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firmware/openbot-esp32s3/**'
+      - '.github/workflows/firmware-build.yml'
+  pull_request:
+    paths:
+      - 'firmware/openbot-esp32s3/**'
+  workflow_dispatch:
+
+env:
+  ESP32_CORE: esp32:esp32@3.3.12
+  FQBN: esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M
+
+jobs:
+  compile:
+    name: ${{ matrix.variant }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [ibus, pwm, no-rc]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Cache the ESP32 core
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15/packages
+            ~/.arduino15/staging
+          key: arduino-${{ runner.os }}-${{ env.ESP32_CORE }}
+
+      - name: Install the ESP32 core
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls \
+            https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install "$ESP32_CORE"
+
+      - name: Prepare the ${{ matrix.variant }} variant
+        run: |
+          mkdir -p build_src && cp -r firmware/openbot-esp32s3 build_src/
+          f=build_src/openbot-esp32s3/openbot-esp32s3.cpp
+          case "${{ matrix.variant }}" in
+            pwm)   sed -i 's/^#define RC_PROTOCOL RC_IBUS .*/#define RC_PROTOCOL RC_PWM/' "$f" ;;
+            no-rc) sed -i 's/^#define HAS_RC 1$/#define HAS_RC 0/' "$f" ;;
+          esac
+          grep -n "^#define HAS_RC\|^#define RC_PROTOCOL" "$f" | head -4
+
+      - name: Compile
+        run: |
+          set -o pipefail
+          arduino-cli compile --fqbn "$FQBN" --warnings default \
+            build_src/openbot-esp32s3 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Show compile errors as annotations
+        if: failure()
+        run: |
+          grep -E "error:|Error" "$RUNNER_TEMP/build.log" | head -40 \
+            | while IFS= read -r line; do echo "::error::${line//%/%25}"; done

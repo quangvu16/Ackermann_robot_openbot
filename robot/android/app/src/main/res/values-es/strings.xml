@@ -176,4 +176,9 @@
     <string name="ble_connecting">Conectando</string>
     <string name="ble_disconnect">Desconectar</string>
     <string name="ble_connect">Conectar</string>
+    <!-- RC mode face (firmware 'm' report) -->
+    <string name="rc_mode_manual">MANUAL – conduce el RC</string>
+    <string name="rc_mode_hold">PARADA – detenido</string>
+    <string name="rc_mode_lost">Señal RC perdida – detenido</string>
+    <string name="rc_mode_tap_hint">Toca para ocultar</string>
 </resources>

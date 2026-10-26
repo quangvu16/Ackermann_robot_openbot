@@ -3,6 +3,9 @@ package org.openbot.app.robot.main;
 import static org.openbot.app.robot.utils.Constants.DEVICE_ACTION_DATA_RECEIVED;
 
 import android.content.BroadcastReceiver;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.ViewGroup;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -30,6 +33,7 @@ import java.util.Objects;
 import org.openbot.app.robot.OpenBotApplication;
 import org.openbot.app.robot.R;
 import org.openbot.app.robot.utils.Constants;
+import org.openbot.app.robot.vehicle.RcMode;
 import org.openbot.app.robot.vehicle.UsbConnection;
 import org.openbot.app.robot.vehicle.Vehicle;
 import timber.log.Timber;
@@ -46,10 +50,24 @@ public class MainActivity extends AppCompatActivity {
   private BottomNavigationView bottomNavigationView;
   private NavController navController;
 
+  // Full-screen face for the car's RC switch: smile in MANUAL, cry in HOLD / LOST. The firmware
+  // repeats its 'm' report every second; if reports stop (cable pulled, car off) the face goes.
+  private static final long RC_REPORT_TIMEOUT_MS = 3000;
+  private RcModeFaceView rcModeFace;
+  private final Handler rcModeHandler = new Handler(Looper.getMainLooper());
+  private final Runnable rcModeTimeout = () -> rcModeFace.setMode(null);
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+    // Added to the window's decor view, so it covers the toolbar, every screen and the bottom bar.
+    rcModeFace = new RcModeFaceView(this);
+    ((ViewGroup) getWindow().getDecorView())
+        .addView(
+            rcModeFace,
+            new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     viewModel = new ViewModelProvider(this).get(MainViewModel.class);
     vehicle = OpenBotApplication.vehicle;
     bottomNavigationView = findViewById(R.id.bottomNavigationView);
@@ -102,7 +120,9 @@ public class MainActivity extends AppCompatActivity {
                   Timber.i("USB device detached");
                   break;
                 case DEVICE_ACTION_DATA_RECEIVED:
-                  viewModel.setDeviceData(intent.getStringExtra("data"));
+                  String data = intent.getStringExtra("data");
+                  viewModel.setDeviceData(data);
+                  onRcModeMessage(data);
                   break;
               }
             }
@@ -233,8 +253,19 @@ public class MainActivity extends AppCompatActivity {
     return super.dispatchKeyEvent(event);
   }
 
+  /** Handles the car's {@code m<letter>} RC mode report (USB and Bluetooth both arrive here). */
+  private void onRcModeMessage(String data) {
+    if (data == null || data.length() < 2 || data.charAt(0) != 'm') return;
+    RcMode mode = RcMode.parse(data.substring(1));
+    if (mode == null) return;
+    rcModeFace.setMode(mode);
+    rcModeHandler.removeCallbacks(rcModeTimeout);
+    rcModeHandler.postDelayed(rcModeTimeout, RC_REPORT_TIMEOUT_MS);
+  }
+
   @Override
   public synchronized void onDestroy() {
+    rcModeHandler.removeCallbacks(rcModeTimeout);
     if (localBroadcastManager != null) {
       localBroadcastManager.unregisterReceiver(localBroadcastReceiver);
       localBroadcastManager = null;

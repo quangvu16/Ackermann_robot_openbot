@@ -237,3 +237,9 @@
 "gps_nav_open_waypoints" = "Open .waypoints";
 "gps_nav_imported" = "Loaded %ld waypoints";
 "gps_nav_compass_unreliable" = "Compass unreliable: calibrate (figure 8) or move the phone away from the motors";
+
+/* RC mode face (firmware 'm' report) */
+"rc_mode_manual" = "手动 – 遥控器驾驶";
+"rc_mode_hold" = "保持 – 已停止";
+"rc_mode_lost" = "遥控信号丢失 – 已停止";
+"rc_mode_tap_hint" = "点击隐藏";

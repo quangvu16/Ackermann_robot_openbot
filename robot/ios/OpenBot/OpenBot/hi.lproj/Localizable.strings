@@ -237,3 +237,9 @@
 "gps_nav_open_waypoints" = "Open .waypoints";
 "gps_nav_imported" = "Loaded %ld waypoints";
 "gps_nav_compass_unreliable" = "Compass unreliable: calibrate (figure 8) or move the phone away from the motors";
+
+/* RC mode face (firmware 'm' report) */
+"rc_mode_manual" = "मैनुअल – RC चला रहा है";
+"rc_mode_hold" = "होल्ड – रुका हुआ";
+"rc_mode_lost" = "RC सिग्नल खो गया – रुका हुआ";
+"rc_mode_tap_hint" = "छिपाने के लिए टैप करें";
