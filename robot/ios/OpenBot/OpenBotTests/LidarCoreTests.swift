@@ -631,4 +631,32 @@ extension LidarCoreTests {
         XCTAssertEqual(RcMode.lost.face, .cry)
         XCTAssertEqual(RcMode.auto.face, RcMode.Face.none)
     }
+
+    // MARK: - STOP button
+
+    func testStopPassesCommandsThroughUntilLatched() {
+        let stop = EmergencyStop()
+        XCTAssertEqual(stop.filter("c120,120\n"), "c120,120\n")
+        stop.latch()
+        XCTAssertEqual(stop.filter("c120,120\n"), "c0,0\n")
+        XCTAssertEqual(stop.filter("c-80,40\n"), "c0,0\n")  // reversing is held too
+    }
+
+    func testStopLetsNonDriveMessagesThrough() {
+        let stop = EmergencyStop()
+        stop.latch()
+        XCTAssertEqual(stop.filter("l255,80\n"), "l255,80\n")  // lights
+        XCTAssertEqual(stop.filter("h750\n"), "h750\n")        // heartbeat
+    }
+
+    func testStopStaysLatchedUntilReleased() {
+        let stop = EmergencyStop()
+        stop.latch()
+        stop.latch()
+        XCTAssertTrue(stop.isLatched)
+        stop.release()
+        XCTAssertFalse(stop.isLatched)
+        stop.toggle()
+        XCTAssertTrue(stop.isLatched)
+    }
 }

@@ -1,19 +1,19 @@
 /* Screens */
 "OpenBot" = "OpenBot";
-"freeRoam" = "Free Roam";
+"freeRoam" = "Drive";
 "dataCollection" = "Data Collection";
 "controllerMapping" = "Controller Mapping";
 "autoPilot" = "Auto Pilot";
 "objectTracking" = "Object Tracking";
 "modelManagement" = "Model Management";
-"robotInfo" = "Robot Info";
+"robotInfo" = "Car setup";
 "navigation" = "Point Goal Navigation";
 
 /* GPS Mission Navigation */
-"gpsMission" = "GPS Mission Navigation";
+"gpsMission" = "GPS Mission";
 "gps_nav_start" = "Start";
 "gps_nav_stop" = "Stop";
-"gps_nav_rtl" = "RTL";
+"gps_nav_rtl" = "Return home";
 "gps_nav_add_wp" = "Add WP";
 "gps_nav_clear" = "Clear";
 "gps_nav_export" = "Export";
@@ -230,7 +230,7 @@
 "avoid_backup_off" = "Off";
 "avoid_note" = "Stops before obstacles closer than the margin, in every driving mode. Back-up speed reverses away when something closes in from the front; 0 turns it off.";
 "avoid_settings" = "Avoidance";
-"gps_nav_fix_lost" = "GPS fix lost, holding";
+"gps_nav_fix_lost" = "No GPS signal - the car stopped and waits. Move to open sky.";
 "gps_nav_files" = "Files";
 "gps_nav_export_kml" = "Export KML";
 "gps_nav_share_waypoints" = "Share .waypoints";
@@ -243,3 +243,35 @@
 "rc_mode_hold" = "HOLD – stopped";
 "rc_mode_lost" = "RC signal lost – stopped";
 "rc_mode_tap_hint" = "Tap to hide";
+
+/* Car dashboard and STOP button */
+"stop_button_stop" = "STOP";
+"stop_button_resume" = "RESUME";
+"dash_title_connected_usb" = "Car connected (USB)";
+"dash_title_connected_ble" = "Car connected (Bluetooth)";
+"dash_title_disconnected" = "Car not connected";
+"dash_detail_usb" = "Plug the phone into the car's USB port, then tap Connect.";
+"dash_detail_ble" = "Turn on the car, then tap Connect and pick it from the list.";
+"dash_detail_connected" = "Ready. Choose what you want to do below.";
+"dash_detail_stopped" = "Stopped with the STOP button. Tap RESUME to drive again.";
+"dash_connect" = "Connect";
+"dash_connection_settings" = "Connection";
+"dash_chip_lidar_live" = "LiDAR: OK";
+"dash_chip_lidar_stale" = "LiDAR: no data";
+"dash_chip_lidar_none" = "LiDAR: –";
+"dash_rc_none" = "RC: –";
+"dash_rc_manual" = "RC: Manual";
+"dash_rc_auto" = "RC: Auto";
+"dash_rc_hold" = "RC: Hold";
+"dash_rc_lost" = "RC: signal lost";
+"dash_chip_avoid_on" = "Avoidance: on";
+"dash_chip_avoid_off" = "Avoidance: off";
+"dash_tasks_header" = "What do you want to do?";
+"dash_drive_title" = "Drive";
+"dash_drive_desc" = "Drive the car with the phone or a game controller.";
+"dash_mission_title" = "GPS Mission";
+"dash_mission_desc" = "Drive to points on a map, or return home.";
+"dash_setup_title" = "Car setup";
+"dash_setup_desc" = "Check sensors, lights and obstacle avoidance.";
+"dash_more_show" = "More features";
+"dash_more_hide" = "Fewer features";

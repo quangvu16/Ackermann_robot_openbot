@@ -38,6 +38,11 @@ class bluetoothDataController: CMDeviceMotion, CBCentralManagerDelegate, CBPerip
     override init() {
         super.init()
         driveGate.apply(settings: AvoidanceSettings.load())
+        // STOP stops at once, and RESUME starts from standstill (no stale command replayed).
+        NotificationCenter.default.addObserver(forName: .emergencyStopChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.driveGate.apply(left: 0, right: 0)
+            self?.writeWire("c0,0\n")
+        }
         centralManager = CBCentralManager(delegate: self, queue: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(startNotification), name: Notification.Name("updateLabel"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(startNotification), name: Notification.Name("updateSerialMonitor"), object: nil)
@@ -283,6 +288,8 @@ class bluetoothDataController: CMDeviceMotion, CBCentralManagerDelegate, CBPerip
     /// proximity update) and for safety stops, which must never be vetoed or
     /// turned into a reverse.
     func writeWire(_ payload: String) {
+        // The STOP button wins over everything, avoidance included.
+        let payload = EmergencyStop.shared.filter(payload)
         let dataToSend: Data? = payload.data(using: String.Encoding.utf8)
         if (dataToSend != nil && discoveredPeripheral != nil && discoveredPeripheral.canSendWriteWithoutResponse) {
             if let writeCharacteristics {

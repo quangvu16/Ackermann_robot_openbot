@@ -243,3 +243,35 @@
 "rc_mode_hold" = "होल्ड – रुका हुआ";
 "rc_mode_lost" = "RC सिग्नल खो गया – रुका हुआ";
 "rc_mode_tap_hint" = "छिपाने के लिए टैप करें";
+
+/* Car dashboard and STOP button */
+"stop_button_stop" = "रुको";
+"stop_button_resume" = "फिर चलाओ";
+"dash_title_connected_usb" = "कार जुड़ी है (USB)";
+"dash_title_connected_ble" = "कार जुड़ी है (ब्लूटूथ)";
+"dash_title_disconnected" = "कार नहीं जुड़ी";
+"dash_detail_usb" = "फ़ोन को कार के USB पोर्ट से जोड़ें, फिर कनेक्ट दबाएँ।";
+"dash_detail_ble" = "कार चालू करें, फिर कनेक्ट दबाकर सूची से उसे चुनें।";
+"dash_detail_connected" = "तैयार। नीचे चुनें कि क्या करना है।";
+"dash_detail_stopped" = "रुको बटन से रोका गया। फिर चलाने के लिए फिर चलाओ दबाएँ।";
+"dash_connect" = "कनेक्ट";
+"dash_connection_settings" = "कनेक्शन";
+"dash_chip_lidar_live" = "LiDAR: ठीक";
+"dash_chip_lidar_stale" = "LiDAR: डेटा नहीं";
+"dash_chip_lidar_none" = "LiDAR: –";
+"dash_rc_none" = "RC: –";
+"dash_rc_manual" = "RC: मैनुअल";
+"dash_rc_auto" = "RC: ऑटो";
+"dash_rc_hold" = "RC: होल्ड";
+"dash_rc_lost" = "RC: सिग्नल खोया";
+"dash_chip_avoid_on" = "बाधा से बचाव: चालू";
+"dash_chip_avoid_off" = "बाधा से बचाव: बंद";
+"dash_tasks_header" = "आप क्या करना चाहते हैं?";
+"dash_drive_title" = "चलाएँ";
+"dash_drive_desc" = "फ़ोन या गेम कंट्रोलर से कार चलाएँ।";
+"dash_mission_title" = "GPS मिशन";
+"dash_mission_desc" = "नक्शे पर बिंदुओं तक जाएँ या घर लौटें।";
+"dash_setup_title" = "कार सेटअप";
+"dash_setup_desc" = "सेंसर, लाइट और बाधा से बचाव जाँचें।";
+"dash_more_show" = "और सुविधाएँ";
+"dash_more_hide" = "कम सुविधाएँ";

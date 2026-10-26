@@ -243,3 +243,35 @@
 "rc_mode_hold" = "PARADA – detenido";
 "rc_mode_lost" = "Señal RC perdida – detenido";
 "rc_mode_tap_hint" = "Toca para ocultar";
+
+/* Car dashboard and STOP button */
+"stop_button_stop" = "PARAR";
+"stop_button_resume" = "SEGUIR";
+"dash_title_connected_usb" = "Coche conectado (USB)";
+"dash_title_connected_ble" = "Coche conectado (Bluetooth)";
+"dash_title_disconnected" = "Coche no conectado";
+"dash_detail_usb" = "Conecta el móvil al USB del coche y toca Conectar.";
+"dash_detail_ble" = "Enciende el coche, toca Conectar y elígelo de la lista.";
+"dash_detail_connected" = "Listo. Elige abajo qué quieres hacer.";
+"dash_detail_stopped" = "Detenido con PARAR. Toca SEGUIR para volver a conducir.";
+"dash_connect" = "Conectar";
+"dash_connection_settings" = "Conexión";
+"dash_chip_lidar_live" = "LiDAR: OK";
+"dash_chip_lidar_stale" = "LiDAR: sin datos";
+"dash_chip_lidar_none" = "LiDAR: –";
+"dash_rc_none" = "RC: –";
+"dash_rc_manual" = "RC: Manual";
+"dash_rc_auto" = "RC: Auto";
+"dash_rc_hold" = "RC: Parada";
+"dash_rc_lost" = "RC: sin señal";
+"dash_chip_avoid_on" = "Evitar obstáculos: sí";
+"dash_chip_avoid_off" = "Evitar obstáculos: no";
+"dash_tasks_header" = "¿Qué quieres hacer?";
+"dash_drive_title" = "Conducir";
+"dash_drive_desc" = "Conduce el coche con el móvil o un mando.";
+"dash_mission_title" = "Misión GPS";
+"dash_mission_desc" = "Ve a puntos del mapa o vuelve a casa.";
+"dash_setup_title" = "Ajustes del coche";
+"dash_setup_desc" = "Revisa sensores, luces y la evitación de obstáculos.";
+"dash_more_show" = "Más funciones";
+"dash_more_hide" = "Menos funciones";

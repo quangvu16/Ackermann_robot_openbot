@@ -6,6 +6,7 @@ This guide explains the three OpenBot apps for the ESP32-S3 Ackermann car in sim
 
 1. [Before you drive](#1-before-you-drive)
 2. [Which app should I use?](#2-which-app-should-i-use)
+   - [Home screen and STOP button](#2a-home-screen-and-stop-button-android-and-ios)
    - [RC mode faces](#2b-rc-mode-faces-android-and-ios)
 3. [Android app](#3-android-app)
 4. [iOS app (beta)](#4-ios-app-beta)
@@ -52,6 +53,26 @@ Pinout: see [ESP32S3_PINOUT.svg](ESP32S3_PINOUT.svg). Wiring, flashing and calib
 - *Example:* you want to test GPS missions with a phone plugged into the car by cable. Use Android. An iPhone cannot use the cable for data, so it would use Bluetooth.
 
 **Why does iPhone use Bluetooth?** iOS does not let apps talk to USB serial chips like the one on the ESP32-S3. This is a limit of the platform, not a bug in OpenBot.
+
+---
+
+## 2a. Home screen and STOP button (Android and iOS)
+
+Both phone apps open on a **Car dashboard** that answers two questions: *is the car ready?* and *what do you want to do?*
+
+| Part | What it shows or does |
+|---|---|
+| **Connection card** | Coloured dot and plain status ("Car connected (USB)", "Car not connected"), plus one big **Connect** button. Android uses the USB cable; iPhone opens the Bluetooth list. |
+| **Status chips** | **LiDAR** (OK / no data / –), **RC** mode (Manual / Auto / Hold / signal lost), **Avoidance** (on / off). Tap the Avoidance chip to switch it. |
+| **Three task tiles** | **Drive** (phone or game controller), **GPS Mission** (waypoints, return home), **Car setup** (sensors, lights, avoidance). |
+| **More features** | The full OpenBot list (AI, data collection, projects and more). Hidden until you open it; the app remembers your choice. |
+
+**STOP button.** While the car is connected, a big round red **STOP** sits on the right edge of every screen. Pressing it stops the car and keeps it stopped: every drive command from the app is replaced by "stop", whether it comes from the joystick, a GPS mission, an AI mode or a game controller. The button turns green **RESUME**; press it to drive again.
+- *Source:* `vehicle/EmergencyStop.java` and `Vehicle.sendControl()` (Android); `CarDashboard.swift` and `writeWire()` in `BluetoothDataController.swift` (iOS).
+- *Example:* during a GPS mission the car heads for a puddle. Press STOP; the mission stays loaded but the car does not move until you press RESUME.
+- In **MANUAL** the RC transmitter drives, so the smiling face covers the phone's STOP. Use the transmitter's **HOLD** position to stop there.
+
+**Why this layout?** You open the app to *do* something. Showing the car's state and the three main tasks first means no searching through a list of research features before you can drive (Hick's law), and a STOP button in the same place on every screen means you never have to look for it in a hurry.
 
 ---
 

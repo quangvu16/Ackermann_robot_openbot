@@ -42,6 +42,11 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
     @IBOutlet var modesCollectionView: UICollectionView!;
     let sectionHeaders = ["  General", "  AI"]
 
+    // Car dashboard above the grid; the grid itself is "More features", hidden by default.
+    private let dashboard = CarDashboardView()
+    private var showMore = UserDefaults.standard.bool(forKey: "dashboard_more_open")
+    private var dashboardTimer: Timer?
+
     @IBOutlet weak var openCodeWebView: UIView!
 
     /// Called after the view controller has loaded.
@@ -73,6 +78,8 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
         modesCollectionView.register(modesCollectionViewCell.self, forCellWithReuseIdentifier: modesCollectionViewCell.identifier)
         modesCollectionView.register(HeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "Header")
         self.view.addSubview(modesCollectionView)
+        setupDashboard()
+        StopButtonOverlay.shared.start()
 
         DeviceCurrentOrientation.shared.findDeviceOrientation()
         changeNavigationColor()
@@ -124,8 +131,62 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
     }
 
     /// Initialization routine
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        layoutDashboard()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        dashboardTimer?.invalidate()
+        dashboardTimer = nil
+    }
+
+    /// The dashboard rides above the grid as a scrolling header (content inset).
+    private func setupDashboard() {
+        dashboard.onConnect = { [weak self] in self?.openScreen(Strings.bluetoothScreen) }
+        dashboard.onDrive = { [weak self] in self?.openScreen(Strings.ScreenFreeRoam) }
+        dashboard.onMission = { [weak self] in self?.openScreen(Strings.ScreenGpsMission) }
+        dashboard.onSetup = { [weak self] in self?.openScreen(Strings.ScreenRobotInfo) }
+        dashboard.onToggleMore = { [weak self] in
+            guard let self = self else { return }
+            self.showMore.toggle()
+            UserDefaults.standard.set(self.showMore, forKey: "dashboard_more_open")
+            self.dashboard.setMoreOpen(self.showMore)
+            self.modesCollectionView.reloadData()
+        }
+        dashboard.setMoreOpen(showMore)
+        modesCollectionView.addSubview(dashboard)
+        layoutDashboard()
+    }
+
+    private func layoutDashboard() {
+        let width = modesCollectionView.bounds.width
+        guard width > 0 else { return }
+        let height = dashboard.systemLayoutSizeFitting(
+            CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel).height
+        dashboard.frame = CGRect(x: 0, y: -height, width: width, height: height)
+        if abs(modesCollectionView.contentInset.top - height) > 0.5 {
+            modesCollectionView.contentInset.top = height
+            modesCollectionView.contentOffset.y = -modesCollectionView.adjustedContentInset.top
+        }
+    }
+
+    private func openScreen(_ identifier: String) {
+        guard let viewController = storyboard?.instantiateViewController(withIdentifier: identifier) else { return }
+        navigationController?.pushViewController(viewController, animated: true)
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated);
+        dashboard.refresh()
+        layoutDashboard()
+        dashboardTimer?.invalidate()
+        dashboardTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.dashboard.refresh()
+        }
         DeviceCurrentOrientation.shared.findDeviceOrientation()
         viewControllerName = classNameFrom(self)
         if (isBluetoothConnected) {
@@ -202,7 +263,7 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
 
     // Number of sections
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return sectionHeaders.count
+        return showMore ? sectionHeaders.count : 0
     }
 
     // Number of items in section

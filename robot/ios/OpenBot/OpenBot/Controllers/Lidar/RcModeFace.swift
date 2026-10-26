@@ -55,6 +55,11 @@ final class RcModeFaceOverlay {
 
     private var view: RcModeFaceView?
     private var mode: RcMode?
+
+    /// The latest RC switch report (nil: none for 3 s), shown on the Car dashboard.
+    var currentMode: RcMode? { mode }
+    /// The face view while it is on screen, so the STOP button can sit below it.
+    var faceView: UIView? { view }
     private var dismissedMode: RcMode?
     private var timeout: DispatchWorkItem?
 

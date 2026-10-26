@@ -243,3 +243,35 @@
 "rc_mode_hold" = "保持 – 已停止";
 "rc_mode_lost" = "遥控信号丢失 – 已停止";
 "rc_mode_tap_hint" = "点击隐藏";
+
+/* Car dashboard and STOP button */
+"stop_button_stop" = "停止";
+"stop_button_resume" = "继续";
+"dash_title_connected_usb" = "小车已连接（USB）";
+"dash_title_connected_ble" = "小车已连接（蓝牙）";
+"dash_title_disconnected" = "小车未连接";
+"dash_detail_usb" = "用 USB 线把手机接到小车上，然后点“连接”。";
+"dash_detail_ble" = "打开小车电源，点“连接”，然后在列表中选择它。";
+"dash_detail_connected" = "已就绪。请在下方选择要做的事。";
+"dash_detail_stopped" = "已用“停止”按钮停车。点“继续”即可再次行驶。";
+"dash_connect" = "连接";
+"dash_connection_settings" = "连接设置";
+"dash_chip_lidar_live" = "激光雷达：正常";
+"dash_chip_lidar_stale" = "激光雷达：无数据";
+"dash_chip_lidar_none" = "激光雷达：–";
+"dash_rc_none" = "遥控：–";
+"dash_rc_manual" = "遥控：手动";
+"dash_rc_auto" = "遥控：自动";
+"dash_rc_hold" = "遥控：保持";
+"dash_rc_lost" = "遥控：信号丢失";
+"dash_chip_avoid_on" = "避障：开";
+"dash_chip_avoid_off" = "避障：关";
+"dash_tasks_header" = "你想做什么？";
+"dash_drive_title" = "驾驶";
+"dash_drive_desc" = "用手机或游戏手柄驾驶小车。";
+"dash_mission_title" = "GPS 任务";
+"dash_mission_desc" = "驶向地图上的点，或返回起点。";
+"dash_setup_title" = "小车设置";
+"dash_setup_desc" = "检查传感器、灯光和避障。";
+"dash_more_show" = "更多功能";
+"dash_more_hide" = "收起功能";
