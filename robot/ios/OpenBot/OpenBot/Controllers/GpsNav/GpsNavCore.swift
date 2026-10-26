@@ -423,6 +423,11 @@ class Navigator {
 
     var isNavigating: Bool { mode != .idle }
 
+    /// Forgets the track driven so far (the track stays read-only from outside).
+    func clearTrack() {
+        track.removeAll()
+    }
+
     /// Records the launch position RTL returns to.
     func markHome(_ latitude: Double, _ longitude: Double) {
         mission.setHome(latitude, longitude)

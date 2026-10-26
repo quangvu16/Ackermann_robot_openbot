@@ -76,7 +76,7 @@ final class GpsMissionController: UIViewController {
     // MARK: - UI
 
     private func setupNavigationBarItem() {
-        let backIcon = UIImage(named: "back")?.withRenderingMode(.alwaysOriginal)
+        let backIcon = UIImage(named: "back")?.withRenderingMode(.alwaysOriginal) ?? UIImage()
         let back = UIBarButtonItem(
             image: backIcon,
             title: Strings.gpsMission,
@@ -259,7 +259,7 @@ final class GpsMissionController: UIViewController {
         navigator.stop()
         sendControl(control: Control())
         navigator.mission.clearWaypoints()
-        navigator.track.removeAll()
+        navigator.clearTrack()
         saveMission()
         refreshMap()
         refreshHud()
@@ -574,8 +574,8 @@ extension GpsMissionController: MKMapViewDelegate {
         }
         let renderer = MKPolylineRenderer(polyline: polyline)
         // Dashed cyan for the plan, solid green for the track actually flown.
-        if polyline.pointCount > 0,
-           let first = polyline.points().first {
+        if polyline.pointCount > 0 {
+            let first = polyline.points()[0]
             let isTrack = navigator.track.contains {
                 abs($0.latitude - first.coordinate.latitude) < 1e-9
                     && abs($0.longitude - first.coordinate.longitude) < 1e-9
