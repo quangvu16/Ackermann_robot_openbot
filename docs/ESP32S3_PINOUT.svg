@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1110" viewBox="0 0 1200 1110" font-family="Helvetica, Arial, sans-serif">
+<title>OpenBot Ackermann robot: ESP32-S3 pinout map</title>
+<desc>GPIO map from firmware/openbot-esp32s3/openbot-esp32s3.cpp. Green: drive. Orange: lights. Blue: status LEDs. Purple: LiDAR. Red and grey: do not use for the robot.</desc>
+<rect width="1200" height="1110" fill="#ffffff"/>
+<text x="600" y="60" text-anchor="middle" font-size="34" font-weight="700" fill="#202124">ESP32-S3 Pinout: OpenBot Ackermann Robot</text>
+<text x="600" y="92" text-anchor="middle" font-size="18" fill="#5f6368">Source: firmware/openbot-esp32s3/openbot-esp32s3.cpp, settings sections 5 and 6. Logical map, not the physical pad order.</text>
+<rect x="560" y="150" width="300" height="620" rx="18" fill="#263238"/>
+<text x="710.0" y="190" text-anchor="middle" font-size="22" font-weight="700" fill="#ffffff">ESP32-S3</text>
+<text x="710.0" y="216" text-anchor="middle" font-size="16" fill="#cfd8dc">N16R8 (16 MB flash, 8 MB PSRAM)</text>
+<text x="710.0" y="748" text-anchor="middle" font-size="16" fill="#cfd8dc">Phone link: USB (COM/UART or native)</text>
+<circle cx="560" cy="240" r="6" fill="#1b7f3b"/>
+<line x1="554" y1="240" x2="440" y2="240" stroke="#1b7f3b" stroke-width="2"/>
+<rect x="40" y="222" width="400" height="36" rx="8" fill="#e6f4ea" stroke="#1b7f3b" stroke-width="1.5"/>
+<text x="56" y="246" font-size="17" font-weight="700" fill="#1b7f3b">GPIO 1</text>
+<text x="170" y="246" font-size="16" fill="#202124">ESC throttle (50 Hz PWM)</text>
+<circle cx="560" cy="286" r="6" fill="#1b7f3b"/>
+<line x1="554" y1="286" x2="440" y2="286" stroke="#1b7f3b" stroke-width="2"/>
+<rect x="40" y="268" width="400" height="36" rx="8" fill="#e6f4ea" stroke="#1b7f3b" stroke-width="1.5"/>
+<text x="56" y="292" font-size="17" font-weight="700" fill="#1b7f3b">GPIO 2</text>
+<text x="170" y="292" font-size="16" fill="#202124">Steering servo (50 Hz PWM)</text>
+<circle cx="560" cy="332" r="6" fill="#b26a00"/>
+<line x1="554" y1="332" x2="440" y2="332" stroke="#b26a00" stroke-width="2"/>
+<rect x="40" y="314" width="400" height="36" rx="8" fill="#fff4e0" stroke="#b26a00" stroke-width="1.5"/>
+<text x="56" y="338" font-size="17" font-weight="700" fill="#b26a00">GPIO 4</text>
+<text x="170" y="338" font-size="16" fill="#202124">LED left turn indicator</text>
+<circle cx="560" cy="378" r="6" fill="#b26a00"/>
+<line x1="554" y1="378" x2="440" y2="378" stroke="#b26a00" stroke-width="2"/>
+<rect x="40" y="360" width="400" height="36" rx="8" fill="#fff4e0" stroke="#b26a00" stroke-width="1.5"/>
+<text x="56" y="384" font-size="17" font-weight="700" fill="#b26a00">GPIO 5</text>
+<text x="170" y="384" font-size="16" fill="#202124">LED right turn indicator</text>
+<circle cx="560" cy="424" r="6" fill="#b26a00"/>
+<line x1="554" y1="424" x2="440" y2="424" stroke="#b26a00" stroke-width="2"/>
+<rect x="40" y="406" width="400" height="36" rx="8" fill="#fff4e0" stroke="#b26a00" stroke-width="1.5"/>
+<text x="56" y="430" font-size="17" font-weight="700" fill="#b26a00">GPIO 6</text>
+<text x="170" y="430" font-size="16" fill="#202124">LED left front light</text>
+<circle cx="560" cy="470" r="6" fill="#b26a00"/>
+<line x1="554" y1="470" x2="440" y2="470" stroke="#b26a00" stroke-width="2"/>
+<rect x="40" y="452" width="400" height="36" rx="8" fill="#fff4e0" stroke="#b26a00" stroke-width="1.5"/>
+<text x="56" y="476" font-size="17" font-weight="700" fill="#b26a00">GPIO 7</text>
+<text x="170" y="476" font-size="16" fill="#202124">LED right front light</text>
+<circle cx="560" cy="516" r="6" fill="#b26a00"/>
+<line x1="554" y1="516" x2="440" y2="516" stroke="#b26a00" stroke-width="2"/>
+<rect x="40" y="498" width="400" height="36" rx="8" fill="#fff4e0" stroke="#b26a00" stroke-width="1.5"/>
+<text x="56" y="522" font-size="17" font-weight="700" fill="#b26a00">GPIO 8</text>
+<text x="170" y="522" font-size="16" fill="#202124">LED left rear light</text>
+<circle cx="560" cy="562" r="6" fill="#b26a00"/>
+<line x1="554" y1="562" x2="440" y2="562" stroke="#b26a00" stroke-width="2"/>
+<rect x="40" y="544" width="400" height="36" rx="8" fill="#fff4e0" stroke="#b26a00" stroke-width="1.5"/>
+<text x="56" y="568" font-size="17" font-weight="700" fill="#b26a00">GPIO 9</text>
+<text x="170" y="568" font-size="16" fill="#202124">LED right rear light</text>
+<circle cx="560" cy="608" r="6" fill="#2f5fb3"/>
+<line x1="554" y1="608" x2="440" y2="608" stroke="#2f5fb3" stroke-width="2"/>
+<rect x="40" y="590" width="400" height="36" rx="8" fill="#e8f0fc" stroke="#2f5fb3" stroke-width="1.5"/>
+<text x="56" y="614" font-size="17" font-weight="700" fill="#2f5fb3">GPIO 10</text>
+<text x="170" y="614" font-size="16" fill="#202124">Status LED yellow</text>
+<circle cx="560" cy="654" r="6" fill="#2f5fb3"/>
+<line x1="554" y1="654" x2="440" y2="654" stroke="#2f5fb3" stroke-width="2"/>
+<rect x="40" y="636" width="400" height="36" rx="8" fill="#e8f0fc" stroke="#2f5fb3" stroke-width="1.5"/>
+<text x="56" y="660" font-size="17" font-weight="700" fill="#2f5fb3">GPIO 11</text>
+<text x="170" y="660" font-size="16" fill="#202124">Status LED green</text>
+<circle cx="560" cy="700" r="6" fill="#2f5fb3"/>
+<line x1="554" y1="700" x2="440" y2="700" stroke="#2f5fb3" stroke-width="2"/>
+<rect x="40" y="682" width="400" height="36" rx="8" fill="#e8f0fc" stroke="#2f5fb3" stroke-width="1.5"/>
+<text x="56" y="706" font-size="17" font-weight="700" fill="#2f5fb3">GPIO 12</text>
+<text x="170" y="706" font-size="16" fill="#202124">Status LED blue</text>
+<circle cx="560" cy="746" r="6" fill="#7b3fb0"/>
+<line x1="554" y1="746" x2="440" y2="746" stroke="#7b3fb0" stroke-width="2"/>
+<rect x="40" y="728" width="400" height="36" rx="8" fill="#f3eafc" stroke="#7b3fb0" stroke-width="1.5"/>
+<text x="56" y="752" font-size="17" font-weight="700" fill="#7b3fb0">GPIO 13</text>
+<text x="170" y="752" font-size="16" fill="#202124">LiDAR TX (LD14 to UART1 RX)</text>
+<circle cx="860" cy="240" r="6" fill="#b3261e"/>
+<line x1="866" y1="240" x2="900" y2="240" stroke="#b3261e" stroke-width="2"/>
+<rect x="900" y="206" width="280" height="78" rx="8" fill="#fde8e6" stroke="#b3261e" stroke-width="1.5"/>
+<text x="914" y="232" font-size="17" font-weight="700" fill="#b3261e">GPIO 0, 3, 45, 46</text>
+<text x="914" y="254" font-size="15" fill="#202124">Strapping pins: boot mode, JTAG,</text>
+<text x="914" y="272" font-size="15" fill="#202124">VDD_SPI. Avoid.</text>
+<circle cx="860" cy="360" r="6" fill="#b3261e"/>
+<line x1="866" y1="360" x2="900" y2="360" stroke="#b3261e" stroke-width="2"/>
+<rect x="900" y="326" width="280" height="78" rx="8" fill="#fde8e6" stroke="#b3261e" stroke-width="1.5"/>
+<text x="914" y="352" font-size="17" font-weight="700" fill="#b3261e">GPIO 19, 20</text>
+<text x="914" y="374" font-size="15" fill="#202124">USB D- / D+ (native USB port to</text>
+<text x="914" y="392" font-size="15" fill="#202124">phone). Avoid.</text>
+<circle cx="860" cy="480" r="6" fill="#b3261e"/>
+<line x1="866" y1="480" x2="900" y2="480" stroke="#b3261e" stroke-width="2"/>
+<rect x="900" y="446" width="280" height="78" rx="8" fill="#fde8e6" stroke="#b3261e" stroke-width="1.5"/>
+<text x="914" y="472" font-size="17" font-weight="700" fill="#b3261e">GPIO 43, 44</text>
+<text x="914" y="494" font-size="15" fill="#202124">UART0 (COM/UART port to phone).</text>
+<text x="914" y="512" font-size="15" fill="#202124">Avoid.</text>
+<circle cx="860" cy="600" r="6" fill="#b3261e"/>
+<line x1="866" y1="600" x2="900" y2="600" stroke="#b3261e" stroke-width="2"/>
+<rect x="900" y="566" width="280" height="78" rx="8" fill="#fde8e6" stroke="#b3261e" stroke-width="1.5"/>
+<text x="914" y="592" font-size="17" font-weight="700" fill="#b3261e">GPIO 26 to 37</text>
+<text x="914" y="614" font-size="15" fill="#202124">In-package flash and octal PSRAM.</text>
+<text x="914" y="632" font-size="15" fill="#202124">Never use: the board will not boot.</text>
+<text x="60" y="820" font-size="20" font-weight="700" fill="#202124">Legend</text>
+<rect x="60" y="840" width="24" height="24" rx="4" fill="#1b7f3b"/>
+<text x="96" y="858" font-size="17" fill="#202124">Drive: steering and throttle</text>
+<rect x="430" y="840" width="24" height="24" rx="4" fill="#b26a00"/>
+<text x="466" y="858" font-size="17" fill="#202124">Lights: indicators and head/tail</text>
+<rect x="800" y="840" width="24" height="24" rx="4" fill="#2f5fb3"/>
+<text x="836" y="858" font-size="17" fill="#202124">Status: robot state LEDs</text>
+<rect x="60" y="880" width="24" height="24" rx="4" fill="#7b3fb0"/>
+<text x="96" y="898" font-size="17" fill="#202124">LiDAR: LD14 / LD14P data in</text>
+<rect x="430" y="880" width="24" height="24" rx="4" fill="#b3261e"/>
+<text x="466" y="898" font-size="17" fill="#202124">Do not use for the robot</text>
+<text x="60" y="940" font-size="20" font-weight="700" fill="#202124">Notes</text>
+<text x="60" y="970" font-size="16" fill="#202124">- Power: the board and the LiDAR need 5 V and GND from your car's supply or the phone's USB cable (see robot/README.md).</text>
+<text x="60" y="996" font-size="16" fill="#202124">- The phone talks to the board over USB; the car is driven over Bluetooth (iPhone) or USB (Android).</text>
+<text x="60" y="1022" font-size="16" fill="#202124">- Only the LiDAR TX line is wired (GPIO 13). LIDAR_TX_PIN = -1, so the board never sends commands to it.</text>
+<text x="60" y="1048" font-size="16" fill="#202124">- Failsafe: if no command arrives within CONTROL_TIMEOUT_MS (1000 ms), the motors stop and the wheels straighten.</text>
+</svg>
