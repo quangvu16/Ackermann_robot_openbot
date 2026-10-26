@@ -243,10 +243,10 @@
     <string name="tile_general">General</string>
     <string name="tile_ai">AI</string>
     <string name="tile_legacy">Legacy</string>
-    <string name="tile_free_roam">Free Roam</string>
+    <string name="tile_free_roam">Drive</string>
     <string name="tile_data_collection">Data Collection</string>
     <string name="tile_controller_mapping">Controller Mapping</string>
-    <string name="tile_robot_info">Robot Info</string>
+    <string name="tile_robot_info">Car setup</string>
     <string name="tile_autopilot">Autopilot</string>
     <string name="tile_object_nav">Object Tracking</string>
     <string name="tile_point_goal_navigation">Point Goal Navigation</string>
@@ -274,14 +274,14 @@
     <string name="ble_connect">Connect</string>
 
     <!-- GPS Mission Navigation -->
-    <string name="tile_gps_navigation">GPS Mission Navigation</string>
-    <string name="gps_nav_status_idle">IDLE — plan a mission or tap the map</string>
-    <string name="gps_nav_status_navigating">NAVIGATING</string>
-    <string name="gps_nav_status_paused">PAUSED</string>
-    <string name="gps_nav_status_returning">RTL — returning to launch</string>
-    <string name="gps_nav_status_completed">COMPLETED</string>
-    <string name="gps_nav_status_waiting_gps">WAITING FOR GPS FIX</string>
-    <string name="gps_nav_status_held">HELD — obstacle</string>
+    <string name="tile_gps_navigation">GPS Mission</string>
+    <string name="gps_nav_status_idle">Ready — add waypoints or tap the map</string>
+    <string name="gps_nav_status_navigating">Driving the mission</string>
+    <string name="gps_nav_status_paused">Paused</string>
+    <string name="gps_nav_status_returning">Returning home</string>
+    <string name="gps_nav_status_completed">Mission complete</string>
+    <string name="gps_nav_status_waiting_gps">Waiting for GPS — move to open sky</string>
+    <string name="gps_nav_status_held">Stopped — obstacle ahead</string>
     <string name="gps_nav_distance_placeholder">Dist  -- m</string>
     <string name="gps_nav_bearing_placeholder">Brng  --°</string>
     <string name="gps_nav_speed_placeholder">Spd  -- m/s</string>
@@ -290,7 +290,7 @@
     <string name="gps_nav_pause">Pause</string>
     <string name="gps_nav_resume">Resume</string>
     <string name="gps_nav_stop">Stop</string>
-    <string name="gps_nav_rtl">RTL</string>
+    <string name="gps_nav_rtl">Return home</string>
     <string name="gps_nav_add_wp_here">Add WP here</string>
     <string name="gps_nav_clear">Clear</string>
     <string name="gps_nav_save">Save</string>
@@ -300,7 +300,7 @@
     <string name="gps_nav_waypoints_exported">Mission saved as .waypoints</string>
     <string name="gps_nav_waypoints_imported">Loaded %1$d waypoints</string>
     <string name="gps_nav_waypoints_failed">.waypoints file error: %1$s</string>
-    <string name="gps_nav_fix_lost">GPS fix lost — holding</string>
+    <string name="gps_nav_fix_lost">No GPS signal — the car stopped and waits. Move to open sky.</string>
     <string name="gps_nav_compass_unreliable">COMPASS UNRELIABLE — calibrate (figure 8) or move the phone away from motors</string>
     <string name="gps_nav_delete_waypoint">Delete waypoint</string>
     <string name="gps_nav_mission_empty">Mission: 0 waypoints</string>
@@ -331,13 +331,44 @@
     <string name="gps_nav_tap_add_waypoint">Add as waypoint</string>
     <string name="gps_nav_tap_go_here">Go here now</string>
     <string name="gps_nav_cancel">Cancel</string>
-    <string name="gps_nav_guided_set">Guided: heading to selected point</string>
+    <string name="gps_nav_guided_set">Going to the point you tapped</string>
     <string name="gps_nav_arrived">Arrived at waypoint %1$d</string>
     <string name="gps_nav_mission_complete">Mission complete</string>
-    <string name="gps_nav_rtl_complete">Returned to launch</string>
+    <string name="gps_nav_rtl_complete">Back home</string>
     <!-- RC mode face (firmware 'm' report) -->
     <string name="rc_mode_manual">MANUAL – RC is driving</string>
     <string name="rc_mode_hold">HOLD – stopped</string>
     <string name="rc_mode_lost">RC signal lost – stopped</string>
     <string name="rc_mode_tap_hint">Tap to hide</string>
+    <!-- Car dashboard and STOP button -->
+    <string name="stop_button_stop">STOP</string>
+    <string name="stop_button_resume">RESUME</string>
+    <string name="dash_title_connected_usb">Car connected (USB)</string>
+    <string name="dash_title_connected_ble">Car connected (Bluetooth)</string>
+    <string name="dash_title_disconnected">Car not connected</string>
+    <string name="dash_detail_usb">Plug the phone into the car\'s USB port, then tap Connect.</string>
+    <string name="dash_detail_ble">Turn on the car, then tap Connect and pick it from the list.</string>
+    <string name="dash_detail_connected">Ready. Choose what you want to do below.</string>
+    <string name="dash_detail_stopped">Stopped with the STOP button. Tap RESUME to drive again.</string>
+    <string name="dash_connect">Connect</string>
+    <string name="dash_connection_settings">Connection</string>
+    <string name="dash_chip_lidar_live">LiDAR: OK</string>
+    <string name="dash_chip_lidar_stale">LiDAR: no data</string>
+    <string name="dash_chip_lidar_none">LiDAR: –</string>
+    <string name="dash_rc_none">RC: –</string>
+    <string name="dash_rc_manual">RC: Manual</string>
+    <string name="dash_rc_auto">RC: Auto</string>
+    <string name="dash_rc_hold">RC: Hold</string>
+    <string name="dash_rc_lost">RC: signal lost</string>
+    <string name="dash_chip_avoid_on">Avoidance: on</string>
+    <string name="dash_chip_avoid_off">Avoidance: off</string>
+    <string name="dash_tasks_header">What do you want to do?</string>
+    <string name="dash_drive_title">Drive</string>
+    <string name="dash_drive_desc">Drive the car with the phone or a game controller.</string>
+    <string name="dash_mission_title">GPS Mission</string>
+    <string name="dash_mission_desc">Drive to points on a map, or return home.</string>
+    <string name="dash_setup_title">Car setup</string>
+    <string name="dash_setup_desc">Check sensors, lights and obstacle avoidance.</string>
+    <string name="dash_more_show">More features</string>
+    <string name="dash_more_hide">Fewer features</string>
 </resources>

@@ -181,4 +181,35 @@
     <string name="rc_mode_hold">HALT – angehalten</string>
     <string name="rc_mode_lost">RC-Signal verloren – angehalten</string>
     <string name="rc_mode_tap_hint">Zum Ausblenden tippen</string>
+    <!-- Car dashboard and STOP button -->
+    <string name="stop_button_stop">STOPP</string>
+    <string name="stop_button_resume">WEITER</string>
+    <string name="dash_title_connected_usb">Auto verbunden (USB)</string>
+    <string name="dash_title_connected_ble">Auto verbunden (Bluetooth)</string>
+    <string name="dash_title_disconnected">Auto nicht verbunden</string>
+    <string name="dash_detail_usb">Handy per USB mit dem Auto verbinden und dann auf Verbinden tippen.</string>
+    <string name="dash_detail_ble">Auto einschalten, auf Verbinden tippen und es aus der Liste wählen.</string>
+    <string name="dash_detail_connected">Bereit. Unten auswählen, was du tun möchtest.</string>
+    <string name="dash_detail_stopped">Mit STOPP angehalten. Auf WEITER tippen, um weiterzufahren.</string>
+    <string name="dash_connect">Verbinden</string>
+    <string name="dash_connection_settings">Verbindung</string>
+    <string name="dash_chip_lidar_live">LiDAR: OK</string>
+    <string name="dash_chip_lidar_stale">LiDAR: keine Daten</string>
+    <string name="dash_chip_lidar_none">LiDAR: –</string>
+    <string name="dash_rc_none">RC: –</string>
+    <string name="dash_rc_manual">RC: Manuell</string>
+    <string name="dash_rc_auto">RC: Auto</string>
+    <string name="dash_rc_hold">RC: Halt</string>
+    <string name="dash_rc_lost">RC: Signal verloren</string>
+    <string name="dash_chip_avoid_on">Hindernis-Stopp: an</string>
+    <string name="dash_chip_avoid_off">Hindernis-Stopp: aus</string>
+    <string name="dash_tasks_header">Was möchtest du tun?</string>
+    <string name="dash_drive_title">Fahren</string>
+    <string name="dash_drive_desc">Mit dem Handy oder einem Gamecontroller fahren.</string>
+    <string name="dash_mission_title">GPS-Mission</string>
+    <string name="dash_mission_desc">Punkte auf der Karte anfahren oder nach Hause zurück.</string>
+    <string name="dash_setup_title">Auto einrichten</string>
+    <string name="dash_setup_desc">Sensoren, Licht und Hindernis-Stopp prüfen.</string>
+    <string name="dash_more_show">Weitere Funktionen</string>
+    <string name="dash_more_hide">Weniger Funktionen</string>
 </resources>

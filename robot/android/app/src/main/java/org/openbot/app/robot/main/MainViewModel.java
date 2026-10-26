@@ -38,6 +38,18 @@ public class MainViewModel extends ViewModel {
     return vehicle;
   }
 
+  // The car's RC switch (null = no report: no receiver, or not connected). Shown on the dashboard.
+  private final MutableLiveData<org.openbot.app.robot.vehicle.RcMode> rcMode =
+      new MutableLiveData<>();
+
+  public void setRcMode(org.openbot.app.robot.vehicle.RcMode mode) {
+    rcMode.setValue(mode);
+  }
+
+  public LiveData<org.openbot.app.robot.vehicle.RcMode> getRcMode() {
+    return rcMode;
+  }
+
   private final MutableLiveData<Boolean> usbStatus = new MutableLiveData<>();
 
   public void setUsbStatus(Boolean data) {

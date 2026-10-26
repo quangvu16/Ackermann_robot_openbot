@@ -181,4 +181,35 @@
     <string name="rc_mode_hold">정지 – 멈춤</string>
     <string name="rc_mode_lost">RC 신호 끊김 – 멈춤</string>
     <string name="rc_mode_tap_hint">탭하여 숨기기</string>
+    <!-- Car dashboard and STOP button -->
+    <string name="stop_button_stop">정지</string>
+    <string name="stop_button_resume">재개</string>
+    <string name="dash_title_connected_usb">차량 연결됨 (USB)</string>
+    <string name="dash_title_connected_ble">차량 연결됨 (블루투스)</string>
+    <string name="dash_title_disconnected">차량이 연결되지 않음</string>
+    <string name="dash_detail_usb">휴대폰을 차량의 USB 포트에 연결한 뒤 연결을 누르세요.</string>
+    <string name="dash_detail_ble">차량을 켜고 연결을 눌러 목록에서 선택하세요.</string>
+    <string name="dash_detail_connected">준비 완료. 아래에서 할 일을 선택하세요.</string>
+    <string name="dash_detail_stopped">정지 버튼으로 멈췄습니다. 다시 달리려면 재개를 누르세요.</string>
+    <string name="dash_connect">연결</string>
+    <string name="dash_connection_settings">연결 설정</string>
+    <string name="dash_chip_lidar_live">LiDAR: 정상</string>
+    <string name="dash_chip_lidar_stale">LiDAR: 데이터 없음</string>
+    <string name="dash_chip_lidar_none">LiDAR: –</string>
+    <string name="dash_rc_none">RC: –</string>
+    <string name="dash_rc_manual">RC: 수동</string>
+    <string name="dash_rc_auto">RC: 자동</string>
+    <string name="dash_rc_hold">RC: 정지</string>
+    <string name="dash_rc_lost">RC: 신호 끊김</string>
+    <string name="dash_chip_avoid_on">장애물 회피: 켜짐</string>
+    <string name="dash_chip_avoid_off">장애물 회피: 꺼짐</string>
+    <string name="dash_tasks_header">무엇을 할까요?</string>
+    <string name="dash_drive_title">운전</string>
+    <string name="dash_drive_desc">휴대폰이나 게임 컨트롤러로 운전합니다.</string>
+    <string name="dash_mission_title">GPS 미션</string>
+    <string name="dash_mission_desc">지도의 지점으로 가거나 출발점으로 돌아옵니다.</string>
+    <string name="dash_setup_title">차량 설정</string>
+    <string name="dash_setup_desc">센서, 조명, 장애물 회피를 확인합니다.</string>
+    <string name="dash_more_show">더 많은 기능</string>
+    <string name="dash_more_hide">기능 줄이기</string>
 </resources>

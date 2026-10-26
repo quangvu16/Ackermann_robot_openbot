@@ -181,4 +181,35 @@
     <string name="rc_mode_hold">PARADA – detenido</string>
     <string name="rc_mode_lost">Señal RC perdida – detenido</string>
     <string name="rc_mode_tap_hint">Toca para ocultar</string>
+    <!-- Car dashboard and STOP button -->
+    <string name="stop_button_stop">PARAR</string>
+    <string name="stop_button_resume">SEGUIR</string>
+    <string name="dash_title_connected_usb">Coche conectado (USB)</string>
+    <string name="dash_title_connected_ble">Coche conectado (Bluetooth)</string>
+    <string name="dash_title_disconnected">Coche no conectado</string>
+    <string name="dash_detail_usb">Conecta el móvil al USB del coche y toca Conectar.</string>
+    <string name="dash_detail_ble">Enciende el coche, toca Conectar y elígelo de la lista.</string>
+    <string name="dash_detail_connected">Listo. Elige abajo qué quieres hacer.</string>
+    <string name="dash_detail_stopped">Detenido con PARAR. Toca SEGUIR para volver a conducir.</string>
+    <string name="dash_connect">Conectar</string>
+    <string name="dash_connection_settings">Conexión</string>
+    <string name="dash_chip_lidar_live">LiDAR: OK</string>
+    <string name="dash_chip_lidar_stale">LiDAR: sin datos</string>
+    <string name="dash_chip_lidar_none">LiDAR: –</string>
+    <string name="dash_rc_none">RC: –</string>
+    <string name="dash_rc_manual">RC: Manual</string>
+    <string name="dash_rc_auto">RC: Auto</string>
+    <string name="dash_rc_hold">RC: Parada</string>
+    <string name="dash_rc_lost">RC: sin señal</string>
+    <string name="dash_chip_avoid_on">Evitar obstáculos: sí</string>
+    <string name="dash_chip_avoid_off">Evitar obstáculos: no</string>
+    <string name="dash_tasks_header">¿Qué quieres hacer?</string>
+    <string name="dash_drive_title">Conducir</string>
+    <string name="dash_drive_desc">Conduce el coche con el móvil o un mando.</string>
+    <string name="dash_mission_title">Misión GPS</string>
+    <string name="dash_mission_desc">Ve a puntos del mapa o vuelve a casa.</string>
+    <string name="dash_setup_title">Ajustes del coche</string>
+    <string name="dash_setup_desc">Revisa sensores, luces y la evitación de obstáculos.</string>
+    <string name="dash_more_show">Más funciones</string>
+    <string name="dash_more_hide">Menos funciones</string>
 </resources>

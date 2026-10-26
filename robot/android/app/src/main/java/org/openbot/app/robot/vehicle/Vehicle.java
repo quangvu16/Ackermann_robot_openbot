@@ -239,12 +239,34 @@ public class Vehicle {
   private final GameController gameController;
   private Timer heartbeatTimer;
 
+  // The big red STOP button. Checked in sendControl(), the one place drive commands leave the app.
+  private final EmergencyStop emergencyStop = new EmergencyStop();
+
   public Vehicle(Context context, int baudRate) {
     this.context = context;
     this.baudRate = baudRate;
     gameController = new GameController(driveMode);
     sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
     connectionType = getConnectionPreferences("connection_type", "USB");
+    // Stop at once on STOP, and forget the last request on RESUME so the car does not lurch off
+    // with a command from before the stop.
+    emergencyStop.addListener(
+        latched -> {
+          control = new Control(0, 0);
+          sendControl();
+        });
+  }
+
+  public EmergencyStop getEmergencyStop() {
+    return emergencyStop;
+  }
+
+  /** True when the car is reachable over the link chosen in settings (USB or Bluetooth). */
+  public boolean isConnected() {
+    if ("Bluetooth".equals(getConnectionType())) {
+      return bluetoothManager != null && bluetoothManager.isBleConnected();
+    }
+    return isUsbConnected();
   }
 
   public float getBatteryVoltage() {
@@ -398,6 +420,13 @@ public class Vehicle {
    * #setProximitySectorsCm}.
    */
   public void sendControl() {
+    // STOP wins over everything, object avoidance included (avoidance may back the car up; STOP
+    // must not move it at all).
+    if (emergencyStop.isLatched()) {
+      sentControl = new Control(0, 0);
+      sendStringToDevice("c0,0\n");
+      return;
+    }
     // Data-collection noise is part of the request, so it is added BEFORE the avoidance law. Added
     // after, it could turn a hold (throttle 0, steering kept) back into motion toward the obstacle.
     float requestedLeft = control.getLeft();

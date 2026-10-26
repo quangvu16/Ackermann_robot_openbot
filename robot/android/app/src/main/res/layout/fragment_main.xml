@@ -1,24 +1,167 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Car dashboard: is the car ready (status card + chips), then the three main tasks, then
+     "More features" (the full OpenBot feature list) for everything else. -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
+    android:fillViewport="true"
     tools:context=".main.MainFragment">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/list"
-        android:name="org.openbot.app.robot.CategoryFragment"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layoutManager="LinearLayoutManager"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:context=".CategoryFragment"
-        tools:listitem="@layout/item_category" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- 1. Is the car connected? -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/car_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/car_status_dot"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_marginEnd="10dp"
+                        android:background="@drawable/dashboard_dot" />
+
+                    <TextView
+                        android:id="@+id/car_status_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/dash_title_disconnected"
+                        android:textColor="@color/black_text"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/car_status_detail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/dash_detail_usb"
+                    android:textColor="@color/black_text"
+                    android:textSize="15sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/car_connect_button"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:text="@string/dash_connect"
+                        android:textSize="16sp"
+                        app:backgroundTint="@color/openBotBlue"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/car_connection_settings"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="56dp"
+                        android:layout_marginStart="8dp"
+                        android:text="@string/dash_connection_settings"
+                        android:textColor="@color/openBotBlue"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+
+                <!-- 2. Is the car ready? One glance at the sensors that matter. -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/status_chips"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_lidar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="false"
+                        android:text="@string/dash_chip_lidar_none" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_rc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="false"
+                        android:text="@string/dash_rc_none" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_avoidance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/dash_chip_avoid_on" />
+                </com.google.android.material.chip.ChipGroup>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 3. What do you want to do? Three big tasks. -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/dash_tasks_header"
+            android:textColor="@color/black_text"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <include
+            android:id="@+id/tile_drive"
+            layout="@layout/item_dashboard_tile" />
+
+        <include
+            android:id="@+id/tile_mission"
+            layout="@layout/item_dashboard_tile" />
+
+        <include
+            android:id="@+id/tile_setup"
+            layout="@layout/item_dashboard_tile" />
+
+        <!-- 4. Everything else, out of the way until asked for. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/more_button"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/dash_more_show"
+            android:textColor="@color/openBotBlue"
+            android:textSize="16sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            android:visibility="gone"
+            app:layoutManager="LinearLayoutManager"
+            tools:listitem="@layout/item_category" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

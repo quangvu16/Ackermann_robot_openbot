@@ -181,4 +181,35 @@
     <string name="rc_mode_hold">ARRÊT – à l\'arrêt</string>
     <string name="rc_mode_lost">Signal RC perdu – à l\'arrêt</string>
     <string name="rc_mode_tap_hint">Touchez pour masquer</string>
+    <!-- Car dashboard and STOP button -->
+    <string name="stop_button_stop">STOP</string>
+    <string name="stop_button_resume">REPRENDRE</string>
+    <string name="dash_title_connected_usb">Voiture connectée (USB)</string>
+    <string name="dash_title_connected_ble">Voiture connectée (Bluetooth)</string>
+    <string name="dash_title_disconnected">Voiture non connectée</string>
+    <string name="dash_detail_usb">Branchez le téléphone sur le port USB de la voiture, puis touchez Connecter.</string>
+    <string name="dash_detail_ble">Allumez la voiture, touchez Connecter et choisissez-la dans la liste.</string>
+    <string name="dash_detail_connected">Prête. Choisissez ci-dessous ce que vous voulez faire.</string>
+    <string name="dash_detail_stopped">Arrêtée avec STOP. Touchez REPRENDRE pour rouler à nouveau.</string>
+    <string name="dash_connect">Connecter</string>
+    <string name="dash_connection_settings">Connexion</string>
+    <string name="dash_chip_lidar_live">LiDAR : OK</string>
+    <string name="dash_chip_lidar_stale">LiDAR : pas de données</string>
+    <string name="dash_chip_lidar_none">LiDAR : –</string>
+    <string name="dash_rc_none">RC : –</string>
+    <string name="dash_rc_manual">RC : Manuel</string>
+    <string name="dash_rc_auto">RC : Auto</string>
+    <string name="dash_rc_hold">RC : Arrêt</string>
+    <string name="dash_rc_lost">RC : signal perdu</string>
+    <string name="dash_chip_avoid_on">Évitement : activé</string>
+    <string name="dash_chip_avoid_off">Évitement : désactivé</string>
+    <string name="dash_tasks_header">Que voulez-vous faire ?</string>
+    <string name="dash_drive_title">Conduire</string>
+    <string name="dash_drive_desc">Conduisez avec le téléphone ou une manette.</string>
+    <string name="dash_mission_title">Mission GPS</string>
+    <string name="dash_mission_desc">Rejoindre des points sur la carte ou revenir au départ.</string>
+    <string name="dash_setup_title">Réglages de la voiture</string>
+    <string name="dash_setup_desc">Vérifier capteurs, lumières et évitement d\'obstacles.</string>
+    <string name="dash_more_show">Plus de fonctions</string>
+    <string name="dash_more_hide">Moins de fonctions</string>
 </resources>

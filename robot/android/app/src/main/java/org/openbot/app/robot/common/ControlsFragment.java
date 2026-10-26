@@ -204,11 +204,8 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
                         vehicle.setMaxBatteryVoltage(Float.parseFloat(msgParts[1]));
                         break;
                       default:
-                        Toast.makeText(
-                                requireContext().getApplicationContext(),
-                                "Invalid voltage message received!",
-                                Toast.LENGTH_SHORT)
-                            .show();
+                        // A garbled battery reading is not something the driver can act on.
+                        Timber.w("Ignored a garbled battery message from the car: %s", body);
                         break;
                     }
                   }

@@ -181,4 +181,35 @@
     <string name="rc_mode_hold">保持 – 已停止</string>
     <string name="rc_mode_lost">遥控信号丢失 – 已停止</string>
     <string name="rc_mode_tap_hint">点击隐藏</string>
+    <!-- Car dashboard and STOP button -->
+    <string name="stop_button_stop">停止</string>
+    <string name="stop_button_resume">继续</string>
+    <string name="dash_title_connected_usb">小车已连接（USB）</string>
+    <string name="dash_title_connected_ble">小车已连接（蓝牙）</string>
+    <string name="dash_title_disconnected">小车未连接</string>
+    <string name="dash_detail_usb">用 USB 线把手机接到小车上，然后点“连接”。</string>
+    <string name="dash_detail_ble">打开小车电源，点“连接”，然后在列表中选择它。</string>
+    <string name="dash_detail_connected">已就绪。请在下方选择要做的事。</string>
+    <string name="dash_detail_stopped">已用“停止”按钮停车。点“继续”即可再次行驶。</string>
+    <string name="dash_connect">连接</string>
+    <string name="dash_connection_settings">连接设置</string>
+    <string name="dash_chip_lidar_live">激光雷达：正常</string>
+    <string name="dash_chip_lidar_stale">激光雷达：无数据</string>
+    <string name="dash_chip_lidar_none">激光雷达：–</string>
+    <string name="dash_rc_none">遥控：–</string>
+    <string name="dash_rc_manual">遥控：手动</string>
+    <string name="dash_rc_auto">遥控：自动</string>
+    <string name="dash_rc_hold">遥控：保持</string>
+    <string name="dash_rc_lost">遥控：信号丢失</string>
+    <string name="dash_chip_avoid_on">避障：开</string>
+    <string name="dash_chip_avoid_off">避障：关</string>
+    <string name="dash_tasks_header">你想做什么？</string>
+    <string name="dash_drive_title">驾驶</string>
+    <string name="dash_drive_desc">用手机或游戏手柄驾驶小车。</string>
+    <string name="dash_mission_title">GPS 任务</string>
+    <string name="dash_mission_desc">驶向地图上的点，或返回起点。</string>
+    <string name="dash_setup_title">小车设置</string>
+    <string name="dash_setup_desc">检查传感器、灯光和避障。</string>
+    <string name="dash_more_show">更多功能</string>
+    <string name="dash_more_hide">收起功能</string>
 </resources>

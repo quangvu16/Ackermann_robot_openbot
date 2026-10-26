@@ -5,7 +5,10 @@ import static org.openbot.app.robot.utils.Constants.DEVICE_ACTION_DATA_RECEIVED;
 import android.content.BroadcastReceiver;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -55,12 +58,41 @@ public class MainActivity extends AppCompatActivity {
   private static final long RC_REPORT_TIMEOUT_MS = 3000;
   private RcModeFaceView rcModeFace;
   private final Handler rcModeHandler = new Handler(Looper.getMainLooper());
-  private final Runnable rcModeTimeout = () -> rcModeFace.setMode(null);
+  private final Runnable rcModeTimeout =
+      () -> {
+        rcModeFace.setMode(null);
+        viewModel.setRcMode(null);
+      };
+
+  // The big red STOP button: on every screen while the car is connected (or while stopped).
+  private StopButtonView stopButton;
+  private final Runnable stopButtonRefresh =
+      new Runnable() {
+        @Override
+        public void run() {
+          refreshStopButton();
+          rcModeHandler.postDelayed(this, 1000);
+        }
+      };
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+    // STOP first, the RC face after it: in MANUAL the face covers STOP, because then the RC
+    // transmitter drives and the app's STOP does not apply.
+    stopButton = new StopButtonView(this);
+    int stopSize = (int) (88 * getResources().getDisplayMetrics().density);
+    FrameLayout.LayoutParams stopParams =
+        new FrameLayout.LayoutParams(stopSize, stopSize, Gravity.END | Gravity.CENTER_VERTICAL);
+    stopParams.setMarginEnd((int) (12 * getResources().getDisplayMetrics().density));
+    stopButton.setVisibility(View.GONE);
+    stopButton.setOnClickListener(
+        v -> {
+          if (vehicle != null) vehicle.getEmergencyStop().toggle();
+        });
+    ((ViewGroup) getWindow().getDecorView()).addView(stopButton, stopParams);
+
     // Added to the window's decor view, so it covers the toolbar, every screen and the bottom bar.
     rcModeFace = new RcModeFaceView(this);
     ((ViewGroup) getWindow().getDecorView())
@@ -80,6 +112,12 @@ public class MainActivity extends AppCompatActivity {
     //      vehicle.connectUsb();
     viewModel.setVehicle(vehicle);
     //    }
+    if (vehicle != null) {
+      vehicle
+          .getEmergencyStop()
+          .addListener(latched -> runOnUiThread(this::refreshStopButton));
+    }
+    rcModeHandler.post(stopButtonRefresh);
 
     localBroadcastReceiver =
         new BroadcastReceiver() {
@@ -259,13 +297,23 @@ public class MainActivity extends AppCompatActivity {
     RcMode mode = RcMode.parse(data.substring(1));
     if (mode == null) return;
     rcModeFace.setMode(mode);
+    viewModel.setRcMode(mode);
     rcModeHandler.removeCallbacks(rcModeTimeout);
     rcModeHandler.postDelayed(rcModeTimeout, RC_REPORT_TIMEOUT_MS);
+  }
+
+  /** Shows STOP while connected, RESUME while stopped, nothing otherwise. */
+  private void refreshStopButton() {
+    if (stopButton == null || vehicle == null) return;
+    boolean latched = vehicle.getEmergencyStop().isLatched();
+    stopButton.setLatched(latched);
+    stopButton.setVisibility(latched || vehicle.isConnected() ? View.VISIBLE : View.GONE);
   }
 
   @Override
   public synchronized void onDestroy() {
     rcModeHandler.removeCallbacks(rcModeTimeout);
+    rcModeHandler.removeCallbacks(stopButtonRefresh);
     if (localBroadcastManager != null) {
       localBroadcastManager.unregisterReceiver(localBroadcastReceiver);
       localBroadcastManager = null;
