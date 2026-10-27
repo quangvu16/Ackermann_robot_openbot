@@ -168,8 +168,47 @@ final class GpsNavLocationProvider: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    // MARK: Remote sensors (Sensor link client: a SensorServer app on another phone)
+
+    private var remoteFixUptime: TimeInterval = 0
+    private var remoteHeadingUptime: TimeInterval = 0
+    /// True heading minus magnetic, learnt from our own compass; the other
+    /// phone's rotation vector is magnetic.
+    private var declinationDegrees = 0.0
+
+    private func isFresh(_ uptime: TimeInterval) -> Bool {
+        uptime > 0 && ProcessInfo.processInfo.systemUptime - uptime < SensorLink.remoteStale
+    }
+
+    /// A fix from the other phone. While these keep coming our own GPS stands by.
+    func remoteFix(_ remote: SensorLinkProtocol.GpsFix) {
+        guard isRunning else { return }
+        remoteFixUptime = ProcessInfo.processInfo.systemUptime
+        let fix = GpsNavFix(
+            latitude: remote.latitude,
+            longitude: remote.longitude,
+            accuracyMeters: (remote.accuracy ?? 0) > 0 ? remote.accuracy : nil,
+            speedMetersPerSecond: max(0, remote.speed ?? 0),
+            courseDegrees: remote.bearing,
+            timestamp: Date()
+        )
+        delegate?.locationProvider(self, didUpdate: fix)
+    }
+
+    /// The other phone's rotation vector (Android convention), mounted like
+    /// ours: upright with the back camera forward, or lying flat.
+    func remoteRotationVector(_ values: [Double]) {
+        guard isRunning, isFresh(remoteFixUptime),
+              let r = SensorLinkProtocol.rotationMatrix(fromVector: values) else { return }
+        remoteHeadingUptime = ProcessInfo.processInfo.systemUptime
+        var heading = SensorLinkProtocol.heading(fromRotationMatrix: r) + declinationDegrees
+        heading = heading.truncatingRemainder(dividingBy: 360)
+        if heading < 0 { heading += 360 }
+        delegate?.locationProvider(self, didUpdateHeading: heading)
+    }
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
+        guard let location = locations.last, !isFresh(remoteFixUptime) else { return }
 
         // A negative course is CoreLocation's "unknown".
         let course = location.course >= 0 ? location.course : nil
@@ -194,7 +233,12 @@ final class GpsNavLocationProvider: NSObject, CLLocationManagerDelegate {
         compassReliable = GpsNavLocationProvider.isCompassReliable(
             headingAccuracy: newHeading.headingAccuracy, fieldMicroTesla: field
         )
-        guard heading >= 0 else { return }
+        if newHeading.trueHeading >= 0 && newHeading.magneticHeading >= 0 {
+            var d = newHeading.trueHeading - newHeading.magneticHeading
+            if d > 180 { d -= 360 } else if d < -180 { d += 360 }
+            declinationDegrees = d
+        }
+        guard heading >= 0, !isFresh(remoteHeadingUptime) else { return }
         delegate?.locationProvider(self, didUpdateHeading: heading)
     }
 

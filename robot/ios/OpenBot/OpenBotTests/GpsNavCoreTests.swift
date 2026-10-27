@@ -550,3 +550,56 @@ final class GpsNavCoreTests: XCTestCase {
         XCTAssertFalse(GpsNavLocationProvider.isCompassReliable(headingAccuracy: 10, fieldMicroTesla: 8))
     }
 }
+
+/// The SensorServer WebSocket protocol, same cases as SensorLinkProtocolTest.java.
+final class SensorLinkProtocolTests: XCTestCase {
+    func testParsesPaths() {
+        let single = SensorLinkProtocol.parse("/sensor/connect?type=android.sensor.accelerometer")
+        XCTAssertEqual(single.kind, .sensor)
+        XCTAssertEqual(single.types, ["android.sensor.accelerometer"])
+
+        let plain = SensorLinkProtocol.parse("/sensors/connect?types=[\"android.sensor.accelerometer\",\"android.sensor.gyroscope\"]")
+        XCTAssertEqual(plain.kind, .sensors)
+        XCTAssertEqual(plain.types, ["android.sensor.accelerometer", "android.sensor.gyroscope"])
+        let encoded = SensorLinkProtocol.parse("/sensors/connect?types=%5B%22android.sensor.accelerometer%22%2C%20%22android.sensor.gyroscope%22%5D")
+        XCTAssertEqual(encoded.types, plain.types)
+
+        XCTAssertEqual(SensorLinkProtocol.parse("/gps").kind, .gps)
+        XCTAssertEqual(SensorLinkProtocol.parse("/gps/").kind, .gps)
+        XCTAssertEqual(SensorLinkProtocol.parse("/").kind, .unknown)
+        XCTAssertEqual(SensorLinkProtocol.parse("/sensor/connect").kind, .unknown)
+    }
+
+    func testMessagesRoundTrip() {
+        let json = SensorLinkProtocol.sensorJSON(type: "android.sensor.gyroscope", values: [0.5, -1.25, 9.75], timestampNs: 123456789, accuracy: 3)
+        XCTAssertEqual(json, "{\"type\":\"android.sensor.gyroscope\",\"values\":[0.5,-1.25,9.75],\"timestamp\":123456789,\"accuracy\":3}")
+        XCTAssertEqual(SensorLinkProtocol.parseSensorValues(json), [0.5, -1.25, 9.75])
+
+        var fix = SensorLinkProtocol.GpsFix(latitude: 10.7769, longitude: 106.7009)
+        fix.accuracy = 3.5
+        fix.timeMs = 1761530000000
+        let parsed = SensorLinkProtocol.parseGPS(SensorLinkProtocol.gpsJSON(fix))
+        XCTAssertEqual(parsed?.latitude ?? 0, 10.7769, accuracy: 1e-9)
+        XCTAssertEqual(parsed?.accuracy ?? 0, 3.5, accuracy: 1e-9)
+        XCTAssertEqual(parsed?.timeMs, 1761530000000)
+        XCTAssertNil(SensorLinkProtocol.parseGPS("{\"values\":[1,2,3]}"))
+        XCTAssertNil(SensorLinkProtocol.parseGPS("{\"latitude\":95,\"longitude\":0}"))
+    }
+
+    func testAddresses() {
+        XCTAssertEqual(SensorLinkProtocol.baseURL("192.168.43.1"), "ws://192.168.43.1:8080")
+        XCTAssertEqual(SensorLinkProtocol.baseURL(" ws://192.168.43.1:8081/ "), "ws://192.168.43.1:8081")
+        XCTAssertNil(SensorLinkProtocol.baseURL(""))
+        XCTAssertNil(SensorLinkProtocol.baseURL(":8080"))
+    }
+
+    func testHeadingFromRotationVector() {
+        // Identity: phone flat, top edge north -> heading 0.
+        let flat = SensorLinkProtocol.rotationMatrix(fromVector: [0, 0, 0, 1])!
+        XCTAssertEqual(SensorLinkProtocol.heading(fromRotationMatrix: flat), 0, accuracy: 1e-6)
+        // Flat, turned 90 degrees clockwise (top edge east): rotation of -90 degrees about up.
+        let s = sin(-Double.pi / 4), c = cos(-Double.pi / 4)
+        let east = SensorLinkProtocol.rotationMatrix(fromVector: [0, 0, s, c])!
+        XCTAssertEqual(SensorLinkProtocol.heading(fromRotationMatrix: east), 90, accuracy: 1e-6)
+    }
+}

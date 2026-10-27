@@ -41,6 +41,7 @@ final class GpsMissionController: UIViewController {
     private var latestFixUptime: TimeInterval = 0
     private let fixTimeout: TimeInterval = 3
     private let avoidanceToggle = AvoidanceToggleItem()
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self)
     private var navigationTimer: Timer?
 
     private let bluetooth = bluetoothDataController.shared
@@ -68,6 +69,8 @@ final class GpsMissionController: UIViewController {
         super.viewDidAppear(animated)
         locationProvider.start()
         startNavigationTimer()
+        SensorLink.shared.remoteDelegate = self
+        sensorLinkItem.appeared()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -78,6 +81,8 @@ final class GpsMissionController: UIViewController {
         stopNavigationTimer()
         locationProvider.stop()
         saveMission()
+        if SensorLink.shared.remoteDelegate === self { SensorLink.shared.remoteDelegate = nil }
+        sensorLinkItem.disappeared()
     }
 
     // MARK: - UI
@@ -93,7 +98,8 @@ final class GpsMissionController: UIViewController {
         )
         navigationItem.leftBarButtonItem = back
         // The object-avoidance quick-disable, in reach while a mission drives.
-        navigationItem.rightBarButtonItem = avoidanceToggle
+        // and the Sensor link (SensorServer WebSocket) button.
+        navigationItem.rightBarButtonItems = [avoidanceToggle, sensorLinkItem]
     }
 
     @objc private func back(sender: UIBarButtonItem) {
@@ -669,6 +675,18 @@ extension GpsMissionController: GpsNavLocationProviderDelegate {
     func locationProvider(_ provider: GpsNavLocationProvider, didFailWith message: String) {
         statusLabel.text = message
         modeLabel.text = message
+    }
+}
+
+// MARK: - SensorLinkRemoteDelegate
+
+extension GpsMissionController: SensorLinkRemoteDelegate {
+    func sensorLink(didReceiveRemoteFix fix: SensorLinkProtocol.GpsFix) {
+        locationProvider.remoteFix(fix)
+    }
+
+    func sensorLink(didReceiveRemoteRotationVector values: [Double]) {
+        locationProvider.remoteRotationVector(values)
     }
 }
 

@@ -189,6 +189,7 @@ public class GpsNavLocationProvider implements SensorEventListener {
   // region Remote sensors (Sensor link client: a SensorServer app on another phone)
 
   private long remoteFixAtMs = 0L;
+  private long remoteHeadingAtMs = 0L;
 
   /** True while fixes from the other phone are fresh; our own GPS and compass then stand by. */
   public boolean isRemoteActive() {
@@ -213,6 +214,7 @@ public class GpsNavLocationProvider implements SensorEventListener {
     if (!running || !isRemoteActive()) {
       return;
     }
+    remoteHeadingAtMs = SystemClock.elapsedRealtime();
     handleRotationVector(values);
   }
 
@@ -288,7 +290,8 @@ public class GpsNavLocationProvider implements SensorEventListener {
     if (event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) {
       return;
     }
-    if (isRemoteActive()) {
+    if (remoteHeadingAtMs != 0L
+        && SystemClock.elapsedRealtime() - remoteHeadingAtMs < SensorLink.REMOTE_STALE_MS) {
       return; // the other phone's compass is in charge
     }
     handleRotationVector(event.values);

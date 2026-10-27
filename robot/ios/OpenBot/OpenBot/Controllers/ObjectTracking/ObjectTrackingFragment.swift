@@ -31,6 +31,7 @@ class ObjectTrackingFragment: CameraController {
     private var useDynamicSpeed: Bool = false
     let webSocketMsgHandler = WebSocketMessageHandler();
     let fragmentType = FragmentType.shared
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self)
 
     /// Called after the view fragment has loaded.
     override func viewDidLoad() {
@@ -112,6 +113,7 @@ class ObjectTrackingFragment: CameraController {
     /// Initialization routine
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        sensorLinkItem.appeared()
         switch objectTrackingSettings?.autoModeButton.isOn {
         case false:
             autoMode = false
@@ -187,6 +189,7 @@ class ObjectTrackingFragment: CameraController {
     /// Called after the view was dismissed, covered or otherwise hidden.
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        sensorLinkItem.disappeared()
         if autoMode {
             autoMode = false
         }
@@ -202,6 +205,8 @@ class ObjectTrackingFragment: CameraController {
             let newBackButton = UIBarButtonItem(image: backNavigationIcon, title: Strings.objectTracking, target: self, action: #selector(ObjectTrackingFragment.back(sender:)), titleColor: Colors.navigationColor ?? .white)
             navigationItem.leftBarButtonItem = newBackButton
         }
+        // Sensor link (SensorServer WebSocket): share this phone's sensors or use another phone's.
+        navigationItem.rightBarButtonItem = sensorLinkItem
     }
 
     @objc func back(sender: UIBarButtonItem) {

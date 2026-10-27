@@ -25,6 +25,7 @@ class AutopilotFragment: CameraController {
     var autopilotEnabled = false
     let webSocketMsgHandler = WebSocketMessageHandler();
     let fragmentType = FragmentType.shared
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self)
 
     /// Called after the view fragment has loaded.
     override func viewDidLoad() {
@@ -105,6 +106,8 @@ class AutopilotFragment: CameraController {
             let newBackButton = UIBarButtonItem(image: backNavigationIcon, title: Strings.autoPilot, target: self, action: #selector(AutopilotFragment.back(sender:)), titleColor: Colors.navigationColor ?? .white)
             navigationItem.leftBarButtonItem = newBackButton
         }
+        // Sensor link (SensorServer WebSocket): share this phone's sensors or use another phone's.
+        navigationItem.rightBarButtonItem = sensorLinkItem
     }
 
     /// function that remove viewController from navigation
@@ -166,9 +169,15 @@ class AutopilotFragment: CameraController {
         }
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        sensorLinkItem.appeared()
+    }
+
     /// Called after the view was dismissed, covered or otherwise hidden.
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        sensorLinkItem.disappeared()
         if autoPilotMode {
             autoPilotMode = false
         }
