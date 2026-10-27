@@ -145,6 +145,10 @@
             layout="@layout/item_dashboard_tile" />
 
         <include
+            android:id="@+id/tile_lidar"
+            layout="@layout/item_dashboard_tile" />
+
+        <include
             android:id="@+id/tile_setup"
             layout="@layout/item_dashboard_tile" />
 

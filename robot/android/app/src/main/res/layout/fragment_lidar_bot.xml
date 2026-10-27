@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LiDAR robot: face and LiDAR map side by side, then the behaviour picker, Start/Stop and
+     its settings. Behaviours after hoverboard_laser (see lidarbot/LidarBehaviors.java). -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="72dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="24dp">
+        <!-- paddingTop keeps the face clear of the floating STOP button (top right). -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:orientation="horizontal">
+
+            <org.openbot.app.robot.lidarbot.RobotFaceView
+                android:id="@+id/face"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1" />
+
+            <org.openbot.app.robot.customview.LidarView
+                android:id="@+id/lidar_map"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:contentDescription="@string/avoid_lidar_map" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/source_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/black_text"
+            android:textSize="12sp"
+            tools:text="LiDAR: full scan, 338 points" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:scrollbars="none">
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/mode_group"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_patrol"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:text="@string/lidarbot_patrol" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_follow"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:text="@string/lidarbot_follow" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_avoid"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:text="@string/lidarbot_avoid" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_track"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:text="@string/lidarbot_track" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mode_warn"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:text="@string/lidarbot_warn" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+        </HorizontalScrollView>
+
+        <TextView
+            android:id="@+id/mode_help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/black_text"
+            android:textSize="14sp"
+            tools:text="@string/lidarbot_follow_help" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/start_stop"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/lidarbot_start"
+            android:textSize="18sp"
+            app:backgroundTint="@color/openBotBlue"
+            app:cornerRadius="14dp" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="40dp"
+            android:textColor="@color/black_text"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="Following: 0.82 m ahead" />
+
+        <TextView
+            android:id="@+id/speed_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/black_text"
+            tools:text="Speed 35%" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/speed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/lidarbot_speed"
+            android:stepSize="0.05"
+            android:valueFrom="0"
+            android:valueTo="1" />
+
+        <TextView
+            android:id="@+id/distance_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_text"
+            tools:text="Distance 0.55 m" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/distance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/lidarbot_distance"
+            android:stepSize="0.05"
+            android:valueFrom="0.2"
+            android:valueTo="2.0" />
+
+        <TextView
+            android:id="@+id/angle_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_text"
+            tools:text="Angle 45°" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/angle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/lidarbot_angle"
+            android:stepSize="5"
+            android:valueFrom="10"
+            android:valueTo="120" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/lidarbot_safety"
+            android:textColor="#FF5F6368"
+            android:textSize="13sp" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

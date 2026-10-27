@@ -87,6 +87,13 @@ public class MainFragment extends Fragment implements OnItemClickListener<SubCat
         R.string.dash_mission_desc,
         R.id.action_mainFragment_to_gpsNavigationFragment);
     setupTile(
+        binding.tileLidar,
+        R.drawable.ic_lidar_robot,
+        "#7E57C2",
+        R.string.lidarbot_title,
+        R.string.lidarbot_desc,
+        R.id.action_mainFragment_to_lidarBotFragment);
+    setupTile(
         binding.tileSetup,
         R.drawable.ic_settings,
         "#4B7BFF",

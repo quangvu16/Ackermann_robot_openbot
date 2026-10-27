@@ -43,7 +43,16 @@
         <action
             android:id="@+id/action_mainFragment_to_robotInfoFragment"
             app:destination="@id/robotInfoFragment" />
+        <action
+            android:id="@+id/action_mainFragment_to_lidarBotFragment"
+            app:destination="@id/lidarBotFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/lidarBotFragment"
+        android:name="org.openbot.app.robot.lidarbot.LidarBotFragment"
+        android:label="@string/lidarbot_title"
+        tools:layout="@layout/fragment_lidar_bot" />
     <fragment
         android:id="@+id/freeRoamFragment"
         android:name="org.openbot.app.robot.robot.FreeRoamFragment"
