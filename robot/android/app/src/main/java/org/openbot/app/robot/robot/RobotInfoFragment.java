@@ -12,9 +12,18 @@ import org.jetbrains.annotations.NotNull;
 import org.openbot.app.robot.R;
 import org.openbot.app.robot.common.ControlsFragment;
 import org.openbot.app.robot.databinding.FragmentRobotInfoBinding;
+import org.openbot.app.robot.lidarbot.LidarBehaviors;
+import org.openbot.app.robot.vehicle.RcMode;
 
+/**
+ * Car setup for the ESP32-S3 Ackermann car. Shows only what the firmware reports (its 'f' reply):
+ * LiDAR obstacle distance (s), 8 proximity sectors (p), scans over USB (x), indicators (i), front
+ * and rear lights (lf, lb), status LEDs (ls); the RC receiver shows up once 'm' messages arrive.
+ * There is no battery sensor, sonar, bumper or wheel encoder on this car, so none are listed.
+ */
 public class RobotInfoFragment extends ControlsFragment {
   private FragmentRobotInfoBinding binding;
+  private RcMode rcMode;
 
   @Override
   public View onCreateView(
@@ -95,6 +104,20 @@ public class RobotInfoFragment extends ControlsFragment {
 
     binding.motorsStopButton.setOnClickListener(v -> vehicle.setControl(0.0f, 0.0f));
 
+    // Steering test with the wheels still: the servo turns for about a second (the heartbeat then
+    // stops and straightens the car). Same throttle/steer mixing as everywhere else in the app.
+    binding.steerLeftButton.setOnClickListener(v -> steer(1));
+    binding.steerCenterButton.setOnClickListener(v -> steer(0));
+    binding.steerRightButton.setOnClickListener(v -> steer(-1));
+    binding.indLeftButton.setOnClickListener(v -> vehicle.setIndicator(-1));
+    binding.indOffButton.setOnClickListener(v -> vehicle.setIndicator(0));
+    binding.indRightButton.setOnClickListener(v -> vehicle.setIndicator(1));
+
+    mViewModel.getRcMode().observe(getViewLifecycleOwner(), m -> {
+      rcMode = m;
+      showRcMode();
+    });
+
     // AVOID_MARGIN analog. The quick-disable switch is on FreeRoam where it can be reached in a
     // hurry; this is the standoff itself.
     float margin = preferencesManager.getObjectAvoidanceMargin();
@@ -131,6 +154,40 @@ public class RobotInfoFragment extends ControlsFragment {
     refreshGui();
   }
 
+  private void steer(double s) {
+    float[] w = LidarBehaviors.toWheels(0, s);
+    vehicle.setControl(w[0], w[1]);
+  }
+
+  private void showRcMode() {
+    if (binding == null) return;
+    binding.featRc.setChecked(rcMode != null);
+    if (rcMode == null) {
+      binding.rcModeInfo.setText(R.string.n_a);
+      return;
+    }
+    switch (rcMode) {
+      case MANUAL:
+        binding.rcModeInfo.setText(R.string.setup_rc_manual);
+        break;
+      case AUTO:
+        binding.rcModeInfo.setText(R.string.setup_rc_auto);
+        break;
+      case HOLD:
+        binding.rcModeInfo.setText(R.string.setup_rc_hold);
+        break;
+      default:
+        binding.rcModeInfo.setText(R.string.setup_rc_lost);
+        break;
+    }
+  }
+
+  private void showLink() {
+    if (vehicle.isUsbConnected()) binding.linkInfo.setText(R.string.setup_link_usb);
+    else if (vehicle.bleConnected()) binding.linkInfo.setText(R.string.setup_link_ble);
+    else binding.linkInfo.setText(R.string.setup_link_none);
+  }
+
   private void showBackupSpeed(float value) {
     if (value <= 0f) {
       binding.avoidBackupInfo.setText(R.string.avoidBackupOff);
@@ -151,66 +208,38 @@ public class RobotInfoFragment extends ControlsFragment {
   }
 
   private void updateGui(boolean isConnected) {
+    showLink();
     if (isConnected) {
-      binding.robotTypeInfo.setText(vehicle.getVehicleType());
-      switch (vehicle.getVehicleType()) {
-        case "DIY":
-        case "PCB_V1":
-        case "PCB_V2":
-          binding.robotIcon.setImageResource(R.drawable.diy);
-          break;
-        case "RTR_TT":
-        case "RTR_TT2":
-          binding.robotIcon.setImageResource(R.drawable.rtr_tt);
-          break;
-        case "RTR_520":
-          binding.robotIcon.setImageResource(R.drawable.rtr_520);
-          break;
-        case "RC_CAR":
-          binding.robotIcon.setImageResource(R.drawable.rc_car);
-          break;
-        case "MTV":
-          binding.robotIcon.setImageResource(R.drawable.mtv);
-          break;
-        default:
-          binding.robotIcon.setImageResource(R.drawable.ic_openbot);
-          break;
-      }
+      String type = vehicle.getVehicleType();
+      binding.robotTypeInfo.setText(type);
+      boolean ackermann = type != null && type.startsWith("RC_");
+      binding.robotIcon.setImageResource(ackermann ? R.drawable.rc_car : R.drawable.ic_openbot);
+      binding.driveInfo.setText(ackermann ? R.string.setup_drive_ackermann : R.string.setup_drive_unknown);
     } else {
       binding.robotTypeInfo.setText(getString(R.string.n_a));
       binding.robotIcon.setImageResource(R.drawable.ic_openbot);
-      binding.voltageInfo.setText(R.string.voltage);
-      binding.speedInfo.setText(R.string.rpm);
-      binding.sonarInfo.setText(R.string.distance);
-      vehicle.setHasVoltageDivider(false);
+      binding.driveInfo.setText(R.string.setup_drive_unknown);
+      binding.obstacleInfo.setText(R.string.n_a);
       vehicle.setHasSonar(false);
       vehicle.setHasProximity(false);
+      vehicle.setHasSerialScans(false);
       vehicle.setHasIndicators(false);
       vehicle.setHasLedsFront(false);
       vehicle.setHasLedsBack(false);
       vehicle.setHasLedsStatus(false);
-      vehicle.setHasBumpSensor(false);
-      vehicle.setHasWheelOdometryFront(false);
-      vehicle.setHasWheelOdometryBack(false);
     }
-    binding.voltageSwitch.setChecked(vehicle.isHasVoltageDivider());
-    binding.sonarSwitch.setChecked(vehicle.isHasSonar());
-    binding.proximitySwitch.setChecked(vehicle.isHasProximity());
-    binding.indicatorLedsSwitch.setChecked(vehicle.isHasIndicators());
-    binding.ledsFrontSwitch.setChecked(vehicle.isHasLedsFront());
-    binding.ledsBackSwitch.setChecked(vehicle.isHasLedsBack());
-    binding.ledsStatusSwitch.setChecked(vehicle.isHasLedsStatus());
-    binding.bumpersSwitch.setChecked(vehicle.isHasBumpSensor());
-    binding.wheelOdometryFrontSwitch.setChecked(vehicle.isHasWheelOdometryFront());
-    binding.wheelOdometryBackSwitch.setChecked(vehicle.isHasWheelOdometryBack());
-
-    if (vehicle.isHasLedsFront() && vehicle.isHasLedsBack()) {
-      binding.ledsLabel.setVisibility(View.VISIBLE);
-      binding.lightsSlider.setVisibility(View.VISIBLE);
-    } else {
-      binding.ledsLabel.setVisibility(View.INVISIBLE);
-      binding.lightsSlider.setVisibility(View.INVISIBLE);
-    }
+    binding.featLidarObstacle.setChecked(vehicle.isHasSonar());
+    binding.featLidarProximity.setChecked(vehicle.isHasProximity());
+    binding.featLidarScans.setChecked(vehicle.isHasSerialScans());
+    binding.featIndicators.setChecked(vehicle.isHasIndicators());
+    binding.featLedsFront.setChecked(vehicle.isHasLedsFront());
+    binding.featLedsBack.setChecked(vehicle.isHasLedsBack());
+    binding.featLedsStatus.setChecked(vehicle.isHasLedsStatus());
+    showRcMode();
+    binding.indicatorsRow.setVisibility(vehicle.isHasIndicators() ? View.VISIBLE : View.GONE);
+    boolean lights = vehicle.isHasLedsFront() || vehicle.isHasLedsBack();
+    binding.ledsLabel.setVisibility(lights ? View.VISIBLE : View.GONE);
+    binding.lightsSlider.setVisibility(lights ? View.VISIBLE : View.GONE);
   }
 
   @Override
@@ -237,20 +266,13 @@ public class RobotInfoFragment extends ControlsFragment {
         binding.refreshToggle.setChecked(vehicle.isReady());
         updateGui(vehicle.isReady());
         break;
-      case 'v':
-        binding.voltageInfo.setText(
-            String.format(Locale.US, "%2.1f V", vehicle.getBatteryVoltage()));
-        break;
-      case 'w':
-        binding.speedInfo.setText(
-            String.format(
-                Locale.US,
-                "%3.0f,%3.0f rpm",
-                vehicle.getLeftWheelRpm(),
-                vehicle.getRightWheelRpm()));
-        break;
       case 's':
-        binding.sonarInfo.setText(String.format(Locale.US, "%3.0f cm", vehicle.getSonarReading()));
+        // The LiDAR's nearest return in the forward cone (the firmware sends it as 's').
+        float cm = vehicle.getSonarReading();
+        // 0 = no fresh scan (the car holds still), 300 = nothing within 3 m (MAX_SONAR_DISTANCE).
+        if (cm <= 0) binding.obstacleInfo.setText(R.string.setup_obstacle_stale);
+        else if (cm >= 300) binding.obstacleInfo.setText(R.string.setup_obstacle_clear);
+        else binding.obstacleInfo.setText(String.format(Locale.US, "%.0f cm", cm));
         break;
     }
   }

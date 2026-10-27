@@ -51,6 +51,11 @@ final class SensorLinkServer: RemoteSettingsProvider {
     private var lidarTimer: DispatchSourceTimer?
     private var lidarSentId: Int64 = -2
     private var lidarSentUptime: TimeInterval = 0
+    // Indoor SLAM (/slam): the screen's state every 0.5 s, the map when it changes (on `queue`).
+    private var slamTimer: DispatchSourceTimer?
+    private var slamForceMap = false
+    private var slamSentVersion = Int.min
+    private var slamMapUptime: TimeInterval = 0
 
     init(port: Int, remoteSettings: RemoteSettings, screenName: @escaping () -> String) {
         self.port = port
@@ -117,6 +122,7 @@ final class SensorLinkServer: RemoteSettingsProvider {
             self.connections.removeAll()
             self.sensors.stopAll()
             self.stopLidar()
+            self.stopSlam()
         }
     }
 
@@ -131,6 +137,12 @@ final class SensorLinkServer: RemoteSettingsProvider {
             c.isLidar = true
             c.registered = true
             startLidar()
+            return
+        }
+        if path == SensorLinkProtocol.slamPath || path.hasPrefix(SensorLinkProtocol.slamPath + "?") {
+            c.isSlam = true
+            c.registered = true
+            startSlam()
             return
         }
         if path == "/control" || path.hasPrefix("/control?") {
@@ -165,6 +177,10 @@ final class SensorLinkServer: RemoteSettingsProvider {
     }
 
     private func received(_ c: WebSocketConnection, text: String) {
+        if c.isSlam {
+            SlamHub.shared.command(text)
+            return
+        }
         if c.isControl {
             report {
                 self.remoteSettings.apply(text)
@@ -182,6 +198,10 @@ final class SensorLinkServer: RemoteSettingsProvider {
         guard connections.removeValue(forKey: ObjectIdentifier(c)) != nil, c.registered else { return }
         if c.isStream || c.isSnapshot { updateViewers(); return }
         if c.isControl { return }
+        if c.isSlam {
+            if !connections.values.contains(where: { $0.registered && $0.isSlam }) { stopSlam() }
+            return
+        }
         if c.isLidar {
             if !connections.values.contains(where: { $0.registered && $0.isLidar }) { stopLidar() }
             return
@@ -192,7 +212,7 @@ final class SensorLinkServer: RemoteSettingsProvider {
     }
 
     private func reportCount() {
-        let count = connections.values.filter { $0.registered && !$0.isControl && !$0.isStream && !$0.isSnapshot && !$0.isLidar }.count
+        let count = connections.values.filter { $0.registered && !$0.isControl && !$0.isStream && !$0.isSnapshot && !$0.isLidar && !$0.isSlam }.count
         report { self.onClientCount?(count) }
     }
 
@@ -266,6 +286,32 @@ final class SensorLinkServer: RemoteSettingsProvider {
                 for c in self.connections.values where c.registered && c.isLidar { c.send(json) }
             }
         }
+    }
+
+    // MARK: Indoor SLAM (on `queue`)
+
+    private func startSlam() {
+        slamForceMap = true // the newcomer needs the whole map
+        guard slamTimer == nil else { return }
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now(), repeating: .milliseconds(500))
+        timer.setEventHandler { [weak self] in self?.pollSlam() }
+        timer.resume()
+        slamTimer = timer
+    }
+
+    private func stopSlam() {
+        slamTimer?.cancel()
+        slamTimer = nil
+    }
+
+    private func pollSlam() {
+        let now = ProcessInfo.processInfo.systemUptime
+        let version = SlamHub.shared.mapVersion
+        let withMap = slamForceMap || (version != slamSentVersion && now - slamMapUptime >= 2)
+        let json = SlamHub.shared.json(withMap: withMap)
+        if withMap { slamForceMap = false; slamSentVersion = version; slamMapUptime = now }
+        for c in connections.values where c.registered && c.isSlam { c.send(json) }
     }
 
     // MARK: Camera (on `queue`)
@@ -391,6 +437,7 @@ private final class WebSocketConnection {
     var multi = false
     var isControl = false   // /control settings socket
     var isLidar = false     // /lidar scans
+    var isSlam = false      // /slam Indoor SLAM
     var isStream = false    // /camera.mjpg
     var isSnapshot = false  // /camera.jpg waiting for a frame
     var onStream: ((WebSocketConnection) -> Void)?

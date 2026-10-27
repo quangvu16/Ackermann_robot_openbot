@@ -10,6 +10,10 @@
     GET  /camera.mjpg                          live camera (MJPEG), /camera.jpg one picture
     WS   /lidar                                LiDAR: {"scanId","bins","forwardOffset","age","ranges":[mm],
                                                "sectors":[mm x8]|null,"sectorsAge"}  (0 mm = no return)
+    WS   /slam                                 Indoor SLAM: {"type":"slam","active","engine",..,"pose":[x,y,th],"goal",
+                                               "path":[[x,y]..],"status","map":{"version","res","x0","y0","w","h",
+                                               "cells":base64 0 unknown/1 free/2 wall}}; page sends {"goal":[x,y]},
+                                               {"cancel":true}, {"explore":true|false}, {"findMe":true}
     WS   /control                              settings: phone sends {"screen","settings":[..],"camera"},
                                                page sends {"set":"<key>","value":<value>}
     WS   /sensor/connect?type=<type>           one sensor
@@ -73,6 +77,10 @@
   #lidar-canvas { width: 100%; max-width: 460px; height: auto; aspect-ratio: 1 / 1; justify-self: center; background: var(--bg);
                   border-radius: 10px; border: 1px solid var(--line); }
   .lidar-side .metric { margin-bottom: 10px; }
+  #slam-canvas { width: 100%; max-width: 560px; height: auto; aspect-ratio: 4 / 3; justify-self: center; background: #9aa3ad;
+                 border-radius: 12px; border: 1px solid var(--line); cursor: crosshair; touch-action: manipulation; }
+  .slam-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+  .slam-side .metric .value { font-size: 16px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
   .row { display: flex; align-items: center; gap: 10px; }
   .title { font-weight: 650; }
@@ -177,6 +185,31 @@
             </div>
           </div>
           <p class="msg" id="lidar-msg">Waiting for the car's LiDAR…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="slam-card" aria-labelledby="slam-title">
+    <div class="row">
+      <span class="dot" id="slam-dot"></span>
+      <span class="title" id="slam-title">Indoor SLAM</span>
+      <span class="type">/slam</span>
+      <label class="switch"><input type="checkbox" id="slam-on" aria-label="Show Indoor SLAM"><span></span></label>
+    </div>
+    <div class="body">
+      <div class="lidar-wrap">
+        <canvas id="slam-canvas" width="560" height="420" role="img" aria-label="SLAM map: tap to send the car there"></canvas>
+        <div class="lidar-side slam-side">
+          <div class="metric"><div class="label">Car</div><div class="value" id="slam-pose">–</div></div>
+          <div class="metric"><div class="label">Match · submaps · loops</div><div class="value" id="slam-quality">–</div></div>
+          <div class="metric"><div class="label">Algorithms</div><div class="value" id="slam-algos" style="font-size:13px">–</div></div>
+          <div class="slam-buttons">
+            <button type="button" id="slam-explore">Explore</button>
+            <button type="button" id="slam-cancel">Cancel goal</button>
+            <button type="button" id="slam-find">Find me</button>
+          </div>
+          <p class="msg" id="slam-msg">Open Indoor SLAM on the phone. Then tap the map to send the car there.</p>
         </div>
       </div>
     </div>
@@ -511,6 +544,103 @@
   lidar.on.addEventListener("change", () => showLidar(lidar.on.checked));
   lidar.on.checked = store.get("lidar_on", true);
   showLidar(lidar.on.checked);
+
+  // ---- Indoor SLAM (/slam): the phone's map, car and path; tap the map to set a goal ----
+  const slam = { canvas: document.getElementById("slam-canvas"), dot: document.getElementById("slam-dot"),
+                 msg: document.getElementById("slam-msg"), on: document.getElementById("slam-on"),
+                 card: document.getElementById("slam-card"), sock: null, last: null, map: null, img: null, view: null };
+  function slamSend(obj) { if (slam.sock) slam.sock.send(JSON.stringify(obj)); }
+  function slamMapImage(m) {
+    const off = document.createElement("canvas");
+    off.width = Math.max(1, m.w); off.height = Math.max(1, m.h);
+    if (m.w > 0 && m.h > 0) {
+      const g = off.getContext("2d"), data = g.createImageData(m.w, m.h), bin = atob(m.cells);
+      for (let y = 0; y < m.h; y++) {
+        for (let x = 0; x < m.w; x++) {
+          const v = bin.charCodeAt(y * m.w + x), i = ((m.h - 1 - y) * m.w + x) * 4; // row 0 is the bottom
+          const c = v === 2 ? [20, 24, 30] : v === 1 ? [250, 251, 253] : [154, 163, 173];
+          data.data[i] = c[0]; data.data[i + 1] = c[1]; data.data[i + 2] = c[2]; data.data[i + 3] = 255;
+        }
+      }
+      g.putImageData(data, 0, 0);
+    }
+    return off;
+  }
+  function drawSlam() {
+    const s = slam.last, c = slam.canvas, g = c.getContext("2d");
+    g.fillStyle = "#9aa3ad"; g.fillRect(0, 0, c.width, c.height);
+    if (!s || !s.active) { slam.view = null; return; }
+    // Fit the known map (and the car, the goal) into the canvas with a margin.
+    let minX = s.pose[0] - 1, maxX = s.pose[0] + 1, minY = s.pose[1] - 1, maxY = s.pose[1] + 1;
+    const m = slam.map;
+    if (m && m.w > 0) { minX = Math.min(minX, m.x0); maxX = Math.max(maxX, m.x0 + m.w * m.res);
+                        minY = Math.min(minY, m.y0); maxY = Math.max(maxY, m.y0 + m.h * m.res); }
+    if (s.goal) { minX = Math.min(minX, s.goal[0]); maxX = Math.max(maxX, s.goal[0]); minY = Math.min(minY, s.goal[1]); maxY = Math.max(maxY, s.goal[1]); }
+    const scale = Math.min((c.width - 20) / (maxX - minX), (c.height - 20) / (maxY - minY));
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const sx = (x) => c.width / 2 + (x - cx) * scale, sy = (y) => c.height / 2 - (y - cy) * scale;
+    slam.view = { cx, cy, scale };
+    if (m && m.w > 0 && slam.img) {
+      g.imageSmoothingEnabled = false;
+      g.drawImage(slam.img, sx(m.x0), sy(m.y0 + m.h * m.res), m.w * m.res * scale, m.h * m.res * scale);
+    }
+    if (s.path && s.path.length > 1) {
+      g.strokeStyle = "#2e7d32"; g.lineWidth = 3; g.beginPath();
+      s.path.forEach((p, i) => (i ? g.lineTo(sx(p[0]), sy(p[1])) : g.moveTo(sx(p[0]), sy(p[1]))));
+      g.stroke();
+    }
+    if (s.goal) { g.fillStyle = "#d81b60"; g.beginPath(); g.arc(sx(s.goal[0]), sy(s.goal[1]), 7, 0, 2 * Math.PI); g.fill(); }
+    const px = sx(s.pose[0]), py = sy(s.pose[1]), th = s.pose[2], L = 14;
+    g.fillStyle = "#1e88e5"; g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.beginPath();
+    g.moveTo(px + Math.cos(th) * L, py - Math.sin(th) * L);
+    g.lineTo(px + Math.cos(th + 2.5) * L * 0.6, py - Math.sin(th + 2.5) * L * 0.6);
+    g.lineTo(px + Math.cos(th - 2.5) * L * 0.6, py - Math.sin(th - 2.5) * L * 0.6);
+    g.closePath(); g.fill(); g.stroke();
+  }
+  function onSlam(text) {
+    let s; try { s = JSON.parse(text); } catch (e) { return; }
+    if (s.type !== "slam") return;
+    slam.last = s;
+    if (s.map) { slam.map = s.map; slam.img = slamMapImage(s.map); }
+    if (!s.active) {
+      setDot(slam.dot, "wait");
+      slam.msg.textContent = "Open Indoor SLAM on the phone to see its map here.";
+      ["slam-pose", "slam-quality", "slam-algos"].forEach((id) => (document.getElementById(id).textContent = "–"));
+    } else {
+      setDot(slam.dot, "ok");
+      document.getElementById("slam-pose").textContent =
+        s.pose[0].toFixed(2) + ", " + s.pose[1].toFixed(2) + " m · " + Math.round(s.pose[2] * 180 / Math.PI) + "°";
+      document.getElementById("slam-quality").textContent = Math.round(s.quality * 100) + " % · " + s.submaps + " · " + s.loops;
+      document.getElementById("slam-algos").textContent = [s.engine, s.localizer, s.planner, s.controller].join(" · ");
+      document.getElementById("slam-explore").textContent = s.exploring ? "Stop exploring" : "Explore";
+      slam.msg.textContent = (s.status || (s.mapping ? "Building the map" : "Localizing on the saved map")) +
+        " — tap the map to send the car there.";
+    }
+    drawSlam();
+  }
+  slam.canvas.addEventListener("click", (e) => {
+    if (!slam.view) return;
+    const r = slam.canvas.getBoundingClientRect();
+    const x = (e.clientX - r.left) * slam.canvas.width / r.width, y = (e.clientY - r.top) * slam.canvas.height / r.height;
+    const wx = slam.view.cx + (x - slam.canvas.width / 2) / slam.view.scale;
+    const wy = slam.view.cy - (y - slam.canvas.height / 2) / slam.view.scale;
+    slamSend({ goal: [Number(wx.toFixed(3)), Number(wy.toFixed(3))] });
+  });
+  document.getElementById("slam-explore").addEventListener("click", () => slamSend({ explore: !(slam.last && slam.last.exploring) }));
+  document.getElementById("slam-cancel").addEventListener("click", () => slamSend({ cancel: true }));
+  document.getElementById("slam-find").addEventListener("click", () => slamSend({ findMe: true }));
+  function showSlam(on) {
+    slam.card.classList.toggle("off", !on);
+    store.set("slam_on", on);
+    if (on && !slam.sock) {
+      slam.sock = liveSocket("/slam", onSlam, (st) => { if (st !== "ok") setDot(slam.dot, st); }, true);
+    } else if (!on && slam.sock) {
+      slam.sock.close(); slam.sock = null; setDot(slam.dot, "");
+    }
+  }
+  slam.on.addEventListener("change", () => showSlam(slam.on.checked));
+  slam.on.checked = store.get("slam_on", true);
+  showSlam(slam.on.checked);
   window.addEventListener("resize", drawLidar);
 
   // ---- Sensors ----

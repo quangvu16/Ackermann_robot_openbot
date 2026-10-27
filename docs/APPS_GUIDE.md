@@ -64,7 +64,7 @@ Both phone apps open on a **Car dashboard** that answers two questions: *is the 
 |---|---|
 | **Connection card** | Coloured dot and plain status ("Car connected (USB)", "Car not connected"), plus one big **Connect** button. Android uses the USB cable; iPhone opens the Bluetooth list. |
 | **Status chips** | **LiDAR** (OK / no data / –), **RC** mode (Manual / Auto / Hold / signal lost), **Avoidance** (on / off). Tap the Avoidance chip to switch it. |
-| **Three task tiles** | **Drive** (phone or game controller), **GPS Mission** (waypoints, return home), **Car setup** (sensors, lights, avoidance). |
+| **Three task tiles** | **Drive** (phone or game controller), **GPS Mission** (waypoints, return home), **Car setup** (what the car has, live readings, tests, LiDAR, avoidance). |
 | **More features** | The full OpenBot list (AI, data collection, projects and more). Hidden until you open it; the app remembers your choice. |
 
 **STOP button.** While the car is connected, a big round red **STOP** is always on screen: bottom-right on the home screens, top-right on driving screens (Drive, GPS Mission, Object Tracking and the others), where the bottom belongs to their control panels. Pressing it stops the car and keeps it stopped: every drive command from the app is replaced by "stop", whether it comes from the joystick, a GPS mission, an AI mode or a game controller. The button turns green **RESUME**; press it to drive again.
@@ -204,6 +204,19 @@ Open it from **More features > General > Indoor SLAM**. The car draws a map of t
 
 The status line shows the state, the **match %** (how many scan points land on known walls: above about 60 % the position is trustworthy), the scan count, the number of **submaps** and **loop closures**.
 
+### Sensor link on the Indoor SLAM screen
+
+The Indoor SLAM screen now has the **Sensor link** (WebSocket) control, like GPS Mission, Object Tracking and Autopilot: the row at the bottom on Android, the antenna button in the top bar on iOS.
+
+- **Server mode:** open `http://<phone>:8080/` in a browser. The new **Indoor SLAM** card shows the map, the car (blue arrow), the path (green) and the goal (pink). **Tap the map to send the car there.** It also has **Explore**, **Cancel goal** and **Find me**. The settings card adds the SLAM screen's settings: mode (build map / localize only), the four algorithm choices, Explore and Find me.
+- **WebSocket `/slam`**, for your own code:
+  - The phone sends `{"type":"slam","active":true,"engine":..,"pose":[x,y,θ],"goal":[x,y],"path":[[x,y],..],"status":..,"map":{..}}` twice a second.
+  - The map is included only when it changed (at most every 2 s): one byte per 5 cm cell (0 unknown, 1 free, 2 wall), base64, cropped to the known area.
+  - Send `{"goal":[x,y]}`, `{"cancel":true}`, `{"explore":true}`, `{"findMe":true}`, `{"place":[x,y,θ]}` or `{"mapping":false}`.
+- *Example (Python):* `ws = websocket.create_connection("ws://192.168.1.20:8080/slam"); ws.send('{"goal":[2.0,1.5]}')` sends the car to x 2.0 m, y 1.5 m on its map.
+- *Why:* you can watch the map from a laptop while the phone rides on the car, and a ROS node or script can send goals.
+- *Source:* Android `slam/SlamWire.java`, `sensorlink/SlamHub.java`, `SensorLinkServer` (`/slam`); iOS `SlamWire` / `SlamHub` in `SlamAlgorithms.swift`, `SensorLinkServer.swift`; the page `SensorLinkDashboard.html`.
+
 ### Choosing the algorithms
 
 Tap **Algorithms** (next to Find me) and pick one option in each of the four lists. The choice is saved on the phone. Changing the SLAM engine keeps the current map and the car's position.
@@ -276,6 +289,26 @@ All 9 planner/controller pairs reached the goal in 4 test drives in a room with 
 - *Source:* Android `slam/`: `Slam`, `SlamEngine` (Cartographer), `KartoSlam`, `HectorSlam`, `GMappingSlam`, `CoreSlam`, `Amcl`, `SlamSystem`, `Costmap`, `Planners`, `Controllers`, `Navigator`, `SlamFragment` (30 unit tests). iOS `Controllers/Slam/`: `SlamCore.swift`, `SlamAlgorithms.swift`, `NavAlgorithms.swift`, `SlamController.swift`.
 
 **Why build the map first?** A planner can only go round walls it knows about. With a map, a goal in the next room becomes a path through the door; without one, the car would only see the wall in front of it.
+
+---
+
+## 2f. Car setup page (Android and iOS)
+
+The page lists only what this car really has. The firmware reports its parts when the app sends `f` (reply `fRC_S3:i:lf:lb:ls:s:p:x:`). This car has **no battery sensor, sonar, bumpers or wheel encoders**, so those rows are gone.
+
+| Section | What it shows | Where it comes from |
+|---|---|---|
+| Header | Robot type (`RC_S3`), refresh, USB / Bluetooth | `f` reply |
+| Drive | "ESC throttle · steering servo (Ackermann car)" | type starting `RC_` |
+| **What the car reports** | LiDAR obstacle ahead (`s`), LiDAR 8 sectors (`p`), LiDAR scans by USB (`x`), RC receiver (`m` messages), indicators (`i`), status LEDs (`ls`), front / rear lights (`lf`, `lb`) | firmware features |
+| **Readings** | Nearest obstacle ahead in cm ("Clear" above 3 m, "No LiDAR data" when the scan is stale: the car then holds still); RC switch MANUAL / AUTO / HOLD / lost; link USB or Bluetooth | `s<cm>`, `m<letter>` |
+| **Tests** | Motors forward / back / stop; **steering left / centre / right**; **indicators left / off / right**; lights slider (only shown if the car has lights) | `c`, `i`, `l` commands |
+| LiDAR plan view | The live scan and the avoidance ring | USB or the car's Wi-Fi |
+| Avoidance | Distance and back-up speed | as before |
+
+- *Example:* tap **Steering → Left** with the wheels off the ground. The servo turns left for about a second, then the car's 1 s heartbeat straightens it.
+- *Why remove the old rows?* A box that can never be ticked (bumpers, wheel odometry) makes a working car look broken. "Sonar" was really the LiDAR's forward cone, so it is now named that.
+- *Source:* Android `robot/RobotInfoFragment.java` and `fragment_robot_info.xml`; iOS `Controllers/RobotInfo/RobotInfoFrame.swift`; firmware `process_feature_msg()` in `openbot-esp32s3.cpp`.
 
 ---
 

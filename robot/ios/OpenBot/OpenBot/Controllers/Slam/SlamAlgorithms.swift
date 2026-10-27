@@ -843,3 +843,109 @@ final class SlamSystem {
 
     private func finishSearch(_ found: Bool) { amclFound = found; lastFromAmcl = true; amclSeq += 1 }
 }
+
+// MARK: - /slam WebSocket (same format as the Android SlamWire; see SensorLinkDashboard.html)
+
+enum SlamWire {
+    static let inactive = "{\"type\":\"slam\",\"active\":false}"
+
+    struct Command {
+        var kind: String?   // goal, cancel, explore, findMe, place, mapping
+        var x = 0.0, y = 0.0, theta = 0.0
+        var flag = false
+    }
+
+    private static func f(_ v: Double) -> String { String(format: "%.3f", v) }
+
+    private static func esc(_ s: String) -> String {
+        var out = ""
+        for ch in s.unicodeScalars {
+            if ch == "\"" || ch == "\\" { out += "\\" + String(ch) } else if ch.value < 0x20 { out += String(format: "\\u%04x", ch.value) } else { out.unicodeScalars.append(ch) }
+        }
+        return out
+    }
+
+    static func json(engine: String, localizer: String, planner: String, controller: String, mapping: Bool, exploring: Bool,
+                     pose: SlamPose, quality: Double, scans: Int, submaps: Int, loops: Int, goal: (Double, Double)?,
+                     path: [(Double, Double)], status: String, map: OccupancyGrid?) -> String {
+        var b = "{\"type\":\"slam\",\"active\":true"
+        b += ",\"engine\":\"\(esc(engine))\",\"localizer\":\"\(esc(localizer))\",\"planner\":\"\(esc(planner))\",\"controller\":\"\(esc(controller))\""
+        b += ",\"mapping\":\(mapping),\"exploring\":\(exploring)"
+        b += ",\"pose\":[\(f(pose.x)),\(f(pose.y)),\(f(pose.theta))]"
+        b += ",\"quality\":" + String(format: "%.2f", quality)
+        b += ",\"scans\":\(scans),\"submaps\":\(submaps),\"loops\":\(loops)"
+        b += ",\"goal\":" + (goal.map { "[\(f($0.0)),\(f($0.1))]" } ?? "null")
+        let step = max(1, path.count / 150)
+        var pts: [String] = []
+        var i = 0
+        while i < path.count { pts.append("[\(f(path[i].0)),\(f(path[i].1))]"); i += step }
+        if let last = path.last, (path.count - 1) % step != 0 { pts.append("[\(f(last.0)),\(f(last.1))]") }
+        b += ",\"path\":[" + pts.joined(separator: ",") + "]"
+        b += ",\"status\":\"\(esc(status))\""
+        if let g = map { b += ",\"map\":" + mapJSON(g) }
+        return b + "}"
+    }
+
+    /// The known part of the map: one byte per cell, 0 unknown, 1 free, 2 wall, row 0 at the bottom.
+    static func mapJSON(_ g: OccupancyGrid) -> String {
+        var x0 = g.width, y0 = g.height, x1 = -1, y1 = -1
+        for y in 0..<g.height {
+            for x in 0..<g.width {
+                let v = g.logOdds[y * g.width + x]
+                if v > OccupancyGrid.occThreshold || v < OccupancyGrid.freeThreshold {
+                    x0 = min(x0, x); x1 = max(x1, x); y0 = min(y0, y); y1 = max(y1, y)
+                }
+            }
+        }
+        if x1 < 0 { x0 = 0; y0 = 0; x1 = -1; y1 = -1 }
+        let w = x1 - x0 + 1, h = y1 - y0 + 1
+        var cells = [UInt8](repeating: 0, count: max(0, w * h))
+        if w > 0 && h > 0 {
+            for y in 0..<h {
+                for x in 0..<w {
+                    let v = g.logOdds[(y + y0) * g.width + x + x0]
+                    cells[y * w + x] = v > OccupancyGrid.occThreshold ? 2 : v < OccupancyGrid.freeThreshold ? 1 : 0
+                }
+            }
+        }
+        return "{\"version\":\(g.version),\"res\":\(g.resolution),\"x0\":\(f(g.originX + Double(x0) * g.resolution)),\"y0\":\(f(g.originY + Double(y0) * g.resolution)),\"w\":\(max(0, w)),\"h\":\(max(0, h)),\"cells\":\"\(Data(cells).base64EncodedString())\"}"
+    }
+
+    /// Parses a page command; bad input gives kind == nil.
+    static func parse(_ text: String) -> Command {
+        var c = Command()
+        guard let data = text.data(using: .utf8),
+              let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return c }
+        func nums(_ key: String) -> [Double]? { (obj[key] as? [Any])?.compactMap { ($0 as? NSNumber)?.doubleValue } }
+        if let v = nums("goal"), v.count >= 2 { c.kind = "goal"; c.x = v[0]; c.y = v[1] }
+        else if let v = nums("place"), v.count >= 3 { c.kind = "place"; c.x = v[0]; c.y = v[1]; c.theta = v[2] }
+        else if (obj["cancel"] as? Bool) == true { c.kind = "cancel" }
+        else if (obj["findMe"] as? Bool) == true { c.kind = "findMe" }
+        else if let b = obj["explore"] as? Bool { c.kind = "explore"; c.flag = b }
+        else if let b = obj["mapping"] as? Bool { c.kind = "mapping"; c.flag = b }
+        if c.kind != nil && !(c.x.isFinite && c.y.isFinite && c.theta.isFinite) { c.kind = nil }
+        return c
+    }
+}
+
+/// What the Indoor SLAM screen offers the Sensor link server; called on the server's queue.
+protocol SlamHubSource: AnyObject {
+    func slamJSON(withMap: Bool) -> String
+    var slamMapVersion: Int { get }
+    func slamCommand(_ text: String)
+}
+
+/// Hands the open SLAM screen to the server's /slam WebSocket.
+final class SlamHub {
+    static let shared = SlamHub()
+    private let lock = NSLock()
+    private weak var source: SlamHubSource?
+
+    func setSource(_ s: SlamHubSource) { lock.lock(); source = s; lock.unlock() }
+    func clearSource(_ s: SlamHubSource) { lock.lock(); if source === s { source = nil }; lock.unlock() }
+    private var current: SlamHubSource? { lock.lock(); defer { lock.unlock() }; return source }
+
+    func json(withMap: Bool) -> String { current?.slamJSON(withMap: withMap) ?? SlamWire.inactive }
+    var mapVersion: Int { current?.slamMapVersion ?? -1 }
+    func command(_ text: String) { current?.slamCommand(text) }
+}

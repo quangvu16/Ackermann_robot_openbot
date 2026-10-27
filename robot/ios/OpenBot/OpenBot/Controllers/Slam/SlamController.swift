@@ -10,7 +10,7 @@
 import CoreMotion
 import UIKit
 
-final class SlamController: UIViewController {
+final class SlamController: UIViewController, SlamHubSource {
     private let mapView = SlamMapView()
     private let mapStatus = PaddedLabel()
     private let statusLabel = UILabel()
@@ -25,6 +25,8 @@ final class SlamController: UIViewController {
     private let navigator = SlamNavigator()
     private let explorer = LidarBehaviors(mode: .avoid, params: .defaults(.avoid))
     private var exploring = false
+    private var lastStatus = ""            // queue
+    private var currentAlgorithms: Algorithms = (.cartographer, .scanMatching, .navfn, .rpp) // queue
     private var driving = false
     private var lastImageTime = 0.0
     // Main thread:
@@ -50,6 +52,13 @@ final class SlamController: UIViewController {
         mapView.onTap = { [weak self] x, y in self?.setGoal(x, y) }
         mapView.onLongPress = { [weak self] x, y in self?.placeCar(x, y) }
         applyAlgorithms(savedAlgorithms())
+        navigationItem.rightBarButtonItem = sensorLinkItem
+    }
+
+    /// Sensor link button: the WebSocket link while this screen is open. In server mode the browser
+    /// page also gets /slam (map, car, path; tap to set a goal) and these settings.
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "Indoor SLAM") { [unowned self] out in
+        self.addBrowserSettings(&out)
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -69,10 +78,14 @@ final class SlamController: UIViewController {
             }
         }
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.tick() }
+        SlamHub.shared.setSource(self)
+        sensorLinkItem.appeared()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        SlamHub.shared.clearSource(self)
+        sensorLinkItem.disappeared()
         timer?.invalidate()
         timer = nil
         motion.stopDeviceMotionUpdates()
@@ -237,6 +250,71 @@ final class SlamController: UIViewController {
         showButtons()
     }
 
+    // MARK: Sensor link (/slam and browser settings)
+
+    func slamJSON(withMap: Bool) -> String {
+        queue.sync {
+            let a = currentAlgorithms
+            return SlamWire.json(engine: a.slam.label, localizer: a.localizer.label, planner: a.planner.label,
+                                 controller: a.controller.label, mapping: slam.mapping, exploring: exploring, pose: slam.pose,
+                                 quality: slam.matchQuality, scans: slam.scans, submaps: slam.submapCount, loops: slam.loopClosures,
+                                 goal: navigator.goal, path: navigator.path, status: lastStatus, map: withMap ? slam.grid : nil)
+        }
+    }
+
+    var slamMapVersion: Int {
+        queue.sync { ObjectIdentifier(slam.grid).hashValue &* 31 &+ slam.grid.version }
+    }
+
+    /// A command from the browser page, as if the same button had been pressed here.
+    func slamCommand(_ text: String) {
+        let c = SlamWire.parse(text)
+        guard let kind = c.kind else { return }
+        DispatchQueue.main.async {
+            switch kind {
+            case "goal": self.setGoal(c.x, c.y)
+            case "cancel": self.cancelTapped()
+            case "explore": if c.flag != self.uiExploring { self.exploreTapped() }
+            case "findMe": self.findTapped()
+            case "place": self.queue.async { self.slam.resetPose(SlamPose(c.x, c.y, c.theta)) }
+            case "mapping":
+                self.modePicker.selectedSegmentIndex = c.flag ? 0 : 1
+                self.modeChanged()
+            default: break
+            }
+        }
+    }
+
+    /// Settings for the browser page (main queue).
+    private func addBrowserSettings(_ out: inout [RemoteSetting]) {
+        out.append(.choice("slam.mode", "Indoor SLAM", "Mode", ["build map", "localize only"],
+                           get: { [unowned self] in self.modePicker.selectedSegmentIndex == 0 ? "build map" : "localize only" },
+                           set: { [unowned self] v in
+                               self.modePicker.selectedSegmentIndex = v == "build map" ? 0 : 1
+                               self.modeChanged()
+                           }))
+        func pick<T>(_ key: String, _ label: String, _ all: [T], _ name: @escaping (T) -> String,
+                     _ current: @escaping (Algorithms) -> T, _ assign: @escaping (inout Algorithms, T) -> Void) {
+            out.append(.choice(key, "Indoor SLAM", label, all.map(name),
+                               get: { [unowned self] in name(current(self.savedAlgorithms())) },
+                               set: { [unowned self] v in
+                                   guard let t = all.first(where: { name($0) == v }) else { return }
+                                   var a = self.savedAlgorithms()
+                                   assign(&a, t)
+                                   self.applyAlgorithms(a)
+                               }))
+        }
+        pick("slam.engine", "SLAM", SlamType.allCases, { $0.label }, { $0.slam }, { $0.slam = $1 })
+        pick("slam.localizer", "Localizer (saved map)", SlamLocalizer.allCases, { $0.label }, { $0.localizer }, { $0.localizer = $1 })
+        pick("slam.planner", "Planner", NavPlanner.allCases, { $0.label }, { $0.planner }, { $0.planner = $1 })
+        pick("slam.controller", "Controller", NavController.allCases, { $0.label }, { $0.controller }, { $0.controller = $1 })
+        out.append(.action("slam.explore", "Indoor SLAM", "Explore", "EXPLORE", "STOP",
+                           get: { [unowned self] in self.uiExploring },
+                           set: { [unowned self] on in if on != self.uiExploring { self.exploreTapped() } }))
+        out.append(.action("slam.findMe", "Indoor SLAM", "Find the car on the map", "FIND ME", "FIND ME",
+                           get: { false }, set: { [unowned self] _ in self.findTapped() }))
+    }
+
     // MARK: Algorithm choices (saved on the phone)
 
     typealias Algorithms = (slam: SlamType, localizer: SlamLocalizer, planner: NavPlanner, controller: NavController)
@@ -257,6 +335,7 @@ final class SlamController: UIViewController {
         d.set(a.controller.rawValue, forKey: "slam.algo.controller")
         algorithmsText = [a.slam.label, a.localizer.label, a.planner.label, a.controller.label].joined(separator: " · ")
         queue.async {
+            self.currentAlgorithms = a
             self.slam.setEngine(a.slam)
             self.slam.setLocalizer(a.localizer)
             self.navigator.params.planner = a.planner
@@ -453,6 +532,7 @@ final class SlamController: UIViewController {
             status = "No path to the goal on this map"
         }
         if let c = command { driving = c.0 != 0 || c.1 != 0 }
+        lastStatus = status
         let finalCommand = command
 
         // Snapshot for the screen; the map picture at most twice a second.

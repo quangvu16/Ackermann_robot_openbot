@@ -187,6 +187,9 @@ public final class SensorLinkProtocol {
   /** Text a client may connect to for LiDAR scans (an OpenBot addition to the SensorServer API). */
   public static final String LIDAR_PATH = "/lidar";
 
+  /** Indoor SLAM state and commands (see SlamWire). */
+  public static final String SLAM_PATH = "/slam";
+
   /**
    * One LiDAR revolution for the browser:
    *

@@ -109,6 +109,7 @@ enum SensorLinkProtocol {
 
     /// OpenBot addition: LiDAR scans on `ws://host:port/lidar`.
     static let lidarPath = "/lidar"
+    static let slamPath = "/slam"
 
     /// One LiDAR revolution, same keys as SensorLinkProtocol.lidarJson on Android:
     /// `{"scanId","bins","forwardOffset","age","ranges":[mm],"sectors":[mm x8]|null,"sectorsAge"}`.

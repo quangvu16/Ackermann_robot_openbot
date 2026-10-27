@@ -873,4 +873,24 @@ final class SlamCoreTests: XCTestCase {
         }
         XCTAssertGreaterThan(st.0, -0.95)
     }
+
+    func testSlamWireStateAndCommands() {
+        let g = OccupancyGrid(width: 40, height: 40, resolution: 0.05)
+        g.set(10, 12, -2); g.set(11, 12, 3); g.set(12, 14, -2)
+        let j = SlamWire.json(engine: "Cartographer", localizer: "AMCL", planner: "Theta*", controller: "MPPI", mapping: true,
+                              exploring: false, pose: SlamPose(1, 2, 0.5), quality: 0.8, scans: 12, submaps: 3, loops: 1,
+                              goal: (3, 4), path: [(0, 0), (1, 1)], status: "Driving", map: g)
+        XCTAssertTrue(j.hasPrefix("{\"type\":\"slam\",\"active\":true"))
+        XCTAssertTrue(j.contains("\"pose\":[1.000,2.000,0.500]"))
+        XCTAssertTrue(j.contains("\"w\":3,\"h\":3"))
+        let obj = try? JSONSerialization.jsonObject(with: Data(j.utf8)) as? [String: Any]
+        let map = obj?["map"] as? [String: Any]
+        let cells = Data(base64Encoded: map?["cells"] as? String ?? "") ?? Data()
+        XCTAssertEqual([UInt8](cells), [1, 2, 0, 0, 0, 0, 0, 0, 1])
+        XCTAssertEqual(SlamWire.parse("{\"goal\": [1.5, -2]}").kind, "goal")
+        XCTAssertEqual(SlamWire.parse("{\"goal\": [1.5, -2]}").y, -2)
+        XCTAssertEqual(SlamWire.parse("{\"explore\":true}").flag, true)
+        XCTAssertNil(SlamWire.parse("{\"goal\":[1]}").kind)
+        XCTAssertNil(SlamWire.parse("junk").kind)
+    }
 }

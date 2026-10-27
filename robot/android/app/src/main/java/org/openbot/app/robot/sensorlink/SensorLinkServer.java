@@ -79,6 +79,12 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
   private final Set<Connection> lidarClients = new CopyOnWriteArraySet<>();
   private java.util.concurrent.ScheduledExecutorService lidarPoller; // guarded by this
   private long lidarSentScanId = -2;
+  // Indoor SLAM (/slam WebSocket): the screen's state twice a second, the map when it changes.
+  private final Set<Connection> slamClients = new CopyOnWriteArraySet<>();
+  private java.util.concurrent.ScheduledExecutorService slamPoller; // guarded by this
+  private volatile boolean slamForceMap;
+  private int slamSentMapVersion = Integer.MIN_VALUE;
+  private long slamMapSentAtMs;
   private long lidarSentAtMs;
   private final Runnable pushState = this::pushStateNow;
   private volatile String sensorRate = "game";
@@ -115,6 +121,8 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
     synchronized (this) {
       if (lidarPoller != null) lidarPoller.shutdownNow();
       lidarPoller = null;
+      if (slamPoller != null) slamPoller.shutdownNow();
+      slamPoller = null;
     }
     main.removeCallbacks(pushState);
     stop();
@@ -280,6 +288,38 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
 
   // endregion
 
+  // region Indoor SLAM: /slam WebSocket
+
+  private synchronized void openSlam(Connection conn) {
+    slamClients.add(conn);
+    slamForceMap = true; // the newcomer needs the whole map
+    if (slamPoller == null) {
+      slamPoller = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+      slamPoller.scheduleAtFixedRate(this::pollSlam, 0, 500, java.util.concurrent.TimeUnit.MILLISECONDS);
+    }
+  }
+
+  /** Every 0.5 s: the SLAM state; the map too when it changed (at most every 2 s) or for a newcomer. */
+  private void pollSlam() {
+    try {
+      if (slamClients.isEmpty()) return;
+      long now = android.os.SystemClock.elapsedRealtime();
+      int version = SlamHub.get().mapVersion();
+      boolean withMap = slamForceMap || (version != slamSentMapVersion && now - slamMapSentAtMs >= 2000);
+      String json = SlamHub.get().json(withMap);
+      if (withMap) {
+        slamForceMap = false;
+        slamSentMapVersion = version;
+        slamMapSentAtMs = now;
+      }
+      for (Connection c : slamClients) c.send(json);
+    } catch (RuntimeException e) {
+      Timber.w(e, "Sensor link SLAM poll failed");
+    }
+  }
+
+  // endregion
+
   // region Browser control: /control WebSocket
 
   private void openControl(Connection conn) {
@@ -359,6 +399,10 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
       openLidar(conn);
       return;
     }
+    if (path.equals(SensorLinkProtocol.SLAM_PATH) || path.startsWith(SensorLinkProtocol.SLAM_PATH + "?")) {
+      openSlam(conn);
+      return;
+    }
     SensorLinkProtocol.Request request = SensorLinkProtocol.parse(path);
     switch (request.kind) {
       case GPS:
@@ -401,6 +445,7 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
   protected void onClose(Connection conn) {
     controlClients.remove(conn);
     lidarClients.remove(conn);
+    slamClients.remove(conn);
     if (!clients.remove(conn)) return;
     synchronized (this) {
       if (gpsClients.remove(conn) && gpsClients.isEmpty()) stopGpsLocked();
@@ -420,6 +465,10 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
   protected void onMessage(Connection conn, String message) {
     if (controlClients.contains(conn)) {
       handleControl(message);
+      return;
+    }
+    if (slamClients.contains(conn)) {
+      SlamHub.get().command(message);
       return;
     }
     if (gpsClients.contains(conn)

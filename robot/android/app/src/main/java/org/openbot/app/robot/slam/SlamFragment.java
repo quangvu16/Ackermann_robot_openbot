@@ -49,7 +49,8 @@ import timber.log.Timber;
  * avoidance still apply. The phone's gyroscope gives the heading prior. Stale LiDAR stops the car;
  * leaving the screen stops it too.
  */
-public class SlamFragment extends ControlsFragment implements SensorEventListener {
+public class SlamFragment extends ControlsFragment
+    implements SensorEventListener, org.openbot.app.robot.sensorlink.SlamHub.Source {
 
   private static final long TICK_MS = 100;
 
@@ -132,6 +133,7 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
     });
     binding.centerButton.setOnClickListener(v -> binding.map.recentre());
     binding.algorithmsButton.setOnClickListener(v -> showAlgorithms());
+    setupSensorLinkControls(binding.sensorLink.getRoot());
     binding.findButton.setOnClickListener(v -> {
       slam.requestGlobalLocalization();
       toast(R.string.slam_finding);
@@ -170,11 +172,13 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
     }
     requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     applySavedAlgorithms();
+    org.openbot.app.robot.sensorlink.SlamHub.get().setSource(this);
     main.post(tick);
   }
 
   @Override
   public synchronized void onPause() {
+    org.openbot.app.robot.sensorlink.SlamHub.get().clearSource(this);
     main.removeCallbacks(tick);
     exploring = false;
     navigator.cancel();
@@ -399,6 +403,112 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
 
   // endregion
 
+  // region Sensor link: /slam WebSocket and browser settings
+
+  private volatile Slam.Type curSlam = Slam.Type.CARTOGRAPHER;
+  private volatile SlamSystem.Localizer curLoc = SlamSystem.Localizer.SCAN_MATCHING;
+  private volatile Navigator.Planner curPlanner = Navigator.Planner.NAVFN;
+  private volatile Navigator.Controller curController = Navigator.Controller.RPP;
+
+  @Override
+  public String json(boolean withMap) {
+    return SlamWire.json(curSlam.label, curLoc.label, curPlanner.label, curController.label, slam.isMapping(),
+        exploring, slam.getPose(), slam.getMatchQuality(), slam.getScanCount(), slam.getSubmapCount(),
+        slam.getLoopClosureCount(), navigator.getGoal(), new ArrayList<>(navigator.getPath()), statusText,
+        withMap ? slam.getGrid() : null);
+  }
+
+  @Override
+  public int mapVersion() {
+    OccupancyGrid g = slam.getGrid();
+    return System.identityHashCode(g) * 31 + g.getVersion();
+  }
+
+  /** A command from the browser page, as if the same button had been pressed here. */
+  @Override
+  public void command(String text) {
+    SlamWire.Command c = SlamWire.parse(text);
+    if (c.kind == null) return;
+    main.post(() -> {
+      if (binding == null) return;
+      switch (c.kind) {
+        case "goal":
+          exploring = false;
+          work(() -> navigator.setGoal(c.x, c.y));
+          break;
+        case "cancel":
+          exploring = false;
+          work(navigator::cancel);
+          stopCar();
+          break;
+        case "explore":
+          exploring = c.flag;
+          if (exploring) work(navigator::cancel);
+          else stopCar();
+          break;
+        case "findMe":
+          slam.requestGlobalLocalization();
+          break;
+        case "place":
+          work(() -> slam.resetPose(new Pose(c.x, c.y, c.theta)));
+          break;
+        case "mapping":
+          binding.modeGroup.check(c.flag ? R.id.mode_map : R.id.mode_localize);
+          break;
+        default:
+          break;
+      }
+      showButtons(navigator.getGoal() != null);
+    });
+  }
+
+  @Override
+  protected void addScreenSettings(List<org.openbot.app.robot.sensorlink.RemoteSettings.Setting> out) {
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.choice(
+        "slam.mode", "Indoor SLAM", "Mode", java.util.Arrays.asList("build map", "localize only"),
+        () -> slam.isMapping() ? "build map" : "localize only",
+        v -> binding.modeGroup.check("build map".equals(v) ? R.id.mode_map : R.id.mode_localize)));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.choice(
+        "slam.engine", "Indoor SLAM", "SLAM", java.util.Arrays.asList(labels(Slam.Type.values())),
+        () -> curSlam.label, v -> chooseFromBrowser(Slam.Type.values(), (String) v, -1)));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.choice(
+        "slam.localizer", "Indoor SLAM", "Localizer (saved map)", java.util.Arrays.asList(labels(SlamSystem.Localizer.values())),
+        () -> curLoc.label, v -> chooseFromBrowser(SlamSystem.Localizer.values(), (String) v, -1)));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.choice(
+        "slam.planner", "Indoor SLAM", "Planner", java.util.Arrays.asList(labels(Navigator.Planner.values())),
+        () -> curPlanner.label, v -> chooseFromBrowser(Navigator.Planner.values(), (String) v, -1)));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.choice(
+        "slam.controller", "Indoor SLAM", "Controller", java.util.Arrays.asList(labels(Navigator.Controller.values())),
+        () -> curController.label, v -> chooseFromBrowser(Navigator.Controller.values(), (String) v, -1)));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.action(
+        "slam.explore", "Indoor SLAM", "Explore", "EXPLORE", "STOP", () -> exploring,
+        v -> command("{\"explore\":" + v + "}")));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.action(
+        "slam.findMe", "Indoor SLAM", "Find the car on the map", "FIND ME", "FIND ME", () -> false,
+        v -> slam.requestGlobalLocalization()));
+  }
+
+  /** One algorithm picked in the browser: save it and apply it like the dialog does. */
+  private void chooseFromBrowser(Enum<?>[] values, String label, int unused) {
+    String[] ls = labels(values);
+    int idx = java.util.Arrays.asList(ls).indexOf(label);
+    if (idx < 0) return;
+    Slam.Type t = curSlam;
+    SlamSystem.Localizer l = curLoc;
+    Navigator.Planner pl = curPlanner;
+    Navigator.Controller co = curController;
+    Object v = values[idx];
+    if (v instanceof Slam.Type) t = (Slam.Type) v;
+    else if (v instanceof SlamSystem.Localizer) l = (SlamSystem.Localizer) v;
+    else if (v instanceof Navigator.Planner) pl = (Navigator.Planner) v;
+    else co = (Navigator.Controller) v;
+    prefs().edit().putString("slam", t.name()).putString("localizer", l.name()).putString("planner", pl.name())
+        .putString("controller", co.name()).apply();
+    applyAlgorithms(t, l, pl, co);
+  }
+
+  // endregion
+
   // region Algorithm choices (saved on the phone)
 
   private android.content.SharedPreferences prefs() {
@@ -421,6 +531,10 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
 
   private void applyAlgorithms(Slam.Type t, SlamSystem.Localizer l, Navigator.Planner pl, Navigator.Controller co) {
     algorithmsText = t.label + " · " + l.label + " · " + pl.label + " · " + co.label;
+    curSlam = t;
+    curLoc = l;
+    curPlanner = pl;
+    curController = co;
     work(() -> {
       slam.setEngine(t);
       slam.setLocalizer(l);

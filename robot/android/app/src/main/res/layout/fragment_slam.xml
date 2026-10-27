@@ -215,6 +215,15 @@
                     android:text="@string/slam_layer_trail" />
             </com.google.android.material.chip.ChipGroup>
 
+            <!-- SensorServer WebSocket link (sensor_link_control.xml). In server mode the browser
+                 dashboard also gets this screen on /slam: map, car, path; click the map to set a goal. -->
+            <include
+                android:id="@+id/sensor_link"
+                layout="@layout/sensor_link_control"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp" />
+
             <TextView
                 android:id="@+id/source_info"
                 android:layout_width="match_parent"

@@ -99,6 +99,8 @@ public class Vehicle {
     isReady = ready;
   }
 
+  private boolean hasSerialScans;
+
   public boolean isHasVoltageDivider() {
     return hasVoltageDivider;
   }
@@ -121,6 +123,15 @@ public class Vehicle {
 
   public void setHasSonar(boolean hasSonar) {
     this.hasSonar = hasSonar;
+  }
+
+  /** The car can send full LiDAR scans down the serial link ('x' feature). */
+  public boolean isHasSerialScans() {
+    return hasSerialScans;
+  }
+
+  public void setHasSerialScans(boolean v) {
+    hasSerialScans = v;
   }
 
   public boolean isHasProximity() {
@@ -208,6 +219,7 @@ public class Vehicle {
     if (message.contains(":p:")) {
       setHasProximity(true);
     }
+    if (message.contains(":x:")) setHasSerialScans(true);
     if (message.contains(":x:") && isUsbConnected()) {
       // Full LiDAR scans can come down the serial link (firmware lidar_serial.h). Only asked for on
       // USB: a BLE notification is far too small to carry one.
