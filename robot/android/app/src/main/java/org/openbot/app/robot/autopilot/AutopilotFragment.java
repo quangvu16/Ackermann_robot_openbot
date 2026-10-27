@@ -184,6 +184,7 @@ public class AutopilotFragment extends CameraFragment {
     binding.autoSwitch.setOnClickListener(v -> setNetworkEnabled(binding.autoSwitch.isChecked()));
     setupObjectAvoidanceControls(
         binding.objectAvoidance.avoidToggle, binding.objectAvoidance.avoidInfo);
+    setupSensorLinkControls(binding.sensorLink.getRoot());
     BotToControllerEventBus.emitEvent(
         ConnectionUtils.createStatus("FRAGMENT_TYPE", Enums.FragmentType.AUTOPILOT.getFragment()));
   }

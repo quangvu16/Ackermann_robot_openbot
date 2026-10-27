@@ -42,6 +42,7 @@ import java.util.Locale;
 import org.openbot.app.robot.R;
 import org.openbot.app.robot.common.ControlsFragment;
 import org.openbot.app.robot.databinding.FragmentGpsNavigationBinding;
+import org.openbot.app.robot.sensorlink.SensorLink;
 import org.openbot.app.robot.utils.Constants;
 import org.openbot.app.robot.utils.PermissionUtils;
 import timber.log.Timber;
@@ -181,6 +182,7 @@ public class GpsNavigationFragment extends ControlsFragment
     updateHud(null);
     setupObjectAvoidanceControls(
         binding.objectAvoidance.avoidToggle, binding.objectAvoidance.avoidInfo);
+    setupSensorLinkControls(binding.sensorLink.getRoot());
     setupPanel();
   }
 
@@ -249,10 +251,26 @@ public class GpsNavigationFragment extends ControlsFragment
       binding.mapView.onResume();
     }
     requestLocationAndStart();
+    SensorLink.get().addRemoteListener(remoteSensors);
   }
+
+  /** Sensor link client: GPS and compass from a SensorServer app on another phone. */
+  private final SensorLink.RemoteListener remoteSensors =
+      new SensorLink.RemoteListener() {
+        @Override
+        public void onRemoteLocation(Location location) {
+          if (locationProvider != null) locationProvider.onRemoteLocation(location);
+        }
+
+        @Override
+        public void onRemoteRotationVector(float[] values) {
+          if (locationProvider != null) locationProvider.onRemoteRotationVector(values);
+        }
+      };
 
   @Override
   public void onPause() {
+    SensorLink.get().removeRemoteListener(remoteSensors);
     // Never leave the wheels spinning while the screen is away.
     stopNavigation(R.string.gps_nav_status_idle);
     if (locationProvider != null) {

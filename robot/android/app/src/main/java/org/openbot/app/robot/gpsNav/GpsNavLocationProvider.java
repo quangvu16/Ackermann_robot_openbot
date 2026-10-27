@@ -10,12 +10,14 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Looper;
+import android.os.SystemClock;
 import androidx.core.content.ContextCompat;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import org.openbot.app.robot.sensorlink.SensorLink;
 import timber.log.Timber;
 
 /**
@@ -89,22 +91,11 @@ public class GpsNavLocationProvider implements SensorEventListener {
           @Override
           public void onLocationResult(LocationResult locationResult) {
             Location location = locationResult.getLastLocation();
-            if (location == null) {
+            if (location == null || isRemoteActive()) {
+              // While another phone's GPS is feeding us (Sensor link), ignore our own.
               return;
             }
-            updateDeclination(location);
-            listener.onLocationUpdate(location);
-            if (isCourseValid(location)) {
-              headingFromCourse = true;
-              lastHeadingDegrees = location.getBearing();
-              listener.onHeadingUpdate(lastHeadingDegrees);
-            } else {
-              // Stationary or creeping: GPS course is meaningless, fall back to the magnetometer.
-              headingFromCourse = false;
-              if (!Float.isNaN(lastHeadingDegrees)) {
-                listener.onHeadingUpdate(lastHeadingDegrees);
-              }
-            }
+            handleFix(location);
           }
         };
 
@@ -179,6 +170,54 @@ public class GpsNavLocationProvider implements SensorEventListener {
     return fieldMicroTesla >= FIELD_MIN_UT && fieldMicroTesla <= FIELD_MAX_UT;
   }
 
+  private void handleFix(Location location) {
+    updateDeclination(location);
+    listener.onLocationUpdate(location);
+    if (isCourseValid(location)) {
+      headingFromCourse = true;
+      lastHeadingDegrees = location.getBearing();
+      listener.onHeadingUpdate(lastHeadingDegrees);
+    } else {
+      // Stationary or creeping: GPS course is meaningless, fall back to the magnetometer.
+      headingFromCourse = false;
+      if (!Float.isNaN(lastHeadingDegrees)) {
+        listener.onHeadingUpdate(lastHeadingDegrees);
+      }
+    }
+  }
+
+  // region Remote sensors (Sensor link client: a SensorServer app on another phone)
+
+  private long remoteFixAtMs = 0L;
+
+  /** True while fixes from the other phone are fresh; our own GPS and compass then stand by. */
+  public boolean isRemoteActive() {
+    return remoteFixAtMs != 0L
+        && SystemClock.elapsedRealtime() - remoteFixAtMs < SensorLink.REMOTE_STALE_MS;
+  }
+
+  /** A fix from the other phone; handled exactly like one of ours. */
+  public void onRemoteLocation(Location location) {
+    if (!running || location == null) {
+      return;
+    }
+    remoteFixAtMs = SystemClock.elapsedRealtime();
+    handleFix(location);
+  }
+
+  /**
+   * The other phone's rotation vector. Same mounting assumption as our own: upright, back camera
+   * facing forward (or lying flat, top edge forward).
+   */
+  public void onRemoteRotationVector(float[] values) {
+    if (!running || !isRemoteActive()) {
+      return;
+    }
+    handleRotationVector(values);
+  }
+
+  // endregion
+
   private static boolean isCourseValid(Location location) {
     return location.hasBearing() && location.getSpeed() >= COURSE_SPEED_THRESHOLD_MPS;
   }
@@ -249,7 +288,14 @@ public class GpsNavLocationProvider implements SensorEventListener {
     if (event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) {
       return;
     }
-    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+    if (isRemoteActive()) {
+      return; // the other phone's compass is in charge
+    }
+    handleRotationVector(event.values);
+  }
+
+  private void handleRotationVector(float[] values) {
+    SensorManager.getRotationMatrixFromVector(rotationMatrix, values);
     float heading = headingFromRotationMatrix(rotationMatrix) + declinationDegrees;
     if (heading >= 360f) {
       heading -= 360f;

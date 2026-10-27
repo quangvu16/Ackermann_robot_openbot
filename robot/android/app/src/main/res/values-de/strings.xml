@@ -217,4 +217,24 @@
     <string name="gps_panel_show">Daten anzeigen</string>
     <string name="gps_panel_toggle">Missionsdaten ein- oder ausblenden</string>
     <string name="gps_panel_connection">Verbindung zum Auto</string>
+    <string name="sensor_link_button">Sensor-Link</string>
+    <string name="sensor_link_off">Sensor-Link: aus</string>
+    <string name="sensor_link_server">Sensoren freigegeben unter %1$s · %2$d verbunden</string>
+    <string name="sensor_link_server_no_ip">Sensoren auf Port %1$d freigegeben · mit WLAN oder Hotspot des Handys verbinden</string>
+    <string name="sensor_link_server_failed">Sensor-Server konnte nicht starten: %1$s</string>
+    <string name="sensor_link_client_connecting">Verbinde mit %1$s…</string>
+    <string name="sensor_link_client_connected">Mit %1$s verbunden · warte auf GPS</string>
+    <string name="sensor_link_client_gps">Mit %1$s verbunden · GPS ±%2$.0f m</string>
+    <string name="sensor_link_client_no_address">Sensor-Link: Adresse des anderen Handys eingeben</string>
+    <string name="sensor_link_title">Sensor-Link (SensorServer)</string>
+    <string name="sensor_link_mode_off">Aus</string>
+    <string name="sensor_link_mode_server">Sensoren dieses Handys freigeben (Server)</string>
+    <string name="sensor_link_mode_client">Sensoren eines anderen Handys nutzen (Client)</string>
+    <string name="sensor_link_port">Port</string>
+    <string name="sensor_link_address">Adresse des anderen Handys, z. B. 192.168.43.1:8080</string>
+    <string name="sensor_link_use_gps">Sein GPS und Kompass für die GPS-Mission nutzen</string>
+    <string name="sensor_link_help">Nutzt die WebSocket-API von SensorServer (ws://adresse:port/sensor/connect, /sensors/connect, /gps). Beide Geräte müssen im selben WLAN oder Hotspot sein. Der Link läuft, solange GPS-Mission, Objektverfolgung oder Autopilot geöffnet ist.</string>
+    <string name="sensor_link_save">Speichern</string>
+    <string name="sensor_link_cancel">Abbrechen</string>
+    <string name="sensor_link_bad_port">Port muss 1024–65535 sein</string>
 </resources>

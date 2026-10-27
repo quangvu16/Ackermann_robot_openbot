@@ -239,6 +239,7 @@ public class ObjectNavFragment extends CameraFragment {
     binding.autoSwitch.setOnClickListener(v -> setNetworkEnabled(binding.autoSwitch.isChecked()));
     setupObjectAvoidanceControls(
         binding.objectAvoidance.avoidToggle, binding.objectAvoidance.avoidInfo);
+    setupSensorLinkControls(binding.sensorLink.getRoot());
     binding.dynamicSpeed.setChecked(preferencesManager.getDynamicSpeed());
     binding.dynamicSpeed.setOnClickListener(
         v -> {

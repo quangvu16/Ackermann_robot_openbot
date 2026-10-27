@@ -237,6 +237,14 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp" />
 
+            <!-- SensorServer WebSocket link: share this phone's sensors, or use another phone's.
+                 See sensor_link_control.xml. -->
+            <include
+                android:id="@+id/sensor_link"
+                layout="@layout/sensor_link_control"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
             <!-- Planning tools: used before a mission, not during it. -->
             <HorizontalScrollView
                 android:layout_width="match_parent"

@@ -32,6 +32,8 @@ import org.openbot.app.robot.env.ControllerToBotEventBus;
 import org.openbot.app.robot.env.PhoneController;
 import org.openbot.app.robot.env.SharedPreferencesManager;
 import org.openbot.app.robot.main.MainViewModel;
+import org.openbot.app.robot.sensorlink.SensorLink;
+import org.openbot.app.robot.sensorlink.SensorLinkDialog;
 import org.openbot.app.robot.server.ServerCommunication;
 import org.openbot.app.robot.server.ServerListener;
 import org.openbot.app.robot.tflite.Model;
@@ -497,6 +499,12 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     }
     lidarUiHandler.removeCallbacks(lidarUiTick);
     lidarUiHandler.post(lidarUiTick);
+    if (sensorLinkStatusView != null && !sensorLinkAttached) {
+      sensorLinkAttached = true;
+      SensorLink.get().addStatusListener(sensorLinkStatusListener);
+      SensorLink.get().attach(requireContext());
+      refreshSensorLinkStatus();
+    }
     super.onResume();
   }
 
@@ -516,6 +524,11 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     Timber.d("onPause");
     lidarUiHandler.removeCallbacks(lidarUiTick);
     serverCommunication.stop();
+    if (sensorLinkAttached) {
+      sensorLinkAttached = false;
+      SensorLink.get().removeStatusListener(sensorLinkStatusListener);
+      SensorLink.get().detach();
+    }
     if (vehicle != null) {
       vehicle.setControl(0, 0);
     }
@@ -558,6 +571,31 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
           refreshObjectAvoidanceStatus(status);
         });
     refreshObjectAvoidanceStatus(status);
+  }
+
+  private TextView sensorLinkStatusView;
+  private boolean sensorLinkAttached;
+  private final Runnable sensorLinkStatusListener = this::refreshSensorLinkStatus;
+
+  /**
+   * Wire up the Sensor link row ({@code sensor_link_control.xml}): the SensorServer WebSocket link
+   * runs while this screen is resumed, and the button opens its settings. Call from
+   * onViewCreated.
+   */
+  protected void setupSensorLinkControls(View root) {
+    if (root == null) {
+      return;
+    }
+    sensorLinkStatusView = root.findViewById(R.id.sensor_link_status);
+    root.findViewById(R.id.sensor_link_button)
+        .setOnClickListener(v -> SensorLinkDialog.show(requireContext()));
+    refreshSensorLinkStatus();
+  }
+
+  private void refreshSensorLinkStatus() {
+    if (sensorLinkStatusView != null && isAdded()) {
+      sensorLinkStatusView.setText(SensorLink.get().statusText(requireContext()));
+    }
   }
 
   /** Refresh the avoidance status line. Call from the screen's regular UI update. */

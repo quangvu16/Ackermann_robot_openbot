@@ -226,6 +226,8 @@ dependencies {
 
     // Socket Server
     implementation 'com.squareup.okhttp3:okhttp:4.9.1'
+    // SensorServer-compatible WebSocket server (Sensor link). MIT licence.
+    implementation 'org.java-websocket:Java-WebSocket:1.5.7'
 
     //Scan QR
     implementation 'com.google.android.gms:play-services-vision:20.1.3'
