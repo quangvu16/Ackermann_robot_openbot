@@ -220,6 +220,15 @@ The firmware sends each LiDAR turn down the USB cable as a text line that starts
 
 ### 3.5 Object avoidance
 
+**LiDAR map in the information panel.** On GPS Mission, Object Tracking and Autopilot, ticking **Object avoidance** opens a LiDAR map right under the switch; unticking hides it. On iPhone the switch and map sit in GPS Mission's data panel, and in a small card at the top-left of Object Tracking and Autopilot.
+- The car is in the middle, facing up. Rings are at 1, 2 and 4 m.
+- The outline is the LiDAR scan. Coloured wedges are the car's 8 obstacle sectors: red under 0.5 m, amber under 1 m, green further.
+- The ring is the avoidance distance: the car stops before anything comes inside it.
+- The line below the map says what is arriving. It shows bins and returns for a live scan, or *only the 8 sectors* over Bluetooth, where full scans don't fit. A grey picture means the scan stopped and is frozen.
+- *Example:* you tick Object avoidance in GPS Mission and a red wedge appears ahead-left. A box is 40 cm away, so the car will hold there until you move it.
+- *Why show it here?* You can see what the car is avoiding at the moment you switch avoidance on, without going to Robot Info.
+
+
 Avoidance stops the car when something is close in front. The backup-speed slider (0 to 0.5, step 0.05) sets how actively the car backs away from an obstacle.
 
 - *Source:* `RobotInfoFragment.java`; `fragment_robot_info.xml` (`avoid_backup_slider`).

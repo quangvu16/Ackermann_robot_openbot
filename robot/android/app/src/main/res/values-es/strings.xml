@@ -237,4 +237,6 @@
     <string name="sensor_link_save">Guardar</string>
     <string name="sensor_link_cancel">Cancelar</string>
     <string name="sensor_link_bad_port">El puerto debe estar entre 1024 y 65535</string>
+    <string name="avoid_lidar_map">Mapa LiDAR: el coche está en el centro, mirando hacia arriba</string>
+    <string name="lidar_sectors_only">Solo los 8 sectores de obstáculos del coche (los escaneos completos necesitan USB o la Wi-Fi del coche)</string>
 </resources>

@@ -237,4 +237,6 @@
     <string name="sensor_link_save">Enregistrer</string>
     <string name="sensor_link_cancel">Annuler</string>
     <string name="sensor_link_bad_port">Le port doit être entre 1024 et 65535</string>
+    <string name="avoid_lidar_map">Carte LiDAR : la voiture est au centre, orientée vers le haut</string>
+    <string name="lidar_sectors_only">Seulement les 8 secteurs d\'obstacles de la voiture (les scans complets demandent l\'USB ou le Wi-Fi de la voiture)</string>
 </resources>

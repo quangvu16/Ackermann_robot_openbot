@@ -34,4 +34,27 @@
         android:textColor="@android:color/black"
         android:textSize="13sp"
         tools:text="Object avoidance on — clear" />
+
+    <!-- LiDAR map, shown while object avoidance is on: the car in the middle facing up, the scan
+         outline, the car's 8 proximity sectors as coloured wedges and the standoff ring. -->
+    <org.openbot.app.robot.customview.LidarView
+        android:id="@+id/avoid_lidar_view"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="4dp"
+        android:contentDescription="@string/avoid_lidar_map"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/avoid_lidar_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:paddingBottom="4dp"
+        android:textColor="@android:color/black"
+        android:textSize="12sp"
+        android:visibility="gone"
+        tools:text="LiDAR: 360 bins, 338 returns"
+        tools:visibility="visible" />
 </LinearLayout>

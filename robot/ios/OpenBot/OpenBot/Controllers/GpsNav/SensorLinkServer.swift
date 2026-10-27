@@ -47,7 +47,7 @@ final class SensorLinkServer: RemoteSettingsProvider {
     private var pushTimer: Timer?            // main queue
     private var sensorRate = "game"           // main queue
     // LiDAR (/lidar): our own UDP listener for the car's scans while someone watches (on `queue`).
-    private var lidarScanner: LidarScanner?
+    private var lidarAcquired = false
     private var lidarTimer: DispatchSourceTimer?
     private var lidarSentId: Int64 = -2
     private var lidarSentUptime: TimeInterval = 0
@@ -224,9 +224,8 @@ final class SensorLinkServer: RemoteSettingsProvider {
     private func startLidar() {
         lidarSentId = -2 // the newcomer gets the current picture straight away
         guard lidarTimer == nil else { return }
-        let scanner = LidarScanner()
-        scanner.start() // false if another screen holds the port; the car's sectors still come
-        lidarScanner = scanner
+        SharedLidar.acquire() // shared with the avoidance map: one UDP listener
+        lidarAcquired = true
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: .milliseconds(100))
         timer.setEventHandler { [weak self] in self?.pollLidar() }
@@ -237,20 +236,21 @@ final class SensorLinkServer: RemoteSettingsProvider {
     private func stopLidar() {
         lidarTimer?.cancel()
         lidarTimer = nil
-        lidarScanner?.stop()
-        lidarScanner = nil
+        if lidarAcquired { SharedLidar.release() }
+        lidarAcquired = false
     }
 
     /// Every 100 ms: a new revolution as soon as it lands, otherwise a refresh once a second.
     private func pollLidar() {
-        let scan = lidarScanner?.latestScan
+        let scanner = SharedLidar.scanner
+        let scan = scanner.latestScan
         let id = scan.map { Int64($0.scanId) } ?? -1
         let now = ProcessInfo.processInfo.systemUptime
         guard id != lidarSentId || now - lidarSentUptime >= 1 else { return }
         lidarSentId = id
         lidarSentUptime = now
         let ranges = scan?.rangesMm.map { Int($0) } ?? []
-        let age = scan == nil ? 0 : Int(lidarScanner?.ageMs() ?? 0)
+        let age = scan == nil ? 0 : Int(scanner.ageMs())
         // The car's 8 proximity sectors are fed on the main queue by Bluetooth; read them there.
         DispatchQueue.main.async {
             let proximity = bluetoothDataController.shared.driveGate.proximity

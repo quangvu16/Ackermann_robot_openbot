@@ -569,11 +569,17 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     toggle.setChecked(vehicle.isObjectAvoidanceEnabled());
     avoidToggleRef = toggle;
     avoidStatusRef = status;
+    // The LiDAR map in the same block (object_avoidance_control.xml), shown while avoidance is on.
+    View block = (View) toggle.getParent();
+    avoidMapRef = block.findViewById(R.id.avoid_lidar_view);
+    avoidMapInfoRef = block.findViewById(R.id.avoid_lidar_info);
+    showAvoidanceMap(vehicle.isObjectAvoidanceEnabled());
     toggle.setOnClickListener(
         v -> {
           boolean enabled = toggle.isChecked();
           vehicle.setObjectAvoidanceEnabled(enabled);
           preferencesManager.setObjectAvoidanceEnabled(enabled);
+          showAvoidanceMap(enabled);
           // Re-send immediately so a car currently held back either resumes (switched off) or
           // stops right now (switched on against a barrier).
           vehicle.sendControl();
@@ -586,6 +592,27 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
   private boolean sensorLinkAttached;
   private CheckBox avoidToggleRef;
   private TextView avoidStatusRef;
+  private org.openbot.app.robot.customview.LidarView avoidMapRef;
+  private TextView avoidMapInfoRef;
+
+  /**
+   * Show the LiDAR map under the avoidance switch while avoidance is on, and keep it fed from the
+   * shared 10 Hz LiDAR tick; hide it (and stop drawing) when avoidance is off.
+   */
+  private void showAvoidanceMap(boolean on) {
+    if (avoidMapRef == null) {
+      return;
+    }
+    avoidMapRef.setVisibility(on ? View.VISIBLE : View.GONE);
+    if (avoidMapInfoRef != null) avoidMapInfoRef.setVisibility(on ? View.VISIBLE : View.GONE);
+    if (on) {
+      avoidMapRef.setRangeMaxMeters(4f);
+      attachLidarView(avoidMapRef, avoidMapInfoRef);
+    } else if (lidarViewRef == avoidMapRef) {
+      lidarViewRef = null;
+      lidarStatusRef = null;
+    }
+  }
 
   // region Browser settings (Sensor link page, server mode)
 
@@ -636,6 +663,7 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
                     preferencesManager.setObjectAvoidanceEnabled(on);
                     vehicle.sendControl();
                     if (avoidToggleRef != null) avoidToggleRef.setChecked(on);
+                    showAvoidanceMap(on);
                     refreshObjectAvoidanceStatus(avoidStatusRef);
                   }));
           out.add(
@@ -729,11 +757,18 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     boolean fresh = lidarScanner.isFresh();
     view.setStale(hasScan && !fresh);
     view.setScan(hasScan ? lidarScanner.getLatestScan() : null);
+    // The car's own 8 proximity sectors (p channel): the only LiDAR data over Bluetooth.
+    org.openbot.app.robot.vehicle.Proximity proximity = vehicle == null ? null : vehicle.getProximity();
+    boolean sectorsFresh =
+        proximity != null && proximity.hasEverReported() && proximity.getAge() < 1000;
+    view.setSectorsMeters(sectorsFresh ? proximity.getSectorMeters() : null);
     if (vehicle != null) {
       view.setMarginMeters(vehicle.getObjectAvoidanceMargin());
     }
     if (status != null) {
-      if (!hasScan) {
+      if (!hasScan && sectorsFresh) {
+        status.setText(R.string.lidar_sectors_only);
+      } else if (!hasScan) {
         status.setText(R.string.lidarIdle);
       } else {
         org.openbot.app.robot.vehicle.LidarScan scan = lidarScanner.getLatestScan();

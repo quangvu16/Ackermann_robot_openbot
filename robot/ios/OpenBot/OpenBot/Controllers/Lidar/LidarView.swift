@@ -58,6 +58,13 @@ final class LidarView: UIView {
         didSet { setNeedsDisplay() }
     }
 
+    /// The car's 8 proximity sectors in metres, clockwise from the nose (`.infinity`
+    /// = clear), drawn as wedges: red under 0.5 m, amber under 1 m, green beyond.
+    /// Over Bluetooth these are the only LiDAR data. nil hides them.
+    var sectorsMeters: [Double]? {
+        didSet { setNeedsDisplay() }
+    }
+
     private let ringColor = UIColor(white: 0.72, alpha: 1.0)
     private let marginColor = UIColor(red: 0.15, green: 0.78, blue: 1.0, alpha: 1.0)
     private let robotColor = UIColor(red: 0.29, green: 0.48, blue: 1.0, alpha: 1.0)
@@ -121,6 +128,8 @@ final class LidarView: UIView {
         context.addLine(to: CGPoint(x: center.x, y: center.y + radius * 0.88))
         context.strokePath()
 
+        drawSectors(context, center: center, radius: radius)
+
         guard let scan else {
             drawRobot(context, center: center, radius: radius)
             return
@@ -155,6 +164,28 @@ final class LidarView: UIView {
         }
 
         drawRobot(context, center: center, radius: radius)
+    }
+
+    private func drawSectors(_ context: CGContext, center: CGPoint, radius: CGFloat) {
+        guard let sectors = sectorsMeters, !sectors.isEmpty, rangeMaxMeters > 0 else { return }
+        let span = 2 * Double.pi / Double(sectors.count)
+        for (i, m) in sectors.enumerated() where m.isFinite && m > 0 {
+            let color: UIColor = m < 0.5 ? .systemRed : m < 1.0 ? .systemOrange : .systemGreen
+            let r = radius * CGFloat(min(1.0, m / rangeMaxMeters))
+            // Sector i is centred i * span clockwise from the nose (up). With UIKit's
+            // flipped y, increasing angles run clockwise on screen.
+            let start = CGFloat(Double(i) * span - span / 2 - Double.pi / 2)
+            let end = start + CGFloat(span)
+            context.setFillColor(color.withAlphaComponent(isStale ? 0.10 : 0.22).cgColor)
+            context.move(to: center)
+            context.addArc(center: center, radius: r, startAngle: start, endAngle: end, clockwise: false)
+            context.closePath()
+            context.fillPath()
+            context.setStrokeColor(color.withAlphaComponent(isStale ? 0.4 : 0.95).cgColor)
+            context.setLineWidth(3)
+            context.addArc(center: center, radius: r, startAngle: start + 0.03, endAngle: end - 0.03, clockwise: false)
+            context.strokePath()
+        }
     }
 
     private func drawRobot(_ context: CGContext, center: CGPoint, radius: CGFloat) {
@@ -375,5 +406,175 @@ final class AvoidanceSettingsController: UIViewController {
         backupValue.text = settings.backupSpeed <= 0
             ? L10n.string("avoid_backup_off")
             : String(format: "%.0f%%", settings.backupSpeed * 100)
+    }
+}
+
+
+// MARK: - One LiDAR listener for everyone
+
+/// The car's LiDAR datagrams arrive on one UDP port, so the avoidance map and the
+/// Sensor link server share one listener, started by the first user and stopped
+/// by the last.
+enum SharedLidar {
+    static let scanner = LidarScanner()
+    private static var users = 0
+    private static let lock = NSLock()
+
+    static func acquire() {
+        lock.lock(); defer { lock.unlock() }
+        users += 1
+        if users == 1 { scanner.start() }
+    }
+
+    static func release() {
+        lock.lock(); defer { lock.unlock() }
+        guard users > 0 else { return }
+        users -= 1
+        if users == 0 { scanner.stop() }
+    }
+}
+
+// MARK: - Object avoidance with its LiDAR map
+
+/// The object-avoidance switch for a screen's information panel. While avoidance
+/// is on, a LiDAR map shows underneath: the car in the middle facing up, the scan
+/// outline, the car's 8 proximity sectors as coloured wedges and the standoff
+/// ring. Mirrors object_avoidance_control.xml on Android.
+///
+/// The screen calls `start()` when it appears and `stop()` when it goes away.
+final class AvoidanceLidarCard: UIView {
+    /// Called after the user flips the switch (e.g. to refresh a toolbar button).
+    var onChange: (() -> Void)?
+
+    private let bluetooth = bluetoothDataController.shared
+    private let title = UILabel()
+    private let toggle = UISwitch()
+    private let statusLabel = UILabel()
+    private let map = LidarView()
+    private let info = UILabel()
+    private var timer: Timer?
+    private var started = false
+
+    /// `mapHeight`: 180 for a panel, smaller for an overlay card.
+    init(mapHeight: CGFloat = 180) {
+        super.init(frame: .zero)
+        title.text = L10n.string("avoid_title")
+        title.font = .systemFont(ofSize: 15, weight: .semibold)
+        title.textColor = .label
+        toggle.addTarget(self, action: #selector(toggled), for: .valueChanged)
+        toggle.accessibilityLabel = L10n.string("avoid_title")
+        statusLabel.font = .systemFont(ofSize: 12)
+        statusLabel.textColor = .secondaryLabel
+        statusLabel.numberOfLines = 0
+        map.rangeMaxMeters = 4
+        map.layer.cornerRadius = 10
+        map.clipsToBounds = true
+        map.isAccessibilityElement = true
+        map.accessibilityLabel = L10n.string("avoid_lidar_map")
+        map.heightAnchor.constraint(equalToConstant: mapHeight).isActive = true
+        info.font = .systemFont(ofSize: 12)
+        info.textColor = .secondaryLabel
+        info.textAlignment = .center
+        info.numberOfLines = 0
+
+        let header = UIStackView(arrangedSubviews: [title, toggle])
+        header.axis = .horizontal
+        header.alignment = .center
+        header.spacing = 8
+        let stack = UIStackView(arrangedSubviews: [header, statusLabel, map, info])
+        stack.axis = .vertical
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        refresh()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not used")
+    }
+
+    /// A floating card for camera screens (Object Tracking, Autopilot): top-left,
+    /// under the navigation bar, clear of the STOP button on the right.
+    @discardableResult
+    static func addOverlay(to view: UIView) -> AvoidanceLidarCard {
+        let card = AvoidanceLidarCard(mapHeight: 150)
+        let box = UIView()
+        box.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.9)
+        box.layer.cornerRadius = 12
+        box.translatesAutoresizingMaskIntoConstraints = false
+        card.translatesAutoresizingMaskIntoConstraints = false
+        box.addSubview(card)
+        view.addSubview(box)
+        NSLayoutConstraint.activate([
+            card.topAnchor.constraint(equalTo: box.topAnchor, constant: 8),
+            card.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 10),
+            card.trailingAnchor.constraint(equalTo: box.trailingAnchor, constant: -10),
+            card.bottomAnchor.constraint(equalTo: box.bottomAnchor, constant: -8),
+            box.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            box.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+            box.widthAnchor.constraint(equalToConstant: 210),
+        ])
+        return card
+    }
+
+    func start() {
+        guard !started else { return }
+        started = true
+        SharedLidar.acquire()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.refresh() }
+        refresh()
+    }
+
+    func stop() {
+        guard started else { return }
+        started = false
+        timer?.invalidate()
+        timer = nil
+        SharedLidar.release()
+    }
+
+    deinit {
+        timer?.invalidate()
+        if started { SharedLidar.release() }
+    }
+
+    @objc private func toggled() {
+        var settings = bluetooth.driveGate.settings
+        settings.enabled = toggle.isOn
+        bluetooth.updateObjectAvoidance(settings)
+        refresh()
+        onChange?()
+    }
+
+    private func refresh() {
+        let settings = bluetooth.driveGate.settings
+        if !toggle.isTracking { toggle.isOn = settings.enabled }
+        statusLabel.text = String(format: "%@ · %.1f m", L10n.string(settings.enabled ? "avoid_on" : "avoid_off"),
+                                  settings.marginMeters)
+        let on = settings.enabled
+        if map.isHidden == on { map.isHidden = !on; info.isHidden = !on }
+        guard on else { return }
+
+        let scanner = SharedLidar.scanner
+        let scan = scanner.latestScan
+        map.scan = scan
+        map.isStale = scanner.isStale
+        map.marginMeters = settings.marginMeters
+        map.showMargin = true
+        let proximity = bluetooth.driveGate.proximity
+        let sectorsFresh = proximity.hasEverReported() && proximity.ageMs() < 1000
+        map.sectorsMeters = sectorsFresh ? proximity.sectors() : nil
+        if let scan {
+            let key = scanner.isStale ? "lidar_scan_stale" : "lidar_scan_live"
+            info.text = String(format: L10n.string(key), Int32(scan.binCount), Int32(scan.validPoints))
+        } else {
+            info.text = L10n.string(sectorsFresh ? "lidar_sectors_only" : "lidar_waiting")
+        }
     }
 }

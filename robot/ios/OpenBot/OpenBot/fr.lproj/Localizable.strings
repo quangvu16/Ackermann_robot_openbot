@@ -305,3 +305,8 @@
 "sensor_link_save" = "Enregistrer";
 "sensor_link_cancel" = "Annuler";
 "sensor_link_bad_port" = "Le port doit être entre 1024 et 65535";
+"avoid_lidar_map" = "Carte LiDAR : la voiture est au centre, orientée vers le haut";
+"lidar_sectors_only" = "Seulement les 8 secteurs d'obstacles de la voiture (les scans complets demandent l'USB ou le Wi-Fi de la voiture)";
+"lidar_waiting" = "En attente des données LiDAR";
+"lidar_scan_live" = "%1$d secteurs · %2$d retours · en direct";
+"lidar_scan_stale" = "%1$d secteurs · %2$d retours · figé";

@@ -43,6 +43,11 @@ public class LidarView extends View {
   private final Paint robotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Path scanPath = new Path();
+  private final Paint sectorFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final Paint sectorEdge = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final android.graphics.RectF arcBox = new android.graphics.RectF();
+  /** The car's 8 proximity sectors in metres (infinite = clear), or null when not shown. */
+  private float[] sectorsMeters;
 
   public LidarView(Context context) {
     super(context);
@@ -79,6 +84,22 @@ public class LidarView extends View {
 
     labelPaint.setColor(Color.parseColor("#78909C"));
     labelPaint.setTextSize(24f);
+
+    sectorFill.setStyle(Paint.Style.FILL);
+    sectorEdge.setStyle(Paint.Style.STROKE);
+    sectorEdge.setStrokeWidth(5f);
+    sectorEdge.setStrokeCap(Paint.Cap.ROUND);
+  }
+
+  /**
+   * The car's 8 proximity sectors (the firmware's {@code p} channel), in metres from the nose
+   * clockwise; infinite means clear. Drawn as wedges coloured by distance - red under 0.5 m, amber
+   * under 1 m, green beyond - so the view still says something useful over Bluetooth, where full
+   * scans do not arrive. Null hides them.
+   */
+  public void setSectorsMeters(float[] sectorsMeters) {
+    this.sectorsMeters = sectorsMeters;
+    invalidate();
   }
 
   /** The revolution to draw. Null clears the view to rings only. */
@@ -163,6 +184,7 @@ public class LidarView extends View {
     canvas.drawLine(cx, cy - radius, cx, cy - radius * 0.88f, robotPaint);
     canvas.drawLine(cx, cy + radius, cx, cy + radius * 0.88f, ringPaint);
 
+    drawSectors(canvas, cx, cy, radius);
     drawScan(canvas, cx, cy, radius);
     drawRobot(canvas, cx, cy, radius);
     canvas.drawText(
@@ -170,6 +192,31 @@ public class LidarView extends View {
         cx + 6f,
         cy - radius + 30f,
         labelPaint);
+  }
+
+  private void drawSectors(Canvas canvas, float cx, float cy, float radius) {
+    float[] s = sectorsMeters;
+    if (s == null || s.length == 0) {
+      return;
+    }
+    float span = 360f / s.length;
+    for (int i = 0; i < s.length; i++) {
+      float m = s[i];
+      if (Float.isInfinite(m) || Float.isNaN(m) || m <= 0f) {
+        continue;
+      }
+      int color = m < 0.5f ? Color.parseColor("#E53935") : m < 1f ? Color.parseColor("#FB8C00") : Color.parseColor("#43A047");
+      float r = radius * Math.min(1f, m / rangeMaxMeters);
+      arcBox.set(cx - r, cy - r, cx + r, cy + r);
+      // Sector i is centred i * span degrees clockwise from the nose; Android arcs start at 3 o'clock.
+      float start = i * span - span / 2f - 90f;
+      sectorFill.setColor(color);
+      sectorFill.setAlpha(stale ? 30 : 55);
+      canvas.drawArc(arcBox, start, span, true, sectorFill);
+      sectorEdge.setColor(color);
+      sectorEdge.setAlpha(stale ? 90 : 230);
+      canvas.drawArc(arcBox, start + 2f, span - 4f, false, sectorEdge);
+    }
   }
 
   private void drawScan(Canvas canvas, float cx, float cy, float radius) {

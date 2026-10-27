@@ -305,3 +305,8 @@
 "sensor_link_save" = "保存";
 "sensor_link_cancel" = "取消";
 "sensor_link_bad_port" = "端口必须在 1024–65535 之间";
+"avoid_lidar_map" = "激光雷达地图：小车在中央，朝上";
+"lidar_sectors_only" = "仅有小车的 8 个障碍扇区（完整扫描需 USB 或小车 Wi-Fi）";
+"lidar_waiting" = "等待激光雷达数据";
+"lidar_scan_live" = "%1$d 个角度 · %2$d 个回波 · 实时";
+"lidar_scan_stale" = "%1$d 个角度 · %2$d 个回波 · 已过时";

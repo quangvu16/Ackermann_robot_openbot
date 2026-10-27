@@ -305,3 +305,8 @@
 "sensor_link_save" = "सहेजें";
 "sensor_link_cancel" = "रद्द करें";
 "sensor_link_bad_port" = "पोर्ट 1024–65535 होना चाहिए";
+"avoid_lidar_map" = "LiDAR नक्शा: कार बीच में है, ऊपर की ओर";
+"lidar_sectors_only" = "केवल कार के 8 बाधा सेक्टर (पूरे स्कैन के लिए USB या कार का Wi-Fi चाहिए)";
+"lidar_waiting" = "LiDAR डेटा का इंतज़ार";
+"lidar_scan_live" = "%1$d बिन · %2$d रिटर्न · लाइव";
+"lidar_scan_stale" = "%1$d बिन · %2$d रिटर्न · पुराना";

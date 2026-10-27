@@ -41,6 +41,8 @@ final class GpsMissionController: UIViewController {
     private var latestFixUptime: TimeInterval = 0
     private let fixTimeout: TimeInterval = 3
     private let avoidanceToggle = AvoidanceToggleItem()
+    /// Object avoidance switch with its LiDAR map, in the data panel.
+    private let avoidanceCard = AvoidanceLidarCard()
     /// Opens the camera only while a browser watches it (Sensor link page).
     private let browserCamera = OnDemandCamera()
     private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "GPS Mission", camera: browserCamera)
@@ -74,6 +76,7 @@ final class GpsMissionController: UIViewController {
         SensorLink.shared.remoteDelegate = self
         sensorLinkItem.appeared()
         browserCamera.start()
+        avoidanceCard.start()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -86,6 +89,7 @@ final class GpsMissionController: UIViewController {
         saveMission()
         if SensorLink.shared.remoteDelegate === self { SensorLink.shared.remoteDelegate = nil }
         browserCamera.stop()
+        avoidanceCard.stop()
         sensorLinkItem.disappeared()
     }
 
@@ -225,7 +229,8 @@ final class GpsMissionController: UIViewController {
         let divider = UIView()
         divider.backgroundColor = .separator
         divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        [divider, hudLabel, statusLabel, tools].forEach { dataPanel.addArrangedSubview($0) }
+        avoidanceCard.onChange = { [weak self] in self?.avoidanceToggle.refresh() }
+        [divider, hudLabel, statusLabel, avoidanceCard, tools].forEach { dataPanel.addArrangedSubview($0) }
         stack.addArrangedSubview(dataPanel)
 
         // Swipe down to hide the data, up to show it, as on Object Tracking.

@@ -305,3 +305,8 @@
 "sensor_link_save" = "저장";
 "sensor_link_cancel" = "취소";
 "sensor_link_bad_port" = "포트는 1024–65535여야 합니다";
+"avoid_lidar_map" = "LiDAR 지도: 차량은 가운데, 위쪽이 앞";
+"lidar_sectors_only" = "차량의 장애물 구역 8개만 표시 (전체 스캔은 USB나 차량 Wi-Fi 필요)";
+"lidar_waiting" = "LiDAR 데이터 대기 중";
+"lidar_scan_live" = "%1$d 빈 · %2$d 반사 · 실시간";
+"lidar_scan_stale" = "%1$d 빈 · %2$d 반사 · 멈춤";

@@ -237,4 +237,6 @@
     <string name="sensor_link_save">저장</string>
     <string name="sensor_link_cancel">취소</string>
     <string name="sensor_link_bad_port">포트는 1024–65535여야 합니다</string>
+    <string name="avoid_lidar_map">LiDAR 지도: 차량은 가운데, 위쪽이 앞</string>
+    <string name="lidar_sectors_only">차량의 장애물 구역 8개만 표시 (전체 스캔은 USB나 차량 Wi-Fi 필요)</string>
 </resources>

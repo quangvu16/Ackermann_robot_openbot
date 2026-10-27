@@ -25,6 +25,8 @@ class AutopilotFragment: CameraController {
     var autopilotEnabled = false
     let webSocketMsgHandler = WebSocketMessageHandler();
     let fragmentType = FragmentType.shared
+    /// Object avoidance switch with its LiDAR map, floating top-left.
+    private var avoidanceCard: AvoidanceLidarCard?
     private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "Autopilot", camera: self)
 
     /// Called after the view fragment has loaded.
@@ -172,12 +174,15 @@ class AutopilotFragment: CameraController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         sensorLinkItem.appeared()
+        if avoidanceCard == nil { avoidanceCard = AvoidanceLidarCard.addOverlay(to: view) }
+        avoidanceCard?.start()
     }
 
     /// Called after the view was dismissed, covered or otherwise hidden.
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         sensorLinkItem.disappeared()
+        avoidanceCard?.stop()
         if autoPilotMode {
             autoPilotMode = false
         }

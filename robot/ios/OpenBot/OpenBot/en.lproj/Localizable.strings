@@ -305,3 +305,8 @@
 "sensor_link_save" = "Save";
 "sensor_link_cancel" = "Cancel";
 "sensor_link_bad_port" = "Port must be 1024–65535";
+"avoid_lidar_map" = "LiDAR map: the car is in the middle, facing up";
+"lidar_sectors_only" = "Car's 8 obstacle sectors only (full scans need USB or the car's Wi-Fi)";
+"lidar_waiting" = "Waiting for LiDAR data";
+"lidar_scan_live" = "%1$d bins · %2$d returns · live";
+"lidar_scan_stale" = "%1$d bins · %2$d returns · stale";

@@ -31,6 +31,8 @@ class ObjectTrackingFragment: CameraController {
     private(set) var useDynamicSpeed: Bool = false
     let webSocketMsgHandler = WebSocketMessageHandler();
     let fragmentType = FragmentType.shared
+    /// Object avoidance switch with its LiDAR map, floating top-left.
+    private var avoidanceCard: AvoidanceLidarCard?
     private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "Object Tracking", camera: self) { [unowned self] out in
         out.append(.range("tracking.confidence", "Object Tracking", "Detection confidence (%)", 5, 95, 5,
                           get: { Double((self.MINIMUM_CONFIDENCE_TF_OD_API * 100).rounded()) },
@@ -121,6 +123,8 @@ class ObjectTrackingFragment: CameraController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         sensorLinkItem.appeared()
+        if avoidanceCard == nil { avoidanceCard = AvoidanceLidarCard.addOverlay(to: view) }
+        avoidanceCard?.start()
         switch objectTrackingSettings?.autoModeButton.isOn {
         case false:
             autoMode = false
@@ -197,6 +201,7 @@ class ObjectTrackingFragment: CameraController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         sensorLinkItem.disappeared()
+        avoidanceCard?.stop()
         if autoMode {
             autoMode = false
         }

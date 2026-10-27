@@ -237,4 +237,6 @@
     <string name="sensor_link_save">सहेजें</string>
     <string name="sensor_link_cancel">रद्द करें</string>
     <string name="sensor_link_bad_port">पोर्ट 1024–65535 होना चाहिए</string>
+    <string name="avoid_lidar_map">LiDAR नक्शा: कार बीच में है, ऊपर की ओर</string>
+    <string name="lidar_sectors_only">केवल कार के 8 बाधा सेक्टर (पूरे स्कैन के लिए USB या कार का Wi-Fi चाहिए)</string>
 </resources>

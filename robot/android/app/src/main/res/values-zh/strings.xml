@@ -237,4 +237,6 @@
     <string name="sensor_link_save">保存</string>
     <string name="sensor_link_cancel">取消</string>
     <string name="sensor_link_bad_port">端口必须在 1024–65535 之间</string>
+    <string name="avoid_lidar_map">激光雷达地图：小车在中央，朝上</string>
+    <string name="lidar_sectors_only">仅有小车的 8 个障碍扇区（完整扫描需 USB 或小车 Wi-Fi）</string>
 </resources>

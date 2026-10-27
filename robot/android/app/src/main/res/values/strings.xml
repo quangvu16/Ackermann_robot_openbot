@@ -396,4 +396,6 @@
     <string name="sensor_link_save">Save</string>
     <string name="sensor_link_cancel">Cancel</string>
     <string name="sensor_link_bad_port">Port must be 1024–65535</string>
+    <string name="avoid_lidar_map">LiDAR map: the car is in the middle, facing up</string>
+    <string name="lidar_sectors_only">Car\'s 8 obstacle sectors only (full scans need USB or the car\'s Wi-Fi)</string>
 </resources>
