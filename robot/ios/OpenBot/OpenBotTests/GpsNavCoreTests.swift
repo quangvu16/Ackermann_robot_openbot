@@ -593,6 +593,17 @@ final class SensorLinkProtocolTests: XCTestCase {
         XCTAssertNil(SensorLinkProtocol.baseURL(":8080"))
     }
 
+    func testLidarMessage() {
+        XCTAssertEqual(
+            SensorLinkProtocol.lidarJSON(scanId: 7, rangesMm: [500, 0, 1200, 0], forwardOffset: 0, ageMs: 35,
+                                         sectorsMm: [0, 800, 0, 0, 0, 0, 0, 450], sectorsAgeMs: 20),
+            "{\"scanId\":7,\"bins\":4,\"forwardOffset\":0.0,\"age\":35,\"ranges\":[500,0,1200,0],"
+                + "\"sectors\":[0,800,0,0,0,0,0,450],\"sectorsAge\":20}")
+        XCTAssertEqual(
+            SensorLinkProtocol.lidarJSON(scanId: -1, rangesMm: [], forwardOffset: 0, ageMs: 0, sectorsMm: nil, sectorsAgeMs: 0),
+            "{\"scanId\":-1,\"bins\":0,\"forwardOffset\":0.0,\"age\":0,\"ranges\":[],\"sectors\":null,\"sectorsAge\":0}")
+    }
+
     func testHeadingFromRotationVector() {
         // Identity: phone flat, top edge north -> heading 0.
         let flat = SensorLinkProtocol.rotationMatrix(fromVector: [0, 0, 0, 1])!

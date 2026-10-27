@@ -75,6 +75,11 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
   private final ScreenName screenName;
   private final Handler main = new Handler(android.os.Looper.getMainLooper());
   private final Set<Connection> controlClients = new CopyOnWriteArraySet<>();
+  // LiDAR (/lidar WebSocket): each new revolution, or a refresh every second for the ages.
+  private final Set<Connection> lidarClients = new CopyOnWriteArraySet<>();
+  private java.util.concurrent.ScheduledExecutorService lidarPoller; // guarded by this
+  private long lidarSentScanId = -2;
+  private long lidarSentAtMs;
   private final Runnable pushState = this::pushStateNow;
   private volatile String sensorRate = "game";
   static final java.util.List<String> SENSOR_RATES = java.util.Arrays.asList("ui", "game", "fastest");
@@ -107,6 +112,10 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
   /** Stops the server and every sensor it switched on. Safe to call more than once. */
   void shutdown() {
     remoteSettings.removeProvider(this);
+    synchronized (this) {
+      if (lidarPoller != null) lidarPoller.shutdownNow();
+      lidarPoller = null;
+    }
     main.removeCallbacks(pushState);
     stop();
     synchronized (this) {
@@ -238,6 +247,39 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
 
   // endregion
 
+  // region LiDAR: /lidar WebSocket
+
+  private synchronized void openLidar(Connection conn) {
+    lidarClients.add(conn);
+    lidarSentScanId = -2; // send the current picture to the newcomer straight away
+    if (lidarPoller == null) {
+      lidarPoller = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+      lidarPoller.scheduleAtFixedRate(
+          this::pollLidar, 0, 100, java.util.concurrent.TimeUnit.MILLISECONDS);
+    }
+  }
+
+  /** Every 100 ms: send a new revolution as soon as it lands; otherwise refresh once a second. */
+  private void pollLidar() {
+    try {
+      if (lidarClients.isEmpty()) return;
+      long now = android.os.SystemClock.elapsedRealtime();
+      long id = LidarHub.get().latestScanId();
+      if (id == lidarSentScanId && now - lidarSentAtMs < 1000) return;
+      String json = LidarHub.get().latestJson();
+      if (json == null) {
+        json = SensorLinkProtocol.lidarJson(-1, new int[0], 0f, 0, null, 0);
+      }
+      lidarSentScanId = id;
+      lidarSentAtMs = now;
+      for (Connection c : lidarClients) c.send(json);
+    } catch (RuntimeException e) {
+      Timber.w(e, "Sensor link LiDAR poll failed");
+    }
+  }
+
+  // endregion
+
   // region Browser control: /control WebSocket
 
   private void openControl(Connection conn) {
@@ -313,6 +355,10 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
       openControl(conn);
       return;
     }
+    if (path.equals(SensorLinkProtocol.LIDAR_PATH) || path.startsWith(SensorLinkProtocol.LIDAR_PATH + "?")) {
+      openLidar(conn);
+      return;
+    }
     SensorLinkProtocol.Request request = SensorLinkProtocol.parse(path);
     switch (request.kind) {
       case GPS:
@@ -354,6 +400,7 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
   @Override
   protected void onClose(Connection conn) {
     controlClients.remove(conn);
+    lidarClients.remove(conn);
     if (!clients.remove(conn)) return;
     synchronized (this) {
       if (gpsClients.remove(conn) && gpsClients.isEmpty()) stopGpsLocked();

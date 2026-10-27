@@ -107,6 +107,21 @@ enum SensorLinkProtocol {
         return s
     }
 
+    /// OpenBot addition: LiDAR scans on `ws://host:port/lidar`.
+    static let lidarPath = "/lidar"
+
+    /// One LiDAR revolution, same keys as SensorLinkProtocol.lidarJson on Android:
+    /// `{"scanId","bins","forwardOffset","age","ranges":[mm],"sectors":[mm x8]|null,"sectorsAge"}`.
+    /// 0 mm means no return / clear sector; `ranges` is empty when only the car's
+    /// 8 proximity sectors are known.
+    static func lidarJSON(scanId: Int64, rangesMm: [Int], forwardOffset: Double, ageMs: Int,
+                          sectorsMm: [Int]?, sectorsAgeMs: Int) -> String {
+        let ranges = rangesMm.map(String.init).joined(separator: ",")
+        let sectors = sectorsMm.map { "[" + $0.map(String.init).joined(separator: ",") + "]" } ?? "null"
+        return "{\"scanId\":\(scanId),\"bins\":\(rangesMm.count),\"forwardOffset\":\(forwardOffset),\"age\":\(ageMs)"
+            + ",\"ranges\":[\(ranges)],\"sectors\":\(sectors),\"sectorsAge\":\(sectorsAgeMs)}"
+    }
+
     static func gpsJSON(_ f: GpsFix) -> String {
         "{\"longitude\":\(f.longitude),\"latitude\":\(f.latitude),\"altitude\":\(f.altitude)"
             + ",\"bearing\":\(f.bearing ?? 0),\"accuracy\":\(f.accuracy ?? 0)"

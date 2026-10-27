@@ -32,6 +32,7 @@ import org.openbot.app.robot.env.ControllerToBotEventBus;
 import org.openbot.app.robot.env.PhoneController;
 import org.openbot.app.robot.env.SharedPreferencesManager;
 import org.openbot.app.robot.main.MainViewModel;
+import org.openbot.app.robot.sensorlink.LidarHub;
 import org.openbot.app.robot.sensorlink.RemoteSettings;
 import org.openbot.app.robot.sensorlink.SensorLink;
 import org.openbot.app.robot.sensorlink.SensorLinkDialog;
@@ -500,6 +501,8 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     }
     lidarUiHandler.removeCallbacks(lidarUiTick);
     lidarUiHandler.post(lidarUiTick);
+    // The browser page's LiDAR view (Sensor link /lidar) reads this screen's scanner.
+    LidarHub.get().setSource(lidarScanner, vehicle == null ? null : vehicle.getProximity());
     if (sensorLinkStatusView != null && !sensorLinkAttached) {
       sensorLinkAttached = true;
       SensorLink.get().addStatusListener(sensorLinkStatusListener);
@@ -525,6 +528,7 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
   public synchronized void onPause() {
     Timber.d("onPause");
     lidarUiHandler.removeCallbacks(lidarUiTick);
+    LidarHub.get().clearSource(lidarScanner);
     serverCommunication.stop();
     if (sensorLinkAttached) {
       sensorLinkAttached = false;

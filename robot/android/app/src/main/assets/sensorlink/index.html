@@ -8,6 +8,8 @@
   It reads the same SensorServer WebSocket API any script would:
     GET  /sensors                              list of {type, name}
     GET  /camera.mjpg                          live camera (MJPEG), /camera.jpg one picture
+    WS   /lidar                                LiDAR: {"scanId","bins","forwardOffset","age","ranges":[mm],
+                                               "sectors":[mm x8]|null,"sectorsAge"}  (0 mm = no return)
     WS   /control                              settings: phone sends {"screen","settings":[..],"camera"},
                                                page sends {"set":"<key>","value":<value>}
     WS   /sensor/connect?type=<type>           one sensor
@@ -66,6 +68,11 @@
   button.stop { width: 100%; min-height: 56px; font-size: 18px; font-weight: 700; color: #fff;
                 background: var(--bad); border-color: var(--bad); }
   button.stop.resume { background: var(--ok); border-color: var(--ok); }
+  .lidar-wrap { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) 220px; margin-top: 10px; align-items: start; }
+  @media (max-width: 700px) { .lidar-wrap { grid-template-columns: minmax(0, 1fr); } }
+  #lidar-canvas { width: 100%; max-width: 460px; height: auto; aspect-ratio: 1 / 1; justify-self: center; background: var(--bg);
+                  border-radius: 10px; border: 1px solid var(--line); }
+  .lidar-side .metric { margin-bottom: 10px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
   .row { display: flex; align-items: center; gap: 10px; }
   .title { font-weight: 650; }
@@ -146,6 +153,33 @@
       <div class="metric"><div class="label">Last fix</div><div class="value" id="age">–</div></div>
     </div>
     <p class="msg" id="gps-msg">Waiting for a GPS fix… (go outside, sky in view)</p>
+  </section>
+
+  <section class="card" id="lidar-card" aria-labelledby="lidar-title">
+    <div class="row">
+      <span class="dot" id="lidar-dot"></span>
+      <span class="title" id="lidar-title">LiDAR</span>
+      <span class="type">/lidar</span>
+      <label class="switch"><input type="checkbox" id="lidar-on" aria-label="Show LiDAR"><span></span></label>
+    </div>
+    <div class="body">
+      <div class="lidar-wrap">
+        <canvas id="lidar-canvas" width="460" height="460" role="img" aria-label="LiDAR plan view, car in the centre facing up"></canvas>
+        <div class="lidar-side">
+          <div class="metric"><div class="label">Nearest</div><div class="value" id="lidar-near">–</div></div>
+          <div class="metric"><div class="label">Ahead</div><div class="value" id="lidar-ahead">–</div></div>
+          <div class="metric"><div class="label">Points</div><div class="value" id="lidar-points">–</div></div>
+          <div class="metric"><div class="label">Scan age</div><div class="value" id="lidar-age">–</div></div>
+          <div class="row" style="gap:6px;margin:6px 0 10px">
+            <span class="msg">Range</span>
+            <div class="seg" role="group" aria-label="LiDAR range" id="lidar-range">
+              <button type="button" data-m="2">2 m</button><button type="button" data-m="4">4 m</button><button type="button" data-m="8">8 m</button>
+            </div>
+          </div>
+          <p class="msg" id="lidar-msg">Waiting for the car's LiDAR…</p>
+        </div>
+      </div>
+    </div>
   </section>
 
   <div class="grid" id="sensors"><p class="msg">Loading sensors…</p></div>
@@ -365,6 +399,119 @@
   setInterval(() => {
     document.getElementById("age").innerHTML = gps.last ? Math.round((Date.now() - gps.last) / 1000) + " <small>s ago</small>" : "–";
   }, 1000);
+
+  // ---- LiDAR ----
+  // Car in the centre, nose up. Each return is a dot; the 8 proximity sectors the car
+  // reports are drawn as coloured wedges (red under 0.5 m, amber under 1 m, else green).
+  const lidar = { canvas: document.getElementById("lidar-canvas"), dot: document.getElementById("lidar-dot"),
+                  msg: document.getElementById("lidar-msg"), on: document.getElementById("lidar-on"),
+                  card: document.getElementById("lidar-card"), sock: null, last: null,
+                  rangeM: store.get("lidar_range", 4) };
+  const rangeButtons = Array.from(document.querySelectorAll("#lidar-range button"));
+  function showRange() { rangeButtons.forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.m) === lidar.rangeM))); }
+  rangeButtons.forEach((b) => b.addEventListener("click", () => {
+    lidar.rangeM = Number(b.dataset.m); store.set("lidar_range", lidar.rangeM); showRange(); drawLidar();
+  }));
+  showRange();
+
+  function fmtM(mm) { return mm > 0 ? (mm / 1000).toFixed(2) + " <small>m</small>" : "clear"; }
+
+  function drawLidar() {
+    const m = lidar.last, c = lidar.canvas, g = c.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const size = Math.min(c.clientWidth || 460, c.clientHeight || c.clientWidth || 460);
+    if (c.width !== Math.round(size * dpr)) { c.width = Math.round(size * dpr); c.height = Math.round(size * dpr); }
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, size, size);
+    const st = getComputedStyle(document.documentElement), cx = size / 2, cy = size / 2;
+    const pxPerM = (size / 2 - 8) / lidar.rangeM;
+    // range rings, 1 m apart
+    g.strokeStyle = st.getPropertyValue("--line").trim(); g.fillStyle = st.getPropertyValue("--muted").trim();
+    g.font = "11px system-ui, sans-serif"; g.lineWidth = 1;
+    for (let r = 1; r <= lidar.rangeM; r++) {
+      g.beginPath(); g.arc(cx, cy, r * pxPerM, 0, Math.PI * 2); g.stroke();
+      g.fillText(r + " m", cx + 3, cy - r * pxPerM + 12);
+    }
+    if (m) {
+      // proximity sectors: sector i is centred i*45 degrees clockwise from the nose
+      if (Array.isArray(m.sectors) && m.sectorsAge < 1000) {
+        m.sectors.forEach((mm, i) => {
+          if (!(mm > 0)) return;
+          const color = mm < 500 ? "--bad" : mm < 1000 ? "--warn" : "--ok";
+          const r = Math.min(mm / 1000, lidar.rangeM) * pxPerM;
+          const a0 = ((i * 45 - 22.5) - 90) * Math.PI / 180, a1 = ((i * 45 + 22.5) - 90) * Math.PI / 180;
+          g.fillStyle = st.getPropertyValue(color).trim(); g.globalAlpha = 0.18;
+          g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, r, a0, a1); g.closePath(); g.fill();
+          g.globalAlpha = 0.9; g.strokeStyle = g.fillStyle; g.lineWidth = 3;
+          g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke();
+        });
+        g.globalAlpha = 1;
+      }
+      // scan points
+      const stale = m.age > 500;
+      g.fillStyle = st.getPropertyValue(stale ? "--muted" : "--accent").trim();
+      for (let i = 0; i < m.bins; i++) {
+        const mm = m.ranges[i];
+        if (!(mm > 0) || mm / 1000 > lidar.rangeM) continue;
+        const a = (((i + 0.5) * 360 / m.bins) - (m.forwardOffset || 0)) * Math.PI / 180;
+        const r = (mm / 1000) * pxPerM;
+        g.fillRect(cx + r * Math.sin(a) - 1.5, cy - r * Math.cos(a) - 1.5, 3, 3);
+      }
+    }
+    // the car: a small arrow pointing up (forward)
+    g.fillStyle = st.getPropertyValue("--text").trim();
+    g.beginPath(); g.moveTo(cx, cy - 12); g.lineTo(cx - 8, cy + 9); g.lineTo(cx, cy + 4); g.lineTo(cx + 8, cy + 9); g.closePath(); g.fill();
+  }
+
+  function onLidar(text) {
+    let m; try { m = JSON.parse(text); } catch (e) { return; }
+    lidar.last = m;
+    const hasScan = m.bins > 0, hasSectors = Array.isArray(m.sectors) && m.sectorsAge < 1000;
+    let near = 0, ahead = 0, points = 0;
+    if (hasScan) {
+      for (let i = 0; i < m.bins; i++) {
+        const mm = m.ranges[i];
+        if (!(mm > 0)) continue;
+        points++;
+        if (!near || mm < near) near = mm;
+        let a = ((i + 0.5) * 360 / m.bins - (m.forwardOffset || 0) + 360) % 360;
+        if ((a <= 22.5 || a >= 337.5) && (!ahead || mm < ahead)) ahead = mm;
+      }
+    } else if (hasSectors) {
+      m.sectors.forEach((mm) => { if (mm > 0 && (!near || mm < near)) near = mm; });
+      ahead = m.sectors[0];
+    }
+    document.getElementById("lidar-near").innerHTML = hasScan || hasSectors ? fmtM(near) : "–";
+    document.getElementById("lidar-ahead").innerHTML = hasScan || hasSectors ? fmtM(ahead) : "–";
+    document.getElementById("lidar-points").textContent = hasScan ? points + " / " + m.bins : hasSectors ? "8 sectors only" : "–";
+    document.getElementById("lidar-age").innerHTML = hasScan ? m.age + " <small>ms</small>" : hasSectors ? m.sectorsAge + " <small>ms</small>" : "–";
+    if (!hasScan && !hasSectors) {
+      setDot(lidar.dot, "wait");
+      lidar.msg.textContent = "No LiDAR data. Is the LiDAR wired and the car connected (USB or the car's Wi-Fi)?";
+    } else if (hasScan && m.age > 500) {
+      setDot(lidar.dot, "wait");
+      lidar.msg.textContent = "Scan is " + (m.age / 1000).toFixed(1) + " s old: the picture is frozen.";
+    } else {
+      setDot(lidar.dot, "ok");
+      lidar.msg.textContent = hasScan ? "" : "Only the car's 8 proximity sectors are arriving (no full scan).";
+    }
+    drawLidar();
+  }
+
+  function showLidar(on) {
+    lidar.card.classList.toggle("off", !on);
+    store.set("lidar_on", on);
+    if (on && !lidar.sock) {
+      lidar.sock = liveSocket("/lidar", onLidar, (st) => { if (st !== "ok") setDot(lidar.dot, st); });
+      drawLidar();
+    } else if (!on && lidar.sock) {
+      lidar.sock.close(); lidar.sock = null; setDot(lidar.dot, "");
+    }
+  }
+  lidar.on.addEventListener("change", () => showLidar(lidar.on.checked));
+  lidar.on.checked = store.get("lidar_on", true);
+  showLidar(lidar.on.checked);
+  window.addEventListener("resize", drawLidar);
 
   // ---- Sensors ----
   // Heading of the car's nose from the rotation vector, as the app computes it:

@@ -93,4 +93,15 @@ public class SensorLinkProtocolTest {
     assertNull(SensorLinkProtocol.baseUrl(":8080"));
     assertTrue(SensorLinkProtocol.sensorPath("android.sensor.rotation_vector").startsWith("/sensor/connect?type="));
   }
+
+  @Test
+  public void lidarMessage() {
+    assertEquals(
+        "{\"scanId\":7,\"bins\":4,\"forwardOffset\":0.0,\"age\":35,\"ranges\":[500,0,1200,0],"
+            + "\"sectors\":[0,800,0,0,0,0,0,450],\"sectorsAge\":20}",
+        SensorLinkProtocol.lidarJson(7, new int[] {500, 0, 1200, 0}, 0f, 35, new int[] {0, 800, 0, 0, 0, 0, 0, 450}, 20));
+    assertEquals(
+        "{\"scanId\":-1,\"bins\":0,\"forwardOffset\":0.0,\"age\":0,\"ranges\":[],\"sectors\":null,\"sectorsAge\":0}",
+        SensorLinkProtocol.lidarJson(-1, new int[0], 0f, 0, null, 0));
+  }
 }

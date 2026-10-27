@@ -184,6 +184,52 @@ public final class SensorLinkProtocol {
 
   // endregion
 
+  /** Text a client may connect to for LiDAR scans (an OpenBot addition to the SensorServer API). */
+  public static final String LIDAR_PATH = "/lidar";
+
+  /**
+   * One LiDAR revolution for the browser:
+   *
+   * <pre>
+   *   {"scanId":42,"bins":360,"forwardOffset":0,"age":35,"ranges":[mm,...],
+   *    "sectors":[mm x8],"sectorsAge":20}
+   * </pre>
+   *
+   * Bin {@code i} is {@code (i + 0.5) * 360 / bins} degrees clockwise from the LiDAR's zero mark;
+   * subtract {@code forwardOffset} for degrees from the car's nose. Ranges and sectors are
+   * millimetres with 0 meaning no return / clear, as on the firmware's wire. {@code ranges} is
+   * empty when only the car's 8 proximity sectors are known; {@code sectors} is null when the car
+   * has not reported any. Ages are milliseconds since the data arrived.
+   */
+  public static String lidarJson(
+      long scanId, int[] rangesMm, float forwardOffsetDeg, long ageMs, int[] sectorsMm, long sectorsAgeMs) {
+    StringBuilder b = new StringBuilder(32 + (rangesMm == null ? 0 : rangesMm.length * 5));
+    b.append("{\"scanId\":").append(scanId);
+    b.append(",\"bins\":").append(rangesMm == null ? 0 : rangesMm.length);
+    b.append(",\"forwardOffset\":").append(number(forwardOffsetDeg));
+    b.append(",\"age\":").append(ageMs);
+    b.append(",\"ranges\":[");
+    if (rangesMm != null) {
+      for (int i = 0; i < rangesMm.length; i++) {
+        if (i > 0) b.append(',');
+        b.append(rangesMm[i]);
+      }
+    }
+    b.append("],\"sectors\":");
+    if (sectorsMm == null) {
+      b.append("null");
+    } else {
+      b.append('[');
+      for (int i = 0; i < sectorsMm.length; i++) {
+        if (i > 0) b.append(',');
+        b.append(sectorsMm[i]);
+      }
+      b.append(']');
+    }
+    b.append(",\"sectorsAge\":").append(sectorsAgeMs).append('}');
+    return b.toString();
+  }
+
   // region Reading messages (client side)
 
   /** A location fix as carried on /gps. Unknown values are NaN (accuracy, bearing, speed). */

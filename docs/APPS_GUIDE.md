@@ -135,6 +135,7 @@ ws://<address>:8080/gps
    - one card per sensor with a switch. Turned on, it shows live values, a graph of the last 3 seconds and the readings per second. The rotation vector card also shows the compass heading;
    - a **Pause** button, to freeze the numbers while you read them.
    - a **Camera** card: the phone camera live, with a **Snapshot** link (saves a JPEG) and a switch to turn the view off;
+   - a **LiDAR** card: a top-down view with the car in the middle, nose up, and 1 m rings. Blue dots are the scan; coloured wedges are the car's 8 proximity sectors (red under 0.5 m, amber under 1 m, green further). Beside it: nearest obstacle, distance straight ahead, points per scan, scan age, and a 2 / 4 / 8 m range switch;
    - a **Settings** card that changes the phone from the browser. **Driving** comes first: a big **STOP / RESUME** button, speed mode, object avoidance on/off and its distance. Then **Camera** (front/back lens, flashlight, zoom, stream quality, frames per second), the screen's own settings (Object Tracking: detection confidence, slow down when close) and **Sensors** (sensor speed).
    The page needs no internet: the phone serves it. Your switch choices are remembered in that browser.
 
@@ -150,6 +151,7 @@ ws://<address>:8080/gps
 
 **Things to know**
 - The link runs only while one of the three screens is open, and each sensor runs only while someone is connected to it. That saves battery.
+- **LiDAR** on `WS /lidar`: one message per revolution (about 6–11 per second), and a refresh every second even with no LiDAR: `{"scanId":42,"bins":360,"forwardOffset":0,"age":35,"ranges":[mm,...],"sectors":[mm x8],"sectorsAge":20}`. Bin *i* is (*i* + 0.5) × 360 / bins degrees clockwise from the LiDAR's zero mark; 0 mm means no return. Full scans reach the phone over **USB** (the `x` line) or the **car's Wi-Fi** (UDP port 9900). Over Bluetooth only the 8 `sectors` arrive, so `ranges` is empty.
 - More endpoints: `GET /camera.mjpg` (live MJPEG; works in an `<img>` tag, VLC or OpenCV `cv2.VideoCapture`), `GET /camera.jpg` (one picture), `WS /control` (settings; the phone sends `{"screen","settings":[...],"camera"}`, the page sends `{"set":"drive.speed","value":"slow"}`).
 - **Why MJPEG?** Every browser shows it with a plain `<img>`, with no video player or codec. It uses more data than a video codec, so lower *Stream quality* or *frames per second* on a weak hotspot.
 - In Client mode, GPS Mission goes back to the phone's own GPS and compass if the other phone stops sending for **3 seconds**.

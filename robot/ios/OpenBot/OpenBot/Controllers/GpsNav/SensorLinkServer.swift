@@ -46,6 +46,11 @@ final class SensorLinkServer: RemoteSettingsProvider {
     private let screenName: () -> String
     private var pushTimer: Timer?            // main queue
     private var sensorRate = "game"           // main queue
+    // LiDAR (/lidar): our own UDP listener for the car's scans while someone watches (on `queue`).
+    private var lidarScanner: LidarScanner?
+    private var lidarTimer: DispatchSourceTimer?
+    private var lidarSentId: Int64 = -2
+    private var lidarSentUptime: TimeInterval = 0
 
     init(port: Int, remoteSettings: RemoteSettings, screenName: @escaping () -> String) {
         self.port = port
@@ -111,6 +116,7 @@ final class SensorLinkServer: RemoteSettingsProvider {
             self.connections.values.forEach { $0.close(code: 1001, reason: "server stopped") }
             self.connections.removeAll()
             self.sensors.stopAll()
+            self.stopLidar()
         }
     }
 
@@ -121,6 +127,12 @@ final class SensorLinkServer: RemoteSettingsProvider {
     // MARK: Connections (all on `queue`)
 
     private func opened(_ c: WebSocketConnection, path: String) {
+        if path == SensorLinkProtocol.lidarPath || path.hasPrefix(SensorLinkProtocol.lidarPath + "?") {
+            c.isLidar = true
+            c.registered = true
+            startLidar()
+            return
+        }
         if path == "/control" || path.hasPrefix("/control?") {
             c.isControl = true
             c.registered = true
@@ -170,13 +182,17 @@ final class SensorLinkServer: RemoteSettingsProvider {
         guard connections.removeValue(forKey: ObjectIdentifier(c)) != nil, c.registered else { return }
         if c.isStream || c.isSnapshot { updateViewers(); return }
         if c.isControl { return }
+        if c.isLidar {
+            if !connections.values.contains(where: { $0.registered && $0.isLidar }) { stopLidar() }
+            return
+        }
         if c.wantsGps { sensors.releaseGps() }
         c.types.forEach { sensors.release($0) }
         reportCount()
     }
 
     private func reportCount() {
-        let count = connections.values.filter { $0.registered && !$0.isControl && !$0.isStream && !$0.isSnapshot }.count
+        let count = connections.values.filter { $0.registered && !$0.isControl && !$0.isStream && !$0.isSnapshot && !$0.isLidar }.count
         report { self.onClientCount?(count) }
     }
 
@@ -201,6 +217,55 @@ final class SensorLinkServer: RemoteSettingsProvider {
     private func broadcastGps(_ fix: SensorLinkProtocol.GpsFix) {
         let text = SensorLinkProtocol.gpsJSON(fix)
         for c in connections.values where c.registered && c.wantsGps { c.send(text) }
+    }
+
+    // MARK: LiDAR (on `queue`)
+
+    private func startLidar() {
+        lidarSentId = -2 // the newcomer gets the current picture straight away
+        guard lidarTimer == nil else { return }
+        let scanner = LidarScanner()
+        scanner.start() // false if another screen holds the port; the car's sectors still come
+        lidarScanner = scanner
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now(), repeating: .milliseconds(100))
+        timer.setEventHandler { [weak self] in self?.pollLidar() }
+        timer.resume()
+        lidarTimer = timer
+    }
+
+    private func stopLidar() {
+        lidarTimer?.cancel()
+        lidarTimer = nil
+        lidarScanner?.stop()
+        lidarScanner = nil
+    }
+
+    /// Every 100 ms: a new revolution as soon as it lands, otherwise a refresh once a second.
+    private func pollLidar() {
+        let scan = lidarScanner?.latestScan
+        let id = scan.map { Int64($0.scanId) } ?? -1
+        let now = ProcessInfo.processInfo.systemUptime
+        guard id != lidarSentId || now - lidarSentUptime >= 1 else { return }
+        lidarSentId = id
+        lidarSentUptime = now
+        let ranges = scan?.rangesMm.map { Int($0) } ?? []
+        let age = scan == nil ? 0 : Int(lidarScanner?.ageMs() ?? 0)
+        // The car's 8 proximity sectors are fed on the main queue by Bluetooth; read them there.
+        DispatchQueue.main.async {
+            let proximity = bluetoothDataController.shared.driveGate.proximity
+            var sectors: [Int]?
+            var sectorsAge = 0
+            if proximity.hasEverReported() {
+                sectors = proximity.sectors().map { $0.isFinite ? Int(($0 * 1000).rounded()) : 0 }
+                sectorsAge = Int(proximity.ageMs())
+            }
+            let json = SensorLinkProtocol.lidarJSON(scanId: id, rangesMm: ranges, forwardOffset: 0, ageMs: age,
+                                                    sectorsMm: sectors, sectorsAgeMs: sectorsAge)
+            self.queue.async {
+                for c in self.connections.values where c.registered && c.isLidar { c.send(json) }
+            }
+        }
     }
 
     // MARK: Camera (on `queue`)
@@ -325,6 +390,7 @@ private final class WebSocketConnection {
     var wantsGps = false
     var multi = false
     var isControl = false   // /control settings socket
+    var isLidar = false     // /lidar scans
     var isStream = false    // /camera.mjpg
     var isSnapshot = false  // /camera.jpg waiting for a frame
     var onStream: ((WebSocketConnection) -> Void)?
