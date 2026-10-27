@@ -106,6 +106,8 @@ struct Strings {
     static let ScreenRobotInfo: String = "ScreenRobotInfo"
     static let ScreenNavigation: String = "ScreenNavigation"
     static let ScreenGpsMission: String = "ScreenGpsMission"
+    /// Built in code (LidarBotController), not in the storyboard.
+    static let ScreenLidarBot: String = "ScreenLidarBot"
 
     // UIVIew Identifiers
     static let secondView: String = "secondView"

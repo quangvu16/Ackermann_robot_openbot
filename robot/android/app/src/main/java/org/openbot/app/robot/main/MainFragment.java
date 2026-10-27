@@ -281,6 +281,11 @@ public class MainFragment extends Fragment implements OnItemClickListener<SubCat
             .navigate(R.id.action_mainFragment_to_gpsNavigationFragment);
         break;
 
+      case FeatureList.LIDAR_ROBOT:
+        Navigation.findNavController(requireView())
+            .navigate(R.id.action_mainFragment_to_lidarBotFragment);
+        break;
+
       case FeatureList.DATA_COLLECTION:
         Navigation.findNavController(requireView())
             .navigate(R.id.action_mainFragment_to_loggerFragment);

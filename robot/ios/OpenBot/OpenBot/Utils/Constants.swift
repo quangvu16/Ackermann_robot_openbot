@@ -92,6 +92,10 @@ struct Constants {
                 ModeItem(label: Strings.controllerMapping, icon: Images.controllerMapping!, identifier: Strings.ScreenControllerMapping, color: Colors.controllerMappingColor),
                 ModeItem(label: Strings.robotInfo, icon: Images.robotInfoIcon!, identifier: Strings.ScreenRobotInfo, color: Colors.robotInfoColor),
                 ModeItem(label: Strings.gpsMission, icon: Images.gpsMissionIcon, identifier: Strings.ScreenGpsMission, color: Colors.gpsMissionColor),
+                ModeItem(label: L10n.string("lidarbot_title"),
+                         icon: UIImage(systemName: "dot.radiowaves.left.and.right")?.withTintColor(.white, renderingMode: .alwaysOriginal) ?? UIImage(),
+                         identifier: Strings.ScreenLidarBot,
+                         color: UIColor(red: 0.49, green: 0.34, blue: 0.76, alpha: 1)),
             ],
             // AI
             [

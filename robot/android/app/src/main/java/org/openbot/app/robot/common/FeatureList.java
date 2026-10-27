@@ -26,6 +26,7 @@ public class FeatureList {
 
   // Navigation
   public static final String GPS_NAVIGATION = "GPS Mission Navigation";
+  public static final String LIDAR_ROBOT = "LiDAR Robot";
 
   // Data Collection
   public static final String DATA_COLLECTION = "Data Collection";
@@ -80,6 +81,9 @@ public class FeatureList {
     subCategories.add(
         new SubCategory(
             GPS_NAVIGATION, R.string.tile_gps_navigation, R.drawable.ic_location, "#26C6DA"));
+    subCategories.add(
+        new SubCategory(
+            LIDAR_ROBOT, R.string.lidarbot_title, R.drawable.ic_lidar_robot, "#7E57C2"));
 
     subCategories.add(
         new SubCategory(

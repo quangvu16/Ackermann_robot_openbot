@@ -331,7 +331,12 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
 
     public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
-        let viewController = (storyboard?.instantiateViewController(withIdentifier: Constants.gameModes[indexPath.section][indexPath.row].identifier))!
+        let identifier = Constants.gameModes[indexPath.section][indexPath.row].identifier
+        if identifier == Strings.ScreenLidarBot {
+            navigationController?.pushViewController(LidarBotController(), animated: true)
+            return
+        }
+        let viewController = (storyboard?.instantiateViewController(withIdentifier: identifier))!
         navigationController?.pushViewController(viewController, animated: true);
     }
 
