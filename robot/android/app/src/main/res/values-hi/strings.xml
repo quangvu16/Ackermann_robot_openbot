@@ -291,4 +291,9 @@
     <string name="slam_pose_set">कार नक्शे पर रखी गई</string>
     <string name="slam_status">%1$s · मिलान %2$d%% · %3$d स्कैन</string>
     <string name="slam_help">नक्शा बनाएँ: कमरे में धीरे घूमें (RC, गेम कंट्रोलर या खोजें)। फिर कार भेजने के लिए नक्शे पर टैप करें। कार कहाँ है बताने के लिए देर तक दबाएँ। कार के साथ चलने के लिए दो बार टैप करें।</string>
+    <string name="slam_find">मुझे खोजें</string>
+    <string name="slam_finding">नक्शे पर कार खोज रहे हैं…</string>
+    <string name="slam_found">नक्शे पर कार मिल गई</string>
+    <string name="slam_not_found">कार नहीं मिली: जहाँ है वहाँ देर तक दबाएँ</string>
+    <string name="slam_graph">%1$d उप-नक्शे · %2$d लूप क्लोज़र</string>
 </resources>

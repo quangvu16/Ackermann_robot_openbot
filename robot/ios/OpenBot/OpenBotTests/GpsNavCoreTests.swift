@@ -720,4 +720,79 @@ final class SlamCoreTests: XCTestCase {
         XCTAssertNotNil(h)
         XCTAssertTrue(h?.isOccupied(h!.cellX(4), h!.cellY(0)) ?? false)
     }
+
+    private func roomGrid() -> OccupancyGrid {
+        let g = OccupancyGrid.indoorDefault()
+        for cy in g.cellY(-1.5)...g.cellY(2.5) { for cx in g.cellX(-2)...g.cellX(4) { g.set(cx, cy, -2) } }
+        for s in Self.room {
+            let n = Int(hypot(s[2] - s[0], s[3] - s[1]) / 0.02) + 1
+            for k in 0...n {
+                let t = Double(k) / Double(n)
+                g.set(g.cellX(s[0] + (s[2] - s[0]) * t), g.cellY(s[1] + (s[3] - s[1]) * t), 3)
+            }
+        }
+        return g
+    }
+
+    private func points(_ s: ([Double], [Double])) -> ([Double], [Double]) {
+        var px = [Double](), py = [Double]()
+        for i in 0..<s.0.count where s.1[i] < SlamEngine.maxRange {
+            px.append(s.1[i] * cos(s.0[i])); py.append(s.1[i] * sin(s.0[i]))
+        }
+        return (px, py)
+    }
+
+    func testCorrelativeAndCeresMatcherRecoverASmallOffset() {
+        let p = points(scan(0.3, 0.2, 0.4))
+        let m = ScanMatcher()
+        let est = m.match(roomGrid(), SlamPose(0.42, 0.11, 0.4 + 9 * .pi / 180), p.0, p.1)
+        XCTAssertEqual(est.x, 0.3, accuracy: 0.03)
+        XCTAssertEqual(est.y, 0.2, accuracy: 0.03)
+        XCTAssertEqual(SlamPose.wrap(est.theta - 0.4) * 180 / .pi, 0, accuracy: 1)
+        XCTAssertGreaterThan(m.lastConstraint, 0.3)
+    }
+
+    func testBranchAndBoundFindsAFarOffset() {
+        let p = points(scan(1.0, 0.0, 0.3))
+        let lp = SlamEngine.adaptiveVoxel(p.0, p.1, maxLength: 0.9, minPoints: 100)
+        let r = FastCorrelativeMatcher(roomGrid()).match(SlamPose(-0.5, 1.0, 0), lp.0, lp.1, linearWindow: 3,
+                                                         angularWindow: 30 * .pi / 180, minScore: 0.5)
+        XCTAssertNotNil(r)
+        XCTAssertEqual(r?.pose.x ?? 99, 1.0, accuracy: 0.06)
+        XCTAssertEqual(r?.pose.y ?? 99, 0.0, accuracy: 0.06)
+        XCTAssertEqual(r?.pose.theta ?? 99, 0.3, accuracy: 1.5 * .pi / 180)
+    }
+
+    func testGlobalLocalizationFindsTheCarWithNoHint() {
+        let slam = SlamEngine(grid: .indoorDefault())
+        slam.setGrid(roomGrid())
+        slam.mapping = false
+        slam.requestGlobalLocalization()
+        let s = scan(3.0, -0.6, 2.2)
+        let p = slam.update(angles: s.0, ranges: s.1, imuYaw: .nan)
+        XCTAssertTrue(slam.relocalizeFound)
+        XCTAssertEqual(slam.relocalizeSeq, 1)
+        XCTAssertEqual(p.x, 3.0, accuracy: 0.1)
+        XCTAssertEqual(p.y, -0.6, accuracy: 0.1)
+        XCTAssertEqual(SlamPose.wrap(p.theta - 2.2) * 180 / .pi, 0, accuracy: 3)
+    }
+
+    func testPoseGraphClosesTheLoop() {
+        let g = PoseGraph(), n = 12
+        let step = 2 * Double.pi / Double(n), chord = 2 * 3 * sin(step / 2)
+        var est = SlamPose(3, 0, .pi / 2 + step / 2)
+        let measured = SlamPose(chord, 0, step + 2 * .pi / 180)
+        g.add(est, fixed: true)
+        for i in 1..<n {
+            est = est.compose(measured)
+            g.add(est, fixed: false)
+            g.addConstraint(.init(i: i - 1, j: i, relative: measured, wT: PoseGraph.seqT, wR: PoseGraph.seqR, robust: false))
+        }
+        let truthLast = SlamPose(3 * cos(-step), 3 * sin(-step), .pi / 2 - step / 2)
+        XCTAssertGreaterThan(g.poses[n - 1].distance(to: truthLast), 1.0)
+        g.addConstraint(.init(i: 0, j: n - 1, relative: g.poses[0].inverse.compose(truthLast),
+                              wT: PoseGraph.loopT, wR: PoseGraph.loopR, robust: true))
+        g.optimize()
+        XCTAssertLessThan(g.poses[n - 1].distance(to: truthLast), 0.05)
+    }
 }

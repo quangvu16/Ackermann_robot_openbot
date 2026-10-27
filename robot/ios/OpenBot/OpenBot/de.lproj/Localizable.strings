@@ -362,3 +362,8 @@
 "slam_pose_set" = "Auto auf der Karte gesetzt";
 "slam_status" = "%1$@ · Treffer %2$d%% · %3$d Scans";
 "slam_help" = "Karte bauen: langsam durch den Raum fahren (Fernsteuerung, Gamecontroller oder Erkunden). Dann auf die Karte tippen, um das Auto dorthin zu schicken. Lange drücken: wo das Auto steht. Doppeltippen: Auto folgen.";
+"slam_find" = "Finde mich";
+"slam_finding" = "Suche das Auto auf der Karte …";
+"slam_found" = "Auto auf der Karte gefunden";
+"slam_not_found" = "Auto nicht gefunden: dort lange drücken, wo es steht";
+"slam_graph" = "%1$d Teilkarten · %2$d Schleifenschlüsse";

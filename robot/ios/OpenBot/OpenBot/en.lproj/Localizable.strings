@@ -362,3 +362,8 @@
 "slam_pose_set" = "Car placed on the map";
 "slam_status" = "%1$@ · match %2$d%% · %3$d scans";
 "slam_help" = "Build map: drive slowly round the room (RC transmitter, game controller or Explore). Then tap the map to send the car there. Long-press to say where the car is. Double-tap to follow the car.";
+"slam_find" = "Find me";
+"slam_finding" = "Looking for the car on the map…";
+"slam_found" = "Found the car on the map";
+"slam_not_found" = "Couldn't find the car: long-press where it is";
+"slam_graph" = "%1$d submaps · %2$d loop closures";

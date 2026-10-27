@@ -291,4 +291,9 @@
     <string name="slam_pose_set">已在地图上放置小车</string>
     <string name="slam_status">%1$s · 匹配 %2$d%% · %3$d 次扫描</string>
     <string name="slam_help">建图：在房间里慢慢绕一圈（遥控器、游戏手柄或探索）。然后点地图让小车开过去。长按设定小车位置，双击跟随小车。</string>
+    <string name="slam_find">找到我</string>
+    <string name="slam_finding">正在地图上寻找小车…</string>
+    <string name="slam_found">已在地图上找到小车</string>
+    <string name="slam_not_found">没找到小车：请长按它所在的位置</string>
+    <string name="slam_graph">%1$d 个子图 · %2$d 次闭环</string>
 </resources>

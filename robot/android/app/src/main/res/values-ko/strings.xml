@@ -291,4 +291,9 @@
     <string name="slam_pose_set">차량 위치를 지정했습니다</string>
     <string name="slam_status">%1$s · 일치 %2$d%% · 스캔 %3$d회</string>
     <string name="slam_help">지도 만들기: 방을 천천히 한 바퀴 돕니다(RC 송신기, 게임 컨트롤러, 탐색). 그다음 지도를 눌러 차량을 보냅니다. 길게 누르면 차량 위치 지정, 두 번 누르면 차량 따라가기.</string>
+    <string name="slam_find">내 위치 찾기</string>
+    <string name="slam_finding">지도에서 차량을 찾는 중…</string>
+    <string name="slam_found">지도에서 차량을 찾았습니다</string>
+    <string name="slam_not_found">차량을 찾지 못했습니다: 차량 위치를 길게 누르세요</string>
+    <string name="slam_graph">서브맵 %1$d개 · 루프 클로저 %2$d개</string>
 </resources>

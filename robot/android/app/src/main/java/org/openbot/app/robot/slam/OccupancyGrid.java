@@ -162,6 +162,94 @@ public final class OccupancyGrid {
     return s;
   }
 
+  // region Probabilities for the scan matchers (Cartographer style)
+
+  /** Cartographer's kMinProbability / kMaxProbability: unknown and outside count as 0.1. */
+  public static final float P_MIN = 0.1f;
+
+  public static final float P_MAX = 0.9f;
+  private static final float[] PROB_LUT = new float[449]; // log-odds -3.5..3.5 in 1/64 steps
+
+  static {
+    for (int i = 0; i < PROB_LUT.length; i++) {
+      double l = L_MIN + i / 64.0;
+      float p = (float) (1 / (1 + Math.exp(-l)));
+      PROB_LUT[i] = Math.max(P_MIN, Math.min(P_MAX, p));
+    }
+  }
+
+  private float[] probCache;
+  private int probVersion = -1;
+
+  /** Probability a cell is occupied, 0.1..0.9; never-seen cells are 0.1, as in Cartographer. */
+  public static float probabilityOf(float l) {
+    if (l == 0f) return P_MIN;
+    int i = Math.round((l - L_MIN) * 64f);
+    return PROB_LUT[i < 0 ? 0 : (i >= PROB_LUT.length ? PROB_LUT.length - 1 : i)];
+  }
+
+  /** All cells as probabilities (row-major), cached until the map changes. One thread only. */
+  public float[] probabilities() {
+    if (probCache == null || probVersion != version) {
+      if (probCache == null) probCache = new float[logOdds.length];
+      for (int i = 0; i < logOdds.length; i++) probCache[i] = probabilityOf(logOdds[i]);
+      probVersion = version;
+    }
+    return probCache;
+  }
+
+  /** A copy with the same size and origin. */
+  public OccupancyGrid copy() {
+    OccupancyGrid g = new OccupancyGrid(width, height, resolution, originX, originY);
+    System.arraycopy(logOdds, 0, g.logOdds, 0, logOdds.length);
+    g.version = version + 1;
+    return g;
+  }
+
+  /**
+   * Paints {@code src} (a submap) into this grid: every cell of this grid under the submap gets
+   * {@code scale} times the submap cell's log-odds. {@code srcToThis} maps the submap's own
+   * coordinates (its world coordinates minus {@code srcOrigin}) into this grid's coordinates.
+   */
+  public void addSubmap(OccupancyGrid src, double srcOriginX, double srcOriginY, Pose srcToThis, float scale) {
+    // Bounding box of the submap's corners in this grid.
+    double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE, maxX = -Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+    double[][] corners = {
+      {src.originX, src.originY}, {src.originX + src.width * src.resolution, src.originY},
+      {src.originX, src.originY + src.height * src.resolution},
+      {src.originX + src.width * src.resolution, src.originY + src.height * src.resolution}
+    };
+    double c = Math.cos(srcToThis.theta), s = Math.sin(srcToThis.theta);
+    for (double[] k : corners) {
+      double lx = k[0] - srcOriginX, ly = k[1] - srcOriginY;
+      double gx = srcToThis.x + c * lx - s * ly, gy = srcToThis.y + s * lx + c * ly;
+      minX = Math.min(minX, gx);
+      maxX = Math.max(maxX, gx);
+      minY = Math.min(minY, gy);
+      maxY = Math.max(maxY, gy);
+    }
+    int x0 = Math.max(0, cellX(minX)), x1 = Math.min(width - 1, cellX(maxX));
+    int y0 = Math.max(0, cellY(minY)), y1 = Math.min(height - 1, cellY(maxY));
+    for (int cy = y0; cy <= y1; cy++) {
+      double wy = worldY(cy) - srcToThis.y;
+      for (int cx = x0; cx <= x1; cx++) {
+        double wx = worldX(cx) - srcToThis.x;
+        // Inverse rotation back into the submap, then nearest submap cell.
+        double lx = c * wx + s * wy + srcOriginX, ly = -s * wx + c * wy + srcOriginY;
+        int sx = src.cellX(lx), sy = src.cellY(ly);
+        if (!src.inBounds(sx, sy)) continue;
+        float v = src.logOdds[sy * src.width + sx];
+        if (v == 0f) continue;
+        int i = cy * width + cx;
+        float t = logOdds[i] + scale * v;
+        logOdds[i] = t < L_MIN ? L_MIN : (t > L_MAX ? L_MAX : t);
+      }
+    }
+    version++;
+  }
+
+  // endregion
+
   /** Number of cells that are known (free or wall), for the status line. */
   public int knownCells() {
     int n = 0;

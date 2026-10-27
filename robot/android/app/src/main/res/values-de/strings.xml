@@ -291,4 +291,9 @@
     <string name="slam_pose_set">Auto auf der Karte gesetzt</string>
     <string name="slam_status">%1$s · Treffer %2$d%% · %3$d Scans</string>
     <string name="slam_help">Karte bauen: langsam durch den Raum fahren (Fernsteuerung, Gamecontroller oder Erkunden). Dann auf die Karte tippen, um das Auto dorthin zu schicken. Lange drücken: wo das Auto steht. Doppeltippen: Auto folgen.</string>
+    <string name="slam_find">Finde mich</string>
+    <string name="slam_finding">Suche das Auto auf der Karte …</string>
+    <string name="slam_found">Auto auf der Karte gefunden</string>
+    <string name="slam_not_found">Auto nicht gefunden: dort lange drücken, wo es steht</string>
+    <string name="slam_graph">%1$d Teilkarten · %2$d Schleifenschlüsse</string>
 </resources>

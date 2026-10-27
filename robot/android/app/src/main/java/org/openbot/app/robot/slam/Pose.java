@@ -24,6 +24,18 @@ public final class Pose {
     return Math.hypot(px - x, py - y);
   }
 
+  /** This pose followed by {@code o} (o expressed in this pose's frame): T_this * T_o. */
+  public Pose compose(Pose o) {
+    double c = Math.cos(theta), s = Math.sin(theta);
+    return new Pose(x + c * o.x - s * o.y, y + s * o.x + c * o.y, theta + o.theta);
+  }
+
+  /** T^-1, so that {@code p.inverse().compose(q)} is q seen from p. */
+  public Pose inverse() {
+    double c = Math.cos(theta), s = Math.sin(theta);
+    return new Pose(-c * x - s * y, s * x - c * y, -theta);
+  }
+
   /** Radians in (-pi, pi]. */
   public static double wrap(double a) {
     double r = Math.IEEEremainder(a, 2 * Math.PI);

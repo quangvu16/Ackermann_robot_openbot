@@ -60,6 +60,8 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
   private volatile boolean exploring;
   private volatile boolean driving; // we sent a non-zero command and owe a stop
   private long lastScanId = -1;
+  private final java.util.concurrent.atomic.AtomicBoolean busy = new java.util.concurrent.atomic.AtomicBoolean();
+  private int shownRelocalizeSeq;
   private volatile double[] lastAngles;
   private volatile double[] lastRanges;
   private volatile String statusText = "";
@@ -122,6 +124,10 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
       showButtons(false);
     });
     binding.centerButton.setOnClickListener(v -> binding.map.recentre());
+    binding.findButton.setOnClickListener(v -> {
+      slam.requestGlobalLocalization();
+      toast(R.string.slam_finding);
+    });
     binding.saveButton.setOnClickListener(v -> work(this::saveMap));
     binding.loadButton.setOnClickListener(v -> work(this::loadMap));
     binding.clearButton.setOnClickListener(v -> work(() -> {
@@ -203,7 +209,15 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
         lastScanId = scan.getScanId();
         int[] mm = scan.getRangesMm();
         double yaw = imuYaw;
-        work(() -> onScan(mm, yaw));
+        if (busy.compareAndSet(false, true)) { // drop scans while the last one is still being matched
+          work(() -> {
+            try {
+              onScan(mm, yaw);
+            } finally {
+              busy.set(false);
+            }
+          });
+        }
       }
     }
     // Draw the newest state.
@@ -212,7 +226,13 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
     binding.map.setState(pose, lastAngles, lastRanges, slam.getTrail(),
         new ArrayList<>(navigator.getPath()), navigator.getGoal());
     binding.mapStatus.setText(getString(R.string.slam_status, pose.toString(),
-        (int) Math.round(slam.getMatchQuality() * 100), slam.getScanCount()));
+        (int) Math.round(slam.getMatchQuality() * 100), slam.getScanCount())
+        + " · " + getString(R.string.slam_graph, slam.getSubmapCount(), slam.getLoopClosureCount()));
+    int seq = slam.getRelocalizeSeq();
+    if (seq != shownRelocalizeSeq) {
+      shownRelocalizeSeq = seq;
+      toast(slam.wasRelocalizeFound() ? R.string.slam_found : R.string.slam_not_found);
+    }
     binding.status.setText(statusText);
     showButtons(navigator.getGoal() != null);
   }
@@ -226,7 +246,7 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
       a[i] = -Math.toRadians((i + 0.5) * 360.0 / n); // bins run clockwise; + left here
       r[i] = rangesMm[i] == 0 ? 99 : rangesMm[i] / 1000.0; // 0 = no return: skipped
     }
-    Pose pose = slam.update(a, r, yaw);
+    Pose pose = slam.update(a, r, yaw, SystemClock.elapsedRealtime() / 1000.0);
     lastAngles = a;
     lastRanges = r;
 
@@ -327,11 +347,12 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
       OccupancyGrid g = OccupancyGrid.read(in);
       navigator.cancel();
       slam.setGrid(g);
-      slam.setMapping(false); // localize on the saved map, as slam_toolbox's localization mode
+      slam.setMapping(false); // localize on the saved map (Cartographer's pure localization)
+      slam.requestGlobalLocalization(); // find the car on it with no hint
       main.post(() -> {
         if (binding != null) binding.modeGroup.check(R.id.mode_localize);
       });
-      toast(R.string.slam_loaded);
+      toast(R.string.slam_finding);
     } catch (Exception e) {
       Timber.e(e, "Loading the SLAM map failed");
       toastText(e.getMessage());

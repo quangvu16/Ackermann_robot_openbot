@@ -32,6 +32,9 @@ final class SlamController: UIViewController {
     private var lastScanId: UInt32?
     private var uiExploring = false
     private var uiHasGoal = false
+    private var scanInFlight = false // main thread: drop scans while the last one is being matched
+    private var shownRelocalizeSeq = 0
+    private let findButton = UIButton(type: .system)
 
     // Gyro yaw: rotation rate about gravity, integrated (works however the phone is mounted).
     private let motion = CMMotionManager()
@@ -147,7 +150,11 @@ final class SlamController: UIViewController {
         cc.cornerStyle = .large
         cancelButton.configuration = cc
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
-        let actions = UIStackView(arrangedSubviews: [exploreButton, cancelButton])
+        var fc = UIButton.Configuration.bordered()
+        fc.title = L10n.string("slam_find")
+        findButton.configuration = fc
+        findButton.addTarget(self, action: #selector(findTapped), for: .touchUpInside)
+        let actions = UIStackView(arrangedSubviews: [exploreButton, cancelButton, findButton])
         actions.distribution = .fillEqually
         actions.spacing = 8
         actions.heightAnchor.constraint(equalToConstant: 50).isActive = true
@@ -228,6 +235,12 @@ final class SlamController: UIViewController {
         showButtons()
     }
 
+    /// Find the car on the map with no hint (branch and bound over the whole map).
+    @objc private func findTapped() {
+        queue.async { self.slam.requestGlobalLocalization() }
+        toast(L10n.string("slam_finding"))
+    }
+
     private func placeCar(_ x: Double, _ y: Double) {
         queue.async { self.slam.resetPose(SlamPose(x, y, self.slam.pose.theta)) }
         toast(L10n.string("slam_pose_set"))
@@ -271,11 +284,12 @@ final class SlamController: UIViewController {
         queue.async {
             self.navigator.cancel()
             self.slam.setGrid(g)
-            self.slam.mapping = false // localize on the saved map (slam_toolbox localization mode)
+            self.slam.mapping = false // localize on the saved map (Cartographer pure localization)
+            self.slam.requestGlobalLocalization() // and find the car on it
             self.lastImageTime = 0
         }
         modePicker.selectedSegmentIndex = 1
-        toast(L10n.string("slam_loaded"))
+        toast(L10n.string("slam_finding"))
     }
 
     @objc private func clearTapped() {
@@ -306,10 +320,11 @@ final class SlamController: UIViewController {
         let scanner = SharedLidar.scanner
         if let scan = scanner.latestScan, scanner.isFresh {
             sourceLabel.text = String(format: L10n.string("lidarbot_source_scan"), Int32(scan.validPoints))
-            if scan.scanId != lastScanId {
+            if scan.scanId != lastScanId && !scanInFlight {
                 lastScanId = scan.scanId
                 let mm = scan.rangesMm.map { Int($0) }
                 let yaw = imuYaw
+                scanInFlight = true
                 queue.async { self.onScan(mm, yaw) }
             }
         } else {
@@ -328,7 +343,7 @@ final class SlamController: UIViewController {
             a[i] = -((Double(i) + 0.5) * 360 / Double(n)) * .pi / 180 // bins clockwise; + left here
             r[i] = mm[i] == 0 ? 99 : Double(mm[i]) / 1000
         }
-        let pose = slam.update(angles: a, ranges: r, imuYaw: yaw)
+        let pose = slam.update(angles: a, ranges: r, imuYaw: yaw, time: ProcessInfo.processInfo.systemUptime)
         var frontMin = Double.infinity
         for i in 0..<n where r[i] >= SlamEngine.minRange && r[i] < SlamEngine.maxRange && abs(a[i]) < 25 * .pi / 180 {
             frontMin = min(frontMin, r[i])
@@ -364,13 +379,21 @@ final class SlamController: UIViewController {
             trail: slam.trail, path: navigator.path, goal: navigator.goal)
         let grid = slam.grid
         let quality = Int((slam.matchQuality * 100).rounded()), scans = slam.scans
+        let submapCount = slam.submapCount, loops = slam.loopClosures
+        let relocSeq = slam.relocalizeSeq, relocFound = slam.relocalizeFound
         let hasGoal = navigator.goal != nil, exploringNow = exploring
         DispatchQueue.main.async {
+            self.scanInFlight = false
+            if relocSeq != self.shownRelocalizeSeq {
+                self.shownRelocalizeSeq = relocSeq
+                self.toast(L10n.string(relocFound ? "slam_found" : "slam_not_found"))
+            }
             if let c = finalCommand { self.sendControl(c.0, c.1) }
             if let img = image { self.mapView.setImage(img, grid: grid) }
             self.mapView.snapshot = snap
             self.mapView.setNeedsDisplay()
             self.mapStatus.text = String(format: L10n.string("slam_status"), pose.text, Int32(quality), Int32(scans))
+                + " · " + String(format: L10n.string("slam_graph"), Int32(submapCount), Int32(loops))
             self.statusLabel.text = status
             self.uiHasGoal = hasGoal
             self.uiExploring = exploringNow

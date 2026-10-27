@@ -291,4 +291,9 @@
     <string name="slam_pose_set">Coche colocado en el mapa</string>
     <string name="slam_status">%1$s · coincidencia %2$d%% · %3$d escaneos</string>
     <string name="slam_help">Crear mapa: recorre la sala despacio (emisora RC, mando o Explorar). Luego toca el mapa para enviar el coche. Mantén pulsado para indicar dónde está. Doble toque para seguirlo.</string>
+    <string name="slam_find">Encuéntrame</string>
+    <string name="slam_finding">Buscando el coche en el mapa…</string>
+    <string name="slam_found">Coche encontrado en el mapa</string>
+    <string name="slam_not_found">No se encontró el coche: mantén pulsado donde está</string>
+    <string name="slam_graph">%1$d submapas · %2$d cierres de bucle</string>
 </resources>

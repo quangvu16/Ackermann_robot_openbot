@@ -362,3 +362,8 @@
 "slam_pose_set" = "Coche colocado en el mapa";
 "slam_status" = "%1$@ · coincidencia %2$d%% · %3$d escaneos";
 "slam_help" = "Crear mapa: recorre la sala despacio (emisora RC, mando o Explorar). Luego toca el mapa para enviar el coche. Mantén pulsado para indicar dónde está. Doble toque para seguirlo.";
+"slam_find" = "Encuéntrame";
+"slam_finding" = "Buscando el coche en el mapa…";
+"slam_found" = "Coche encontrado en el mapa";
+"slam_not_found" = "No se encontró el coche: mantén pulsado donde está";
+"slam_graph" = "%1$d submapas · %2$d cierres de bucle";

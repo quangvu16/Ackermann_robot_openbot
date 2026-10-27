@@ -450,4 +450,9 @@
     <string name="slam_pose_set">Car placed on the map</string>
     <string name="slam_status">%1$s · match %2$d%% · %3$d scans</string>
     <string name="slam_help">Build map: drive slowly round the room (RC transmitter, game controller or Explore). Then tap the map to send the car there. Long-press to say where the car is. Double-tap to follow the car.</string>
+    <string name="slam_find">Find me</string>
+    <string name="slam_finding">Looking for the car on the map…</string>
+    <string name="slam_found">Found the car on the map</string>
+    <string name="slam_not_found">Couldn\'t find the car: long-press where it is</string>
+    <string name="slam_graph">%1$d submaps · %2$d loop closures</string>
 </resources>

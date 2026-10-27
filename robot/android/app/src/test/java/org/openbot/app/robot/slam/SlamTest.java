@@ -195,4 +195,131 @@ public class SlamTest {
     }
     throw new AssertionError("did not arrive; ended at " + st[0] + ", " + st[1]);
   }
+
+  // region Cartographer-style parts
+
+  static double[][] points(double[][] s) {
+    int n = 0;
+    for (double r : s[1]) if (r < SlamEngine.MAX_RANGE) n++;
+    double[] px = new double[n], py = new double[n];
+    int k = 0;
+    for (int i = 0; i < s[0].length; i++) {
+      if (s[1][i] >= SlamEngine.MAX_RANGE) continue;
+      px[k] = s[1][i] * Math.cos(s[0][i]);
+      py[k] = s[1][i] * Math.sin(s[0][i]);
+      k++;
+    }
+    return new double[][] {px, py};
+  }
+
+  @Test
+  public void correlativeAndCeresMatcherRecoverASmallOffset() {
+    OccupancyGrid g = roomGrid();
+    double[][] p = points(scan(0.3, 0.2, 0.4, new Random(4)));
+    ScanMatcher m = new ScanMatcher();
+    Pose est = m.match(g, new Pose(0.42, 0.11, 0.4 + Math.toRadians(9)), p[0], p[1]);
+    assertEquals(0.3, est.x, 0.03);
+    assertEquals(0.2, est.y, 0.03);
+    assertEquals(0, Math.toDegrees(Pose.wrap(est.theta - 0.4)), 1.0);
+    assertTrue("well constrained in a room", m.lastConstraint > 0.3);
+  }
+
+  @Test
+  public void branchAndBoundFindsAFarOffsetLikeBruteForce() {
+    OccupancyGrid g = roomGrid();
+    double[][] p = points(scan(1.0, 0.0, 0.3, new Random(5)));
+    double[][] lp = SlamEngine.adaptiveVoxel(p[0], p[1], 0.9, 100);
+    FastCorrelativeMatcher f = new FastCorrelativeMatcher(g);
+    FastCorrelativeMatcher.Result r = f.match(new Pose(-0.5, 1.0, 0.0), lp[0], lp[1], 3, Math.toRadians(30), 0.5);
+    assertNotNull(r);
+    assertEquals(1.0, r.pose.x, 0.06);
+    assertEquals(0.0, r.pose.y, 0.06);
+    assertEquals(0.3, r.pose.theta, Math.toRadians(1.5));
+  }
+
+  @Test
+  public void globalLocalizationFindsTheCarOnASavedMapWithNoHint() {
+    SlamEngine slam = new SlamEngine(OccupancyGrid.indoorDefault());
+    slam.setGrid(roomGrid());
+    slam.setMapping(false);
+    slam.requestGlobalLocalization();
+    Random noise = new Random(6);
+    double[][] s = scan(3.0, -0.6, 2.2, noise);
+    Pose p = slam.update(s[0], s[1], Double.NaN);
+    assertTrue(slam.wasRelocalizeFound());
+    assertEquals(1, slam.getRelocalizeSeq());
+    assertEquals(3.0, p.x, 0.1);
+    assertEquals(-0.6, p.y, 0.1);
+    assertEquals(0, Math.toDegrees(Pose.wrap(p.theta - 2.2)), 3);
+  }
+
+  @Test
+  public void poseGraphSpreadsTheDriftAndClosesTheLoop() {
+    // 12 submaps round a 3 m circle; local SLAM over-turns 2 degrees per link (drift).
+    PoseGraph g = new PoseGraph();
+    int n = 12;
+    double step = 2 * Math.PI / n, chord = 2 * 3 * Math.sin(step / 2);
+    Pose est = new Pose(3, 0, Math.PI / 2 + step / 2);
+    Pose measured = new Pose(chord, 0, step + Math.toRadians(2));
+    g.add(est, true);
+    for (int i = 1; i < n; i++) {
+      est = est.compose(measured);
+      g.add(est, false);
+      g.addConstraint(new PoseGraph.Constraint(i - 1, i, measured, PoseGraph.SEQ_T, PoseGraph.SEQ_R, false));
+    }
+    double before = g.get(n - 1).distanceTo(g.get(0).compose(new Pose(chord, 0, step).inverse()));
+    // Loop closure: the last submap seen from the first, as it truly is.
+    Pose truthLast = new Pose(3 * Math.cos(-step), 3 * Math.sin(-step), Math.PI / 2 - step / 2);
+    g.addConstraint(new PoseGraph.Constraint(0, n - 1, g.get(0).inverse().compose(truthLast),
+        PoseGraph.LOOP_T, PoseGraph.LOOP_R, true));
+    g.optimize();
+    double after = g.get(n - 1).distanceTo(truthLast);
+    assertTrue("drift before " + before, before > 1.0);
+    assertTrue("error after " + after, after < 0.05);
+  }
+
+  @Test
+  public void loopClosureKeepsTheMapStraightAfterLapsOfTheRoom() {
+    SlamEngine slam = new SlamEngine(OccupancyGrid.indoorDefault());
+    Random noise = new Random(8);
+    double drift = 0, maxErr = 0;
+    double[][] last = null;
+    Pose p = null;
+    slam.resetPose(new Pose(1.3, 0.5, Math.PI / 2)); // where the lap starts
+    for (int step = 0; step < 330; step++) { // ~2 laps of a 1.1 m circle round the middle of the room
+      double t = step * 0.04 / 1.1;
+      double x = 0.2 + 1.1 * Math.cos(t), y = 0.5 + 1.1 * Math.sin(t), th = t + Math.PI / 2;
+      double[][] s = scan(x, y, th, noise);
+      drift += 0.003;
+      p = slam.update(s[0], s[1], th + drift, step * 0.1);
+      maxErr = Math.max(maxErr, Math.hypot(p.x - x, p.y - y));
+    }
+    assertTrue("submaps were made", slam.getSubmapCount() >= 3);
+    assertTrue("loops were closed", slam.getLoopClosureCount() > 0);
+    assertTrue("worst error " + maxErr, maxErr < 0.15);
+  }
+
+  @Test
+  public void mappingOnALoadedMapLinksNewSubmapsToIt() {
+    SlamEngine slam = new SlamEngine(OccupancyGrid.indoorDefault());
+    slam.setGrid(roomGrid());
+    slam.setMapping(false);
+    Random noise = new Random(9);
+    slam.resetPose(new Pose(-1, 0, 0));
+    slam.setMapping(true); // extend the saved map
+    double x = -1, y = 0, th = 0;
+    for (int step = 0; step < 120; step++) {
+      double[][] s = scan(x, y, th, noise);
+      slam.update(s[0], s[1], th, step * 0.1);
+      th += step > 40 && step < 80 ? 0.03 : 0;
+      x += 0.03 * Math.cos(th);
+      y += 0.03 * Math.sin(th);
+    }
+    assertTrue("matched the loaded map", slam.getLoopClosureCount() > 0);
+    Pose p = slam.getPose();
+    assertEquals(x, p.x, 0.1);
+    assertEquals(y, p.y, 0.1);
+  }
+
+  // endregion
 }

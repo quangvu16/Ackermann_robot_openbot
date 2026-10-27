@@ -362,3 +362,8 @@
 "slam_pose_set" = "Voiture placée sur la carte";
 "slam_status" = "%1$@ · correspondance %2$d%% · %3$d scans";
 "slam_help" = "Créer la carte : roulez lentement dans la pièce (radiocommande, manette ou Explorer). Puis touchez la carte pour y envoyer la voiture. Appui long : position de la voiture. Double appui : suivre la voiture.";
+"slam_find" = "Me trouver";
+"slam_finding" = "Recherche de la voiture sur la carte…";
+"slam_found" = "Voiture trouvée sur la carte";
+"slam_not_found" = "Voiture introuvable : appui long là où elle est";
+"slam_graph" = "%1$d sous-cartes · %2$d fermetures de boucle";

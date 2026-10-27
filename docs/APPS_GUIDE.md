@@ -195,19 +195,24 @@ Open it from **More features > General > Indoor SLAM**. The car draws a map of t
 | **Build map / Localize only** | *Build map* adds every scan to the map. *Localize only* keeps the map fixed and only works out where the car is (use it after **Load map**). |
 | **Explore** | The car wanders by itself (the LiDAR robot's Avoid behaviour) while the map grows. You can also drive by RC transmitter or game controller. |
 | **Tap** the map | Sets a goal (pink dot). The car plans a path (green line) and follows it. **Cancel goal** stops it. |
-| **Long-press** the map | "The car is here, facing this way": use it after loading a map or if the map slips. |
+| **Long-press** the map | "The car is here, facing this way": use it if **Find me** fails or the map slips. |
+| **Find me** | Finds the car on the map with no hint: it searches the whole map and every heading. It runs by itself after **Load map** and when tracking is lost for 3 s. |
 | **Double-tap** / **Centre** | Keeps the view on the car. Pinch to zoom, drag to pan. |
 | Layers **Map / Scan / Path / Trail** | Show or hide the grid, the live scan (red dots), the planned path and where the car has been. |
 | **Save / Load / Clear map** | Keeps one map on the phone, so you don't have to map the flat every time. |
 | **Export for ROS** | Shares `map.pgm` + `map.yaml`, the same files `map_saver` writes. They open in ROS 2 `map_server`, Nav2 and RViz. |
 
-The status line shows the state, the **match %** (how many scan points land on known walls: above about 60 % the position is trustworthy) and the scan count.
+The status line shows the state, the **match %** (how many scan points land on known walls: above about 60 % the position is trustworthy), the scan count, the number of **submaps** and **loop closures**.
 
-**How it works and where each idea comes from** (no code was copied: BreezySLAM and slam_toolbox are LGPL, so the ideas were rewritten for Java and Swift):
+**How it works and where each idea comes from.** The SLAM part follows Google **Cartographer** (`cartographer_ros`, Apache-2.0) with its default settings from `trajectory_builder_2d.lua` and `pose_graph.lua`. The ideas were rewritten in Java and Swift from the Cartographer paper (Hess et al., *Real-Time Loop Closure in 2D LIDAR SLAM*, ICRA 2016). BreezySLAM and slam_toolbox are LGPL, so no code was copied from any of these projects:
 
-- **Occupancy grid** (BreezySLAM / CoreSLAM, slam_toolbox): a 30 × 30 m grid of 5 cm cells. Each beam lowers "wall" odds along its path and raises it at the end (log-odds, Bresenham lines). *Example:* a chair leg seen once is faint grey; seen 20 times it is solid black.
-- **Scan matching** (BreezySLAM's RMHC, random-mutation hill climbing): it tries hundreds of small shifts and turns of the new scan and keeps the one that fits the map best. *Why:* the car has no wheel encoders, so the scan itself is the odometry.
-- **Phone gyro as a hint** (SmartphoneGraphSLAM uses phone sensors for dead reckoning): the phone's gyro gives the turn between scans, so the matcher starts close to the right answer.
+- **Submaps** (Cartographer): each scan goes into a small local map of about 90 scans (`num_range_data = 90`), and two submaps are active at a time. The **motion filter** adds a scan only after the car moves 0.2 m, turns 1° or 5 s pass. *Example:* one lap of a living room makes about 5 submaps. *Why:* a small map that never changes again can be moved as one piece later.
+- **Occupancy grid** (BreezySLAM / CoreSLAM, slam_toolbox): cells are 5 cm. Each beam lowers the "wall" odds along its path and raises them at the end. The global 30 × 30 m map is painted from the submaps.
+- **Scan matching** (Cartographer local SLAM): first a **correlative search** tries every shift (±15 cm) and every turn (±20°) cell by cell. Then a **least-squares polish** on a smooth (bicubic) map finds the pose below one cell, the job Ceres does in Cartographer. *Why:* the car has no wheel encoders, so the scan itself is the odometry. The brute-force first step can't get stuck the way hill climbing (the old RMHC method) can.
+- **Phone gyro as a hint** (Cartographer uses an IMU the same way; SmartphoneGraphSLAM uses phone sensors): the gyro gives the turn between scans, so the search starts close to the right answer.
+- **Loop closure** (Cartographer global SLAM): old submaps are searched for each new scan with **branch and bound**. The map is also kept at coarser levels where each cell holds the best value of the cells under it, so whole blocks of poses are skipped (`branch_and_bound_depth = 7`, 30°, min score 0.55). A good match adds a link to a **pose graph**, and **sparse pose adjustment** then moves whole submaps until all the links agree. *Example:* after a lap of a corridor the start and end walls are drawn twice, 15 cm apart; one loop closure pulls them into one line.
+- **Indoor safety checks** (not in Cartographer): rooms and corridors repeat, so the search window grows with the distance driven (0.5 m + 10 %, at most 7 m). A match that could slide along a bare corridor is skipped. A link the solved graph still misses by more than 0.3 m or 5° is thrown away. *Why:* in the simulated corridor ring, a 7 m window joined the top corridor to the bottom one (4.4 m apart) and bent the map. These checks stopped that.
+- **Global localization** (Cartographer pure localization): the same branch and bound searches the whole saved map at every heading (min score 0.6). That is how **Find me** works.
 - **Costmap with inflation** (Nav2 `inflation_layer`): cells within 0.22 m of a wall are forbidden; cost fades out over 0.45 m more; unknown cells cost a little. *Why:* the path keeps to the middle of a doorway instead of scraping the frame.
 - **A\* planner** (Nav2 `NavFn` / Smac idea) on a 10 cm grid, then shortened with straight-line shortcuts.
 - **Regulated Pure Pursuit** (Nav2 controller): steers towards a point 0.55 m ahead on the path and slows in tight turns and near obstacles. Steering uses the car's real geometry (0.26 m wheelbase, 28° lock).
@@ -215,11 +220,16 @@ The status line shows the state, the **match %** (how many scan points land on k
 - **The map view** (PyRoboViz, RViz): grey = unknown, white = free, black = wall, the car as an arrow, scan dots, path and trail. *Example:* in RViz you would add Map, LaserScan, Path and RobotModel displays; here they are the four layer buttons.
 
 **Limits:**
-- **No loop closure** (slam_toolbox has it): after a long loop round a big flat the map can be slightly bent. Map one room at a time and drive slowly (about 30 % speed).
+- **Loop closure moves whole submaps** (Cartographer also moves every scan), so walls can stay a few cm thick where submaps overlap. Drive slowly (about 30 % speed) and close loops often, for example back to the start of each room.
+- **Look-alike places:** a symmetric room can fool **Find me**. Check the car arrow, and long-press if it's wrong.
 - **Needs full scans:** USB LiDAR (Android) or the car's Wi-Fi. The 8 Bluetooth sectors are too coarse; the screen says so.
 - **Glass and mirrors** don't reflect the LiDAR well, so they may show as open space.
-- Checked in a simulated two-room flat (explore, then drive through the door: 0.05 m worst position error) and by unit tests, **not yet on the real car**. Try it with the wheels off the ground first, then in an open room. STOP and object avoidance still apply.
-- *Source:* Android `slam/` (`OccupancyGrid`, `SlamEngine`, `Navigator`, `SlamMapView`, `SlamFragment`, 8 unit tests). iOS `Controllers/Slam/` (`SlamCore.swift`, `SlamController.swift`).
+- **Tested in simulation, not yet on the real car:**
+  - Two-room flat (explore, then drive through the door): 0.03 m worst position error.
+  - Corridor ring, 2 laps, noisy LiDAR, drifting gyro: the end error was 0.17 m without loop closure and 0.03 m with it; the old RMHC engine ended at 0.09 m.
+  - Each scan takes about 10 ms on a PC, so expect several times that on a phone.
+  - Try it with the wheels off the ground first, then in an open room. STOP and object avoidance still apply.
+- *Source:* Android `slam/` (`OccupancyGrid`, `ScanMatcher`, `FastCorrelativeMatcher`, `PoseGraph`, `SlamEngine`, `Navigator`, `SlamMapView`, `SlamFragment`, 14 unit tests). iOS `Controllers/Slam/` (`SlamCore.swift`, `SlamController.swift`).
 
 **Why build the map first?** A planner can only go round walls it knows about. With a map, a goal in the next room becomes a path through the door; without one, the car would only see the wall in front of it.
 
