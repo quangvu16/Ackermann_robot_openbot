@@ -77,7 +77,8 @@ final class SensorLinkBarItem: UIBarButtonItem {
 
     @objc private func refresh() {
         let link = SensorLink.shared
-        button.setTitle(" " + link.shortStatus, for: .normal)
+        // Icon only; when on, a count of viewers (server) or ✓/… (client) sits beside it.
+        button.setTitle(link.settings.mode == .off ? nil : " " + link.shortStatus, for: .normal)
         button.alpha = link.settings.mode == .off ? 0.6 : 1
         button.accessibilityValue = link.statusText
         button.sizeToFit()

@@ -402,3 +402,5 @@
 "setup_off" = "Off";
 "setup_test_note" = "Test with the wheels off the ground. Each drive or steering test lasts about 1 s, then the car stops and straightens by itself.";
 "setup_lidar" = "LiDAR";
+"gps_nav_pause" = "Pause";
+"gps_nav_resume" = "Resume";

@@ -227,11 +227,12 @@ final class CarDashboardView: UIView {
         detailLabel.numberOfLines = 0
         cardStack.addArrangedSubview(detailLabel)
 
-        connectButton.setTitle(L10n.string("dash_connect"), for: .normal)
-        connectButton.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        connectButton.setTitleColor(.white, for: .normal)
-        connectButton.backgroundColor = Self.blue
-        connectButton.layer.cornerRadius = 12
+        var connectConfig = UIButton.Configuration.filled()
+        connectConfig.baseBackgroundColor = Self.blue
+        connectConfig.baseForegroundColor = .white
+        connectConfig.background.cornerRadius = 12
+        connectButton.configuration = connectConfig
+        connectButton.setIcon("link", label: L10n.string("dash_connect"), pointSize: 24)
         connectButton.heightAnchor.constraint(equalToConstant: 52).isActive = true
         connectButton.addTarget(self, action: #selector(connectTapped), for: .touchUpInside)
         cardStack.addArrangedSubview(connectButton)
@@ -274,8 +275,9 @@ final class CarDashboardView: UIView {
                                           title: "dash_setup_title", detail: "dash_setup_desc", action: #selector(setupTapped)))
 
         // 4. Everything else, out of the way until asked for.
-        moreButton.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        moreButton.setTitleColor(Self.blue, for: .normal)
+        var moreConfig = UIButton.Configuration.plain()
+        moreConfig.baseForegroundColor = Self.blue
+        moreButton.configuration = moreConfig
         moreButton.heightAnchor.constraint(equalToConstant: 48).isActive = true
         moreButton.addTarget(self, action: #selector(moreTapped), for: .touchUpInside)
         stack.addArrangedSubview(moreButton)
@@ -342,7 +344,7 @@ final class CarDashboardView: UIView {
     // MARK: state
 
     func setMoreOpen(_ open: Bool) {
-        moreButton.setTitle(L10n.string(open ? "dash_more_hide" : "dash_more_show"), for: .normal)
+        moreButton.setIcon(open ? "chevron.up" : "chevron.down", label: L10n.string(open ? "dash_more_hide" : "dash_more_show"), pointSize: 24)
     }
 
     /// Connection card and chips, from the live state.

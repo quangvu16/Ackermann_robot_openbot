@@ -319,45 +319,69 @@
             android:text="@string/motors"
             android:textColor="@android:color/black" />
 
-        <androidx.appcompat.widget.AppCompatButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/motors_forward_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/forward"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/forward"
+            android:tooltipText="@string/forward"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
-        <androidx.appcompat.widget.AppCompatButton
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_arrow_upward"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/motors_backward_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/backward"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/backward"
+            android:tooltipText="@string/backward"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
-        <androidx.appcompat.widget.AppCompatButton
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_arrow_downward"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/motors_stop_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/stop"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/stop"
+            android:tooltipText="@string/stop"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_stop"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -375,45 +399,69 @@
             android:text="@string/setup_steering"
             android:textColor="@android:color/black" />
 
-        <androidx.appcompat.widget.AppCompatButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/steer_left_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/setup_left"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/setup_left"
+            android:tooltipText="@string/setup_left"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
-        <androidx.appcompat.widget.AppCompatButton
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_turn_left"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/steer_center_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/setup_centre"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/setup_centre"
+            android:tooltipText="@string/setup_centre"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
-        <androidx.appcompat.widget.AppCompatButton
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_straight"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/steer_right_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/setup_right"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/setup_right"
+            android:tooltipText="@string/setup_right"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_turn_right"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -432,45 +480,69 @@
             android:text="@string/indicators"
             android:textColor="@android:color/black" />
 
-        <androidx.appcompat.widget.AppCompatButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/ind_left_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/setup_left"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/setup_left"
+            android:tooltipText="@string/setup_left"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
-        <androidx.appcompat.widget.AppCompatButton
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_keyboard_double_arrow_left"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/ind_off_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/setup_off"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/setup_off"
+            android:tooltipText="@string/setup_off"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
-        <androidx.appcompat.widget.AppCompatButton
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_block"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/ind_right_button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            android:backgroundTint="@color/openBotBlue"
+            app:backgroundTint="@color/openBotBlue"
             android:minHeight="48dp"
-            android:text="@string/setup_right"
-            android:textAllCaps="false"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+            app:cornerRadius="12dp"
+            android:contentDescription="@string/setup_right"
+            android:tooltipText="@string/setup_right"
             android:textColor="#FFFFFF"
-            tools:ignore="TextContrastCheck" />
+            tools:ignore="TextContrastCheck"
+            app:icon="@drawable/ic_btn_keyboard_double_arrow_right"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="#FFFFFF"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
     </LinearLayout>
 
     <TextView

@@ -402,3 +402,5 @@
 "setup_off" = "Apagado";
 "setup_test_note" = "Prueba con las ruedas en el aire. Cada prueba dura aprox. 1 s; luego el coche se detiene y endereza solo.";
 "setup_lidar" = "LiDAR";
+"gps_nav_pause" = "Pausa";
+"gps_nav_resume" = "Reanudar";

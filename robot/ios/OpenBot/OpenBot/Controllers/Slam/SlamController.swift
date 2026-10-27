@@ -15,7 +15,7 @@ final class SlamController: UIViewController, SlamHubSource {
     private let mapStatus = PaddedLabel()
     private let statusLabel = UILabel()
     private let sourceLabel = UILabel()
-    private let modePicker = UISegmentedControl(items: [L10n.string("slam_mode_map"), L10n.string("slam_mode_localize")])
+    private let modePicker = UISegmentedControl.icons([("map", L10n.string("slam_mode_map")), ("location.fill", L10n.string("slam_mode_localize"))])
     private let exploreButton = UIButton(type: .system)
     private let cancelButton = UIButton(type: .system)
 
@@ -105,9 +105,9 @@ final class SlamController: UIViewController, SlamHubSource {
         view.addSubview(mapView)
         let centre = UIButton(type: .system)
         var cfg = UIButton.Configuration.tinted()
-        cfg.title = L10n.string("slam_center")
         cfg.cornerStyle = .capsule
         centre.configuration = cfg
+        centre.setIcon("scope", label: L10n.string("slam_center"))
         centre.addTarget(self, action: #selector(recentre), for: .touchUpInside)
         centre.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(centre)
@@ -161,13 +161,12 @@ final class SlamController: UIViewController, SlamHubSource {
         exploreButton.configuration = ex
         exploreButton.addTarget(self, action: #selector(exploreTapped), for: .touchUpInside)
         var cc = UIButton.Configuration.bordered()
-        cc.title = L10n.string("slam_cancel")
         cc.cornerStyle = .large
         cancelButton.configuration = cc
+        cancelButton.setIcon("xmark", label: L10n.string("slam_cancel"))
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
-        var fc = UIButton.Configuration.bordered()
-        fc.title = L10n.string("slam_find")
-        findButton.configuration = fc
+        findButton.configuration = UIButton.Configuration.bordered()
+        findButton.setIcon("location.viewfinder", label: L10n.string("slam_find"))
         findButton.addTarget(self, action: #selector(findTapped), for: .touchUpInside)
         let actions = UIStackView(arrangedSubviews: [exploreButton, cancelButton, findButton])
         actions.distribution = .fillEqually
@@ -178,12 +177,13 @@ final class SlamController: UIViewController, SlamHubSource {
         let files = UIStackView()
         files.distribution = .fillEqually
         files.spacing = 6
-        for (key, sel) in [("slam_algorithms", #selector(algorithmsTapped)), ("slam_save", #selector(saveTapped)), ("slam_load", #selector(loadTapped)),
-                           ("slam_clear", #selector(clearTapped)), ("slam_export", #selector(exportTapped))] {
-            var c = UIButton.Configuration.bordered()
-            c.title = L10n.string(key)
-            c.titleLineBreakMode = .byWordWrapping
-            let b = UIButton(configuration: c)
+        for (key, symbol, sel) in [("slam_algorithms", "slider.horizontal.3", #selector(algorithmsTapped)),
+                                   ("slam_save", "square.and.arrow.down", #selector(saveTapped)),
+                                   ("slam_load", "folder", #selector(loadTapped)),
+                                   ("slam_clear", "trash", #selector(clearTapped)),
+                                   ("slam_export", "square.and.arrow.up", #selector(exportTapped))] {
+            let b = UIButton.icon(symbol, label: L10n.string(key))
+            b.heightAnchor.constraint(equalToConstant: 44).isActive = true
             b.addTarget(self, action: sel, for: .touchUpInside)
             files.addArrangedSubview(b)
         }
@@ -576,9 +576,10 @@ final class SlamController: UIViewController, SlamHubSource {
 
     private func showButtons() {
         var c = exploreButton.configuration
-        c?.title = L10n.string(uiExploring ? "slam_stop" : "slam_explore")
         c?.baseBackgroundColor = uiExploring ? .systemRed : UIColor(red: 0.29, green: 0.48, blue: 1, alpha: 1)
         exploreButton.configuration = c
+        exploreButton.setIcon(uiExploring ? "stop.fill" : "binoculars.fill",
+                              label: L10n.string(uiExploring ? "slam_stop" : "slam_explore"), pointSize: 24)
         cancelButton.isEnabled = uiHasGoal || uiExploring
     }
 

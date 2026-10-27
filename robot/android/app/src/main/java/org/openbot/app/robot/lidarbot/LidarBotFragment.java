@@ -1,5 +1,6 @@
 package org.openbot.app.robot.lidarbot;
 
+import org.openbot.app.robot.common.IconButtons;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
@@ -312,7 +313,9 @@ public class LidarBotFragment extends ControlsFragment {
   }
 
   private void showRunning() {
-    binding.startStop.setText(running ? R.string.lidarbot_stop : R.string.lidarbot_start);
+    IconButtons.set(binding.startStop,
+        running ? R.drawable.ic_btn_stop : R.drawable.ic_btn_play_arrow,
+        running ? R.string.lidarbot_stop : R.string.lidarbot_start);
     binding.startStop.setBackgroundTintList(
         android.content.res.ColorStateList.valueOf(
             running ? android.graphics.Color.parseColor("#D32F2F") : requireContext().getColor(R.color.openBotBlue)));

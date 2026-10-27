@@ -402,3 +402,5 @@
 "setup_off" = "Aus";
 "setup_test_note" = "Mit angehobenen Rädern testen. Jeder Fahr- oder Lenktest dauert etwa 1 s, dann hält das Auto an und lenkt gerade.";
 "setup_lidar" = "LiDAR";
+"gps_nav_pause" = "Pause";
+"gps_nav_resume" = "Fortsetzen";

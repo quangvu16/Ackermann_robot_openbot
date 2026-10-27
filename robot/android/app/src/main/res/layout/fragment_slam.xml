@@ -27,9 +27,16 @@
             android:layout_gravity="top|start"
             android:layout_margin="10dp"
             android:minWidth="0dp"
-            android:text="@string/slam_center"
+            android:contentDescription="@string/slam_center"
+            android:tooltipText="@string/slam_center"
             app:backgroundTint="#E6FFFFFF"
-            app:cornerRadius="22dp" />
+            app:cornerRadius="22dp"
+            app:icon="@drawable/ic_btn_center_focus_strong"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
 
         <TextView
             android:id="@+id/map_status"
@@ -78,7 +85,15 @@
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="@string/slam_mode_map" />
+                    android:contentDescription="@string/slam_mode_map"
+                    android:tooltipText="@string/slam_mode_map"
+                    app:icon="@drawable/ic_btn_map"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mode_localize"
@@ -86,7 +101,15 @@
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="@string/slam_mode_localize" />
+                    android:contentDescription="@string/slam_mode_localize"
+                    android:tooltipText="@string/slam_mode_localize"
+                    app:icon="@drawable/ic_btn_my_location"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
             <LinearLayout
@@ -101,9 +124,17 @@
                     android:layout_height="52dp"
                     android:layout_marginEnd="6dp"
                     android:layout_weight="1"
-                    android:text="@string/slam_explore"
+                    android:contentDescription="@string/slam_explore"
+                    android:tooltipText="@string/slam_explore"
                     app:backgroundTint="@color/openBotBlue"
-                    app:cornerRadius="12dp" />
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_btn_travel_explore"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="32dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/cancel_button"
@@ -112,8 +143,16 @@
                     android:layout_height="52dp"
                     android:layout_weight="1"
                     android:enabled="false"
-                    android:text="@string/slam_cancel"
-                    app:cornerRadius="12dp" />
+                    android:contentDescription="@string/slam_cancel"
+                    android:tooltipText="@string/slam_cancel"
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_btn_close"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
             </LinearLayout>
 
             <HorizontalScrollView
@@ -133,7 +172,15 @@
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
                         android:layout_marginEnd="6dp"
-                        android:text="@string/slam_algorithms" />
+                        android:contentDescription="@string/slam_algorithms"
+                        android:tooltipText="@string/slam_algorithms"
+                        app:icon="@drawable/ic_btn_tune"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/find_button"
@@ -141,7 +188,15 @@
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
                         android:layout_marginEnd="6dp"
-                        android:text="@string/slam_find" />
+                        android:contentDescription="@string/slam_find"
+                        android:tooltipText="@string/slam_find"
+                        app:icon="@drawable/ic_btn_location_searching"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/save_button"
@@ -149,7 +204,15 @@
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
                         android:layout_marginEnd="6dp"
-                        android:text="@string/slam_save" />
+                        android:contentDescription="@string/slam_save"
+                        android:tooltipText="@string/slam_save"
+                        app:icon="@drawable/ic_btn_save"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/load_button"
@@ -157,7 +220,15 @@
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
                         android:layout_marginEnd="6dp"
-                        android:text="@string/slam_load" />
+                        android:contentDescription="@string/slam_load"
+                        android:tooltipText="@string/slam_load"
+                        app:icon="@drawable/ic_btn_folder_open"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/clear_button"
@@ -165,14 +236,30 @@
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
                         android:layout_marginEnd="6dp"
-                        android:text="@string/slam_clear" />
+                        android:contentDescription="@string/slam_clear"
+                        android:tooltipText="@string/slam_clear"
+                        app:icon="@drawable/ic_btn_delete"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/export_button"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
-                        android:text="@string/slam_export" />
+                        android:contentDescription="@string/slam_export"
+                        android:tooltipText="@string/slam_export"
+                        app:icon="@drawable/ic_btn_ios_share"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
                 </LinearLayout>
             </HorizontalScrollView>
 

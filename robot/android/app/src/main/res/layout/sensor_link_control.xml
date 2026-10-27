@@ -31,7 +31,15 @@
         android:layout_height="48dp"
         android:layout_marginStart="8dp"
         android:minWidth="0dp"
-        android:text="@string/sensor_link_button"
+        android:contentDescription="@string/sensor_link_button"
+        android:tooltipText="@string/sensor_link_button"
         android:textColor="@color/openBotBlue"
-        app:cornerRadius="12dp" />
+        app:cornerRadius="12dp"
+        app:icon="@drawable/ic_btn_wifi_tethering"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="24dp"
+        app:iconTint="@color/openBotBlue"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp" />
 </LinearLayout>

@@ -1,5 +1,6 @@
 package org.openbot.app.robot.gpsNav;
 
+import org.openbot.app.robot.common.IconButtons;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
@@ -232,7 +233,9 @@ public class GpsNavigationFragment extends ControlsFragment
 
   private void showPanelLabel(boolean open) {
     if (binding == null) return;
-    binding.togglePanelButton.setText(open ? R.string.gps_panel_hide : R.string.gps_panel_show);
+    IconButtons.set(binding.togglePanelButton,
+        open ? R.drawable.ic_btn_expand_more : R.drawable.ic_btn_expand_less,
+        open ? R.string.gps_panel_hide : R.string.gps_panel_show);
   }
 
   /** USB or Bluetooth icon, green while the car is connected, grey otherwise. */
@@ -395,12 +398,12 @@ public class GpsNavigationFragment extends ControlsFragment
       startMission();
     } else if (paused) {
       paused = false;
-      binding.startPauseButton.setText(R.string.gps_nav_pause);
+      IconButtons.set(binding.startPauseButton, R.drawable.ic_btn_pause, R.string.gps_nav_pause);
       binding.hudStatus.setText(R.string.gps_nav_status_navigating);
     } else {
       paused = true;
       haltMotors();
-      binding.startPauseButton.setText(R.string.gps_nav_resume);
+      IconButtons.set(binding.startPauseButton, R.drawable.ic_btn_play_arrow, R.string.gps_nav_resume);
       binding.hudStatus.setText(R.string.gps_nav_status_paused);
     }
   }
@@ -422,7 +425,7 @@ public class GpsNavigationFragment extends ControlsFragment
     paused = false;
     guidedTarget = null;
     activeWaypointIndex = 0;
-    binding.startPauseButton.setText(R.string.gps_nav_pause);
+    IconButtons.set(binding.startPauseButton, R.drawable.ic_btn_pause, R.string.gps_nav_pause);
     binding.hudStatus.setText(R.string.gps_nav_status_navigating);
     refreshMissionUi();
     startNavLoop();
@@ -440,7 +443,7 @@ public class GpsNavigationFragment extends ControlsFragment
     paused = false;
     guidedTarget = null;
     activeWaypointIndex = -1;
-    binding.startPauseButton.setText(R.string.gps_nav_pause);
+    IconButtons.set(binding.startPauseButton, R.drawable.ic_btn_pause, R.string.gps_nav_pause);
     binding.hudStatus.setText(R.string.gps_nav_status_returning);
     refreshMissionUi();
     startNavLoop();
@@ -458,7 +461,7 @@ public class GpsNavigationFragment extends ControlsFragment
     paused = false;
     guidedTarget = target;
     activeWaypointIndex = -1;
-    binding.startPauseButton.setText(R.string.gps_nav_pause);
+    IconButtons.set(binding.startPauseButton, R.drawable.ic_btn_pause, R.string.gps_nav_pause);
     binding.hudStatus.setText(R.string.gps_nav_status_navigating);
     refreshMissionUi();
     startNavLoop();
@@ -494,7 +497,7 @@ public class GpsNavigationFragment extends ControlsFragment
     navHandler.removeCallbacks(navLoop);
     haltMotors();
     if (binding != null) {
-      binding.startPauseButton.setText(R.string.gps_nav_start);
+      IconButtons.set(binding.startPauseButton, R.drawable.ic_btn_play_arrow, R.string.gps_nav_start);
       binding.hudStatus.setText(statusStringRes);
       binding.mapView.setWaypoints(mission.getWaypoints(), -1);
     }
@@ -743,7 +746,7 @@ public class GpsNavigationFragment extends ControlsFragment
 
   private void applyMapType(MissionMapView.MapType type) {
     binding.mapView.setMapType(type);
-    binding.mapTypeButton.setText(labelFor(type));
+    IconButtons.label(binding.mapTypeButton, labelFor(type));
     PreferenceManager.getDefaultSharedPreferences(requireContext())
         .edit()
         .putString(PREF_MAP_TYPE, type.name())
@@ -762,7 +765,7 @@ public class GpsNavigationFragment extends ControlsFragment
       }
     }
     binding.mapView.setMapType(type);
-    binding.mapTypeButton.setText(labelFor(type));
+    IconButtons.label(binding.mapTypeButton, labelFor(type));
   }
 
   private String labelFor(MissionMapView.MapType type) {

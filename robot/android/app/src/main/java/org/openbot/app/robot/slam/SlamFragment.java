@@ -1,5 +1,6 @@
 package org.openbot.app.robot.slam;
 
+import org.openbot.app.robot.common.IconButtons;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
@@ -612,7 +613,9 @@ public class SlamFragment extends ControlsFragment
 
   private void showButtons(boolean goal) {
     if (binding == null) return;
-    binding.exploreButton.setText(exploring ? R.string.slam_stop : R.string.slam_explore);
+    IconButtons.set(binding.exploreButton,
+        exploring ? R.drawable.ic_btn_stop : R.drawable.ic_btn_travel_explore,
+        exploring ? R.string.slam_stop : R.string.slam_explore);
     binding.exploreButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
         exploring ? android.graphics.Color.parseColor("#D32F2F") : requireContext().getColor(R.color.openBotBlue)));
     binding.cancelButton.setEnabled(goal || exploring);

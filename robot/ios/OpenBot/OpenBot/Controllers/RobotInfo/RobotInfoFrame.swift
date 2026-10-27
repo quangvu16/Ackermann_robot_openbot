@@ -160,16 +160,18 @@ class RobotInfoFrame: UIViewController {
         // Tests.
         stack.addArrangedSubview(heading("sendCommand"))
         stack.addArrangedSubview(buttonRow(Strings.motors, [
-            (Strings.forward, #selector(forwardButton(_:))), (Strings.backward, #selector(backwardButton(_:))),
-            (Strings.stopLabel, #selector(stopButton(_:))),
+            (Strings.forward, "arrow.up", #selector(forwardButton(_:))), (Strings.backward, "arrow.down", #selector(backwardButton(_:))),
+            (Strings.stopLabel, "stop.fill", #selector(stopButton(_:))),
         ]))
         stack.addArrangedSubview(buttonRow(L10n.string("setup_steering"), [
-            (L10n.string("setup_left"), #selector(steerLeft)), (L10n.string("setup_centre"), #selector(steerCentre)),
-            (L10n.string("setup_right"), #selector(steerRight)),
+            (L10n.string("setup_left"), "arrow.turn.up.left", #selector(steerLeft)),
+            (L10n.string("setup_centre"), "steeringwheel", #selector(steerCentre)),
+            (L10n.string("setup_right"), "arrow.turn.up.right", #selector(steerRight)),
         ]))
         indicatorsRow = buttonRow(L10n.string("indicatorText"), [
-            (L10n.string("setup_left"), #selector(indicatorLeft)), (L10n.string("setup_off"), #selector(indicatorOff)),
-            (L10n.string("setup_right"), #selector(indicatorRight)),
+            (L10n.string("setup_left"), "chevron.left.2", #selector(indicatorLeft)),
+            (L10n.string("setup_off"), "nosign", #selector(indicatorOff)),
+            (L10n.string("setup_right"), "chevron.right.2", #selector(indicatorRight)),
         ])
         stack.addArrangedSubview(indicatorsRow)
         let lightLabel = UILabel()
@@ -228,7 +230,7 @@ class RobotInfoFrame: UIViewController {
         return row
     }
 
-    private func buttonRow(_ title: String, _ buttons: [(String, Selector)]) -> UIStackView {
+    private func buttonRow(_ title: String, _ buttons: [(String, String, Selector)]) -> UIStackView {
         let label = UILabel()
         label.text = title
         label.font = .systemFont(ofSize: 13)
@@ -239,12 +241,10 @@ class RobotInfoFrame: UIViewController {
         let group = UIStackView()
         group.distribution = .fillEqually
         group.spacing = 6
-        for (text, sel) in buttons {
+        for (text, symbol, sel) in buttons {
             var c = UIButton.Configuration.filled()
-            c.title = text
             c.baseBackgroundColor = Colors.title
-            c.titleLineBreakMode = .byTruncatingTail
-            let b = UIButton(configuration: c)
+            let b = UIButton.icon(symbol, label: text, style: c)
             b.addTarget(self, action: sel, for: .touchUpInside)
             b.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
             group.addArrangedSubview(b)
@@ -400,12 +400,14 @@ class RobotInfoFrame: UIViewController {
             navigationItem.leftBarButtonItem = newBackButton
         }
         // Full avoidance settings: quick-disable, AVOID_MARGIN, AVOID_BACKUP_SPD.
-        navigationItem.rightBarButtonItems = [UIBarButtonItem(
-            title: L10n.string("avoid_settings"),
+        let avoid = UIBarButtonItem(
+            image: UIImage(systemName: "shield.lefthalf.filled"),
             style: .plain,
             target: self,
             action: #selector(showAvoidanceSettings)
-        ), sensorLinkItem]
+        )
+        avoid.accessibilityLabel = L10n.string("avoid_settings")
+        navigationItem.rightBarButtonItems = [avoid, sensorLinkItem]
     }
 
     @objc func showAvoidanceSettings() {

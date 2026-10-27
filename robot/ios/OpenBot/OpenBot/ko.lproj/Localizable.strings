@@ -402,3 +402,5 @@
 "setup_off" = "끄기";
 "setup_test_note" = "바퀴를 띄운 상태로 시험하세요. 각 시험은 약 1초 동안 동작한 뒤 차량이 스스로 멈추고 바퀴를 정렬합니다.";
 "setup_lidar" = "LiDAR";
+"gps_nav_pause" = "일시정지";
+"gps_nav_resume" = "재개";

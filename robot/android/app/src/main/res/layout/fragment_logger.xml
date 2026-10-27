@@ -192,7 +192,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/sensorDataButton"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
@@ -200,13 +200,20 @@
                 android:background="@drawable/button_background_border"
                 android:foreground="?attr/selectableItemBackground"
                 android:paddingHorizontal="32dp"
-                android:text="@string/sensor_data"
-                android:textAllCaps="false"
+                android:contentDescription="@string/sensor_data"
+                android:tooltipText="@string/sensor_data"
                 android:textColor="@android:color/black"
-                android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:icon="@drawable/ic_btn_sensors"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="24dp"
+                app:iconTint="@android:color/black"
+                android:minWidth="48dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp" />
 
             <CheckBox
                 android:id="@+id/previewCheckBox"

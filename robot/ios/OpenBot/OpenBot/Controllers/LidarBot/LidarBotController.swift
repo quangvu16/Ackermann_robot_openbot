@@ -19,7 +19,17 @@ final class LidarBotController: UIViewController {
     private let face = RobotFaceView()
     private let map = LidarView()
     private let sourceLabel = UILabel()
-    private let modePicker = UISegmentedControl(items: LidarBehaviors.Mode.allCases.map { L10n.string("lidarbot_" + $0.rawValue) })
+    private let modePicker = UISegmentedControl.icons(LidarBehaviors.Mode.allCases.map { mode in
+        let symbol: String
+        switch mode.rawValue {
+        case "patrol": symbol = "repeat"
+        case "follow": symbol = "figure.walk"
+        case "avoid": symbol = "arrow.triangle.branch"
+        case "track": symbol = "scope"
+        default: symbol = "exclamationmark.triangle.fill"
+        }
+        return (symbol, L10n.string("lidarbot_" + mode.rawValue))
+    })
     private let helpLabel = UILabel()
     private let startButton = UIButton(type: .system)
     private let statusLabel = UILabel()
@@ -224,9 +234,9 @@ final class LidarBotController: UIViewController {
     private func showRunning() {
         let running = behaviour != nil
         var config = startButton.configuration
-        config?.title = L10n.string(running ? "lidarbot_stop" : "lidarbot_start")
         config?.baseBackgroundColor = running ? .systemRed : UIColor(red: 0.29, green: 0.48, blue: 1, alpha: 1)
         startButton.configuration = config
+        startButton.setIcon(running ? "stop.fill" : "play.fill", label: L10n.string(running ? "lidarbot_stop" : "lidarbot_start"), pointSize: 28)
         if !running { statusLabel.text = "" }
     }
 

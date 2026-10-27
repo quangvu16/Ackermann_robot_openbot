@@ -1,5 +1,6 @@
 package org.openbot.app.robot.main;
 
+import org.openbot.app.robot.common.IconButtons;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
@@ -159,7 +160,9 @@ public class MainFragment extends Fragment implements OnItemClickListener<SubCat
 
   private void showMore(boolean open) {
     binding.list.setVisibility(open ? View.VISIBLE : View.GONE);
-    binding.moreButton.setText(open ? R.string.dash_more_hide : R.string.dash_more_show);
+    IconButtons.set(binding.moreButton,
+        open ? R.drawable.ic_btn_expand_less : R.drawable.ic_btn_expand_more,
+        open ? R.string.dash_more_hide : R.string.dash_more_show);
   }
 
   private boolean usesBluetooth(Vehicle vehicle) {

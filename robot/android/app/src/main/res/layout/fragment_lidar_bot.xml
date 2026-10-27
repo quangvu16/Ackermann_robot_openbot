@@ -66,35 +66,75 @@
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="52dp"
-                    android:text="@string/lidarbot_patrol" />
+                    android:contentDescription="@string/lidarbot_patrol"
+                    android:tooltipText="@string/lidarbot_patrol"
+                    app:icon="@drawable/ic_btn_repeat"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mode_follow"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="52dp"
-                    android:text="@string/lidarbot_follow" />
+                    android:contentDescription="@string/lidarbot_follow"
+                    android:tooltipText="@string/lidarbot_follow"
+                    app:icon="@drawable/ic_btn_directions_walk"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mode_avoid"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="52dp"
-                    android:text="@string/lidarbot_avoid" />
+                    android:contentDescription="@string/lidarbot_avoid"
+                    android:tooltipText="@string/lidarbot_avoid"
+                    app:icon="@drawable/ic_btn_alt_route"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mode_track"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="52dp"
-                    android:text="@string/lidarbot_track" />
+                    android:contentDescription="@string/lidarbot_track"
+                    android:tooltipText="@string/lidarbot_track"
+                    app:icon="@drawable/ic_btn_track_changes"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/mode_warn"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="52dp"
-                    android:text="@string/lidarbot_warn" />
+                    android:contentDescription="@string/lidarbot_warn"
+                    android:tooltipText="@string/lidarbot_warn"
+                    app:icon="@drawable/ic_btn_warning"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconSize="24dp"
+                    android:minWidth="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
         </HorizontalScrollView>
 
@@ -112,10 +152,17 @@
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_marginTop="10dp"
-            android:text="@string/lidarbot_start"
-            android:textSize="18sp"
+            android:contentDescription="@string/lidarbot_start"
+            android:tooltipText="@string/lidarbot_start"
             app:backgroundTint="@color/openBotBlue"
-            app:cornerRadius="14dp" />
+            app:cornerRadius="14dp"
+            app:icon="@drawable/ic_btn_play_arrow"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="32dp"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
 
         <TextView
             android:id="@+id/status"

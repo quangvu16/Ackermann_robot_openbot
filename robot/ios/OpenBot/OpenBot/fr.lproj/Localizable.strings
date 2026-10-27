@@ -402,3 +402,5 @@
 "setup_off" = "Éteint";
 "setup_test_note" = "Testez roues levées. Chaque test dure environ 1 s, puis la voiture s'arrête et se remet droite.";
 "setup_lidar" = "LiDAR";
+"gps_nav_pause" = "Pause";
+"gps_nav_resume" = "Reprendre";

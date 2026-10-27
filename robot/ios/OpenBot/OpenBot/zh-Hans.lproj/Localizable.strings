@@ -402,3 +402,5 @@
 "setup_off" = "关";
 "setup_test_note" = "请把车轮架空测试。每次测试约 1 秒，之后小车会自动停下并回正。";
 "setup_lidar" = "激光雷达";
+"gps_nav_pause" = "暂停";
+"gps_nav_resume" = "继续";

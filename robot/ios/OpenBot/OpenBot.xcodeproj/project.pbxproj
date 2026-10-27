@@ -103,6 +103,7 @@
 		66AC721729B885410022108A /* FreeRoamController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AC720229B885410022108A /* FreeRoamController.swift */; };
 		66AC721929B885C70022108A /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AC721829B885C70022108A /* Navigation.swift */; };
 		66B3C59C2A1D673D0079BC16 /* UIButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66B3C59B2A1D673D0079BC16 /* UIButton.swift */; };
+		DD1C0A000000000000000001 /* IconButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC1C0A000000000000000001 /* IconButton.swift */; };
 		66E7A02C297697BE00283ED6 /* DetectorFloatYoloV5.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66E7A02B297697BE00283ED6 /* DetectorFloatYoloV5.swift */; };
 		67165015F4D1203C2A1A0A89 /* Pods_OpenBotTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D8F8740E0AB9219D371A47C /* Pods_OpenBotTests.framework */; };
 		727D30039B9108BC587A820E /* ServerWebrtcDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727D37C7F3414E19F505AB0C /* ServerWebrtcDelegates.swift */; };
@@ -286,6 +287,7 @@
 		66AC720229B885410022108A /* FreeRoamController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FreeRoamController.swift; sourceTree = "<group>"; };
 		66AC721829B885C70022108A /* Navigation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
 		66B3C59B2A1D673D0079BC16 /* UIButton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIButton.swift; sourceTree = "<group>"; };
+		DC1C0A000000000000000001 /* IconButton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IconButton.swift; sourceTree = "<group>"; };
 		66E7A02B297697BE00283ED6 /* DetectorFloatYoloV5.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DetectorFloatYoloV5.swift; sourceTree = "<group>"; };
 		68C567D4A10DB39305F83C5E /* ko.lproj */ = {isa = PBXFileReference; explicitFileType = folder; includeInIndex = 1; path = ko.lproj; sourceTree = "<group>"; };
 		6D8F8740E0AB9219D371A47C /* Pods_OpenBotTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_OpenBotTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -414,6 +416,7 @@
 				660FACAE29BFEDE000223373 /* BlueDress */,
 				4FEF443C3B9B9931D5108052 /* Constants.swift */,
 				66B3C59B2A1D673D0079BC16 /* UIButton.swift */,
+				DC1C0A000000000000000001 /* IconButton.swift */,
 				4FEF4178D0A2805591A6A3A6 /* Strings.swift */,
 				727D3C4EBE89B9B6E537BE8B /* Device.swift */,
 				727D3946DB74E63117B32AF4 /* Dimension.swift */,
@@ -1439,6 +1442,7 @@
 				727D3B42755B3A6BF1C5202F /* Browser.swift in Sources */,
 				727D36915DB88577316D9C46 /* Connection.swift in Sources */,
 				66B3C59C2A1D673D0079BC16 /* UIButton.swift in Sources */,
+				DD1C0A000000000000000001 /* IconButton.swift in Sources */,
 				727D3E780CA6260A927019BD /* Client.swift in Sources */,
 				66AC720629B885410022108A /* PointGoalFragment.swift in Sources */,
 				6A00000000000000000000A3 /* GpsNavCore.swift in Sources */,

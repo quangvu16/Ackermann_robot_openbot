@@ -79,10 +79,17 @@
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:text="@string/dash_connect"
-                        android:textSize="16sp"
+                        android:contentDescription="@string/dash_connect"
+                        android:tooltipText="@string/dash_connect"
                         app:backgroundTint="@color/openBotBlue"
-                        app:cornerRadius="12dp" />
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_btn_link"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="32dp"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/car_connection_settings"
@@ -90,9 +97,18 @@
                         android:layout_width="wrap_content"
                         android:layout_height="56dp"
                         android:layout_marginStart="8dp"
-                        android:text="@string/dash_connection_settings"
+                        android:contentDescription="@string/dash_connection_settings"
+                        android:tooltipText="@string/dash_connection_settings"
                         android:textColor="@color/openBotBlue"
-                        app:cornerRadius="12dp" />
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_btn_settings"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="24dp"
+                        app:iconTint="@color/openBotBlue"
+                        android:minWidth="48dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp" />
                 </LinearLayout>
 
                 <!-- 2. Is the car ready? One glance at the sensors that matter. -->
@@ -159,9 +175,17 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:text="@string/dash_more_show"
+            android:contentDescription="@string/dash_more_show"
+            android:tooltipText="@string/dash_more_show"
             android:textColor="@color/openBotBlue"
-            android:textSize="16sp" />
+            app:icon="@drawable/ic_btn_expand_more"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="24dp"
+            app:iconTint="@color/openBotBlue"
+            android:minWidth="48dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/list"

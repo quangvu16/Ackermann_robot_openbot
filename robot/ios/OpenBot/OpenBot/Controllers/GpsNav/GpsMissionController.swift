@@ -28,6 +28,7 @@ final class GpsMissionController: UIViewController {
     private let modeLabel = UILabel()
     private let connectionIcon = UIImageView()
     private let togglePanelButton = UIButton(type: .system)
+    private var startPauseButton: UIButton?
     private let panelOpenKey = "gps_mission_panel_open"
 
     // MARK: - State
@@ -187,8 +188,9 @@ final class GpsMissionController: UIViewController {
         connectionIcon.accessibilityLabel = L10n.string("gps_panel_connection")
         connectionIcon.widthAnchor.constraint(equalToConstant: 24).isActive = true
         connectionIcon.heightAnchor.constraint(equalToConstant: 24).isActive = true
-        togglePanelButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        togglePanelButton.setTitleColor(Colors.gpsMissionColor, for: .normal)
+        var toggleConfig = UIButton.Configuration.plain()
+        toggleConfig.baseForegroundColor = Colors.gpsMissionColor
+        togglePanelButton.configuration = toggleConfig
         togglePanelButton.addTarget(self, action: #selector(togglePanel), for: .touchUpInside)
         togglePanelButton.setContentHuggingPriority(.required, for: .horizontal)
         togglePanelButton.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
@@ -203,9 +205,9 @@ final class GpsMissionController: UIViewController {
         buttonRow.spacing = 8
         buttonRow.distribution = .fillEqually
         buttonRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
-        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_start"), .startPause, filled: true))
-        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_stop"), .stop, filled: false))
-        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_rtl"), .returnHome, filled: false))
+        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_start"), "play.fill", .startPause, filled: true))
+        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_stop"), "stop.fill", .stop, filled: false))
+        buttonRow.addArrangedSubview(makeButton(L10n.string("gps_nav_rtl"), "house.fill", .returnHome, filled: false))
         stack.addArrangedSubview(buttonRow)
 
         // Data panel: readouts, warnings, planning tools. Hideable.
@@ -218,9 +220,9 @@ final class GpsMissionController: UIViewController {
         statusLabel.textColor = .secondaryLabel
         statusLabel.numberOfLines = 0
         let tools = UIStackView(arrangedSubviews: [
-            makeButton(L10n.string("gps_nav_add_wp"), .addWaypoint, filled: false),
-            makeButton(L10n.string("gps_nav_clear"), .clear, filled: false),
-            makeButton(L10n.string("gps_nav_files"), .files, filled: false),
+            makeButton(L10n.string("gps_nav_add_wp"), "mappin.and.ellipse", .addWaypoint, filled: false),
+            makeButton(L10n.string("gps_nav_clear"), "trash", .clear, filled: false),
+            makeButton(L10n.string("gps_nav_files"), "folder", .files, filled: false),
         ])
         tools.axis = .horizontal
         tools.spacing = 8
@@ -245,23 +247,19 @@ final class GpsMissionController: UIViewController {
         setPanelOpen(open, animated: false)
     }
 
-    private func makeButton(_ title: String, _ action: Action, filled: Bool) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title, for: .normal)
-        button.tag = action.rawValue
-        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
-        button.titleLabel?.adjustsFontSizeToFitWidth = true
-        button.titleLabel?.minimumScaleFactor = 0.7
-        button.layer.cornerRadius = 12
-        if filled {
-            button.backgroundColor = Colors.gpsMissionColor
-            button.setTitleColor(.white, for: .normal)
-        } else {
-            button.backgroundColor = .clear
-            button.layer.borderWidth = 1.5
-            button.layer.borderColor = Colors.gpsMissionColor.cgColor
-            button.setTitleColor(Colors.gpsMissionColor, for: .normal)
+    private func makeButton(_ title: String, _ symbol: String, _ action: Action, filled: Bool) -> UIButton {
+        var c: UIButton.Configuration = filled ? .filled() : .plain()
+        c.baseBackgroundColor = Colors.gpsMissionColor
+        c.baseForegroundColor = filled ? .white : Colors.gpsMissionColor
+        c.background.cornerRadius = 12
+        if !filled {
+            c.background.strokeColor = Colors.gpsMissionColor
+            c.background.strokeWidth = 1.5
         }
+        let button = UIButton(configuration: c)
+        button.setIcon(symbol, label: title, pointSize: filled ? 24 : 20)
+        button.tag = action.rawValue
+        if action == .startPause { startPauseButton = button }
         button.addTarget(self, action: #selector(buttonTapped(_:)), for: .touchUpInside)
         return button
     }
@@ -276,7 +274,7 @@ final class GpsMissionController: UIViewController {
 
     private func setPanelOpen(_ open: Bool, animated: Bool) {
         UserDefaults.standard.set(open, forKey: panelOpenKey)
-        togglePanelButton.setTitle(L10n.string(open ? "gps_panel_hide" : "gps_panel_show"), for: .normal)
+        togglePanelButton.setIcon(open ? "chevron.down" : "chevron.up", label: L10n.string(open ? "gps_panel_hide" : "gps_panel_show"))
         guard dataPanel.isHidden == open else { return }
         let change = {
             self.dataPanel.isHidden = !open
@@ -549,6 +547,10 @@ final class GpsMissionController: UIViewController {
     private func refreshHud() {
         let status = navigator.lastStatus
         modeLabel.text = navigator.isPaused ? L10n.string("gps_nav_paused") : L10n.string("gps_mode_\(navigator.mode.rawValue)")
+        let driving = navigator.isNavigating && !navigator.isPaused
+        startPauseButton?.setIcon(driving ? "pause.fill" : "play.fill",
+                                  label: L10n.string(driving ? "gps_nav_pause" : navigator.isNavigating ? "gps_nav_resume" : "gps_nav_start"),
+                                  pointSize: 24)
         connectionIcon.tintColor = isBluetoothConnected ? .systemGreen : .systemGray
         var parts: [String] = []
 
