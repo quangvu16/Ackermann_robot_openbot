@@ -7,6 +7,9 @@
 
   It reads the same SensorServer WebSocket API any script would:
     GET  /sensors                              list of {type, name}
+    GET  /camera.mjpg                          live camera (MJPEG), /camera.jpg one picture
+    WS   /control                              settings: phone sends {"screen","settings":[..],"camera"},
+                                               page sends {"set":"<key>","value":<value>}
     WS   /sensor/connect?type=<type>           one sensor
     WS   /gps                                  location
 -->
@@ -39,7 +42,30 @@
   button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--text);
            border-radius: 10px; padding: 8px 14px; cursor: pointer; min-height: 40px; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .top { display: grid; gap: 16px; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); align-items: start; }
+  @media (max-width: 860px) { .top { grid-template-columns: minmax(0, 1fr); } }
+  .camwrap { position: relative; margin-top: 10px; background: #000; border-radius: 10px; overflow: hidden;
+             aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; }
+  .camwrap img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .camwrap .msg { position: absolute; inset: auto 12px 12px 12px; color: #fff; background: rgba(0,0,0,.55);
+                  padding: 8px 10px; border-radius: 8px; margin: 0; }
+  .camwrap .msg:empty { display: none; }
+  .group { margin-top: 14px; }
+  .group h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 6px; }
+  .setting { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .setting:first-of-type { border-top: 0; }
+  .setting > .name { flex: 1 1 140px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; min-height: 36px; padding: 6px 12px; background: var(--card); }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .range { display: flex; align-items: center; gap: 8px; flex: 1 1 180px; }
+  .range input { flex: 1; accent-color: var(--accent); min-height: 32px; }
+  .range output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+  button.stop { width: 100%; min-height: 56px; font-size: 18px; font-weight: 700; color: #fff;
+                background: var(--bad); border-color: var(--bad); }
+  button.stop.resume { background: var(--ok); border-color: var(--ok); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
   .row { display: flex; align-items: center; gap: 10px; }
   .title { font-weight: 650; }
@@ -80,6 +106,30 @@
   <button id="pause" type="button">Pause</button>
 </header>
 <main>
+  <div class="top">
+    <section class="card" id="camera-card" aria-labelledby="cam-title">
+      <div class="row">
+        <span class="dot" id="cam-dot"></span>
+        <span class="title" id="cam-title">Camera</span>
+        <span class="type">/camera.mjpg</span>
+        <a id="snap" href="/camera.jpg" download="openbot.jpg" style="margin-left:auto">Snapshot</a>
+        <label class="switch" style="margin-left:8px"><input type="checkbox" id="cam-on" aria-label="Show camera"><span></span></label>
+      </div>
+      <div class="body">
+        <div class="camwrap"><img id="cam" alt="Live view from the phone camera"><p class="msg" id="cam-msg"></p></div>
+      </div>
+    </section>
+
+    <section class="card" id="settings-card" aria-labelledby="set-title">
+      <div class="row">
+        <span class="dot" id="set-dot"></span>
+        <span class="title" id="set-title">Settings</span>
+        <span class="type" id="screen-name"></span>
+      </div>
+      <div id="settings"><p class="msg">Connecting to the phone…</p></div>
+    </section>
+  </div>
+
   <section class="card" id="gps-card" aria-labelledby="gps-title">
     <div class="row">
       <span class="dot" id="gps-dot"></span>
@@ -135,24 +185,163 @@
   };
 
   // A WebSocket that reconnects every 2 s until closed on purpose.
-  function liveSocket(path, onMessage, onState) {
+  function liveSocket(path, onMessage, onState, ignorePause) {
     let ws = null, wanted = true, timer = null;
     function open() {
       onState("wait");
       ws = new WebSocket(wsBase + path);
       ws.onopen = () => { onState("ok"); if (path === "/gps") ws.send("getLastKnownLocation"); };
-      ws.onmessage = (e) => { if (!paused) onMessage(e.data); };
+      ws.onmessage = (e) => { if (ignorePause || !paused) onMessage(e.data); };
       ws.onclose = (e) => {
         onState(e.code >= 4000 ? "bad" : "wait", e.reason);
         if (wanted && e.code < 4000) timer = setTimeout(open, 2000);
       };
     }
     open();
-    return { close() { wanted = false; clearTimeout(timer); if (ws) ws.close(1000); } };
+    return {
+      close() { wanted = false; clearTimeout(timer); if (ws) ws.close(1000); },
+      send(text) { if (ws && ws.readyState === 1) ws.send(text); },
+    };
   }
 
   function setDot(el, state) { el.className = "dot " + (state || ""); }
   function fmt(v, d) { return Number.isFinite(v) ? v.toFixed(d) : "–"; }
+
+  // ---- Camera ----
+  const cam = { img: document.getElementById("cam"), dot: document.getElementById("cam-dot"),
+                msg: document.getElementById("cam-msg"), on: document.getElementById("cam-on"),
+                card: document.getElementById("camera-card"), reason: "" };
+  function showCamera(on) {
+    cam.card.classList.toggle("off", !on);
+    store.set("camera_on", on);
+    if (on) {
+      setDot(cam.dot, "wait");
+      cam.msg.textContent = cam.reason || "Opening the camera…";
+      cam.img.src = "/camera.mjpg?t=" + Date.now();
+    } else {
+      cam.img.removeAttribute("src"); // closes the stream, so the phone can close the camera
+      setDot(cam.dot, "");
+    }
+  }
+  cam.img.addEventListener("load", () => { setDot(cam.dot, "ok"); cam.msg.textContent = ""; });
+  cam.img.addEventListener("error", () => {
+    if (!cam.on.checked) return;
+    setDot(cam.dot, "bad");
+    cam.msg.textContent = cam.reason || "Camera stream stopped. Retrying…";
+    setTimeout(() => { if (cam.on.checked) cam.img.src = "/camera.mjpg?t=" + Date.now(); }, 2000);
+  });
+  cam.on.addEventListener("change", () => showCamera(cam.on.checked));
+  cam.on.checked = store.get("camera_on", true);
+  showCamera(cam.on.checked);
+
+  // ---- Settings (/control) ----
+  const settingsBox = document.getElementById("settings");
+  const setDotEl = document.getElementById("set-dot");
+  const controls = {}; // key -> {update(value), busy()}
+  let renderedKeys = "";
+  const control = liveSocket("/control", (text) => {
+    let st; try { st = JSON.parse(text); } catch (e) { return; }
+    document.getElementById("screen-name").textContent = st.screen || "";
+    cam.reason = st.camera || "";
+    if (cam.on.checked && cam.reason) { cam.msg.textContent = cam.reason; setDot(cam.dot, "bad"); }
+    const keys = (st.settings || []).map((s) => s.key + ":" + s.type + ":" + (s.max || "")).join("|");
+    if (keys !== renderedKeys) { renderSettings(st.settings || []); renderedKeys = keys; }
+    for (const s of st.settings || []) { const c = controls[s.key]; if (c && !c.busy()) c.update(s.value); }
+  }, (state) => {
+    setDot(setDotEl, state);
+    if (state !== "ok") { settingsBox.innerHTML = '<p class="msg">Connecting to the phone…</p>'; renderedKeys = ""; }
+  }, true);
+  function send(key, value) { control.send(JSON.stringify({ set: key, value: value })); }
+
+  function renderSettings(list) {
+    settingsBox.innerHTML = "";
+    for (const k in controls) delete controls[k];
+    if (!list.length) { settingsBox.innerHTML = '<p class="msg">No settings on this screen.</p>'; return; }
+    const groups = {};
+    for (const s of list) (groups[s.group] = groups[s.group] || []).push(s);
+    // Driving first: the STOP button should be the first thing under your thumb.
+    const order = Object.keys(groups).sort((x, y) => (y === "Driving") - (x === "Driving"));
+    for (const name of order) {
+      const g = document.createElement("div");
+      g.className = "group";
+      const h = document.createElement("h3");
+      h.textContent = name;
+      g.appendChild(h);
+      for (const s of groups[name]) g.appendChild(settingRow(s));
+      settingsBox.appendChild(g);
+    }
+  }
+
+  function settingRow(s) {
+    const row = document.createElement("div");
+    row.className = "setting";
+    if (s.type === "action") {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "stop";
+      let value = !!s.value;
+      const update = (v) => { value = !!v; b.textContent = s.options[value ? 1 : 0]; b.classList.toggle("resume", value); };
+      b.addEventListener("click", () => { send(s.key, !value); update(!value); });
+      update(value);
+      row.appendChild(b);
+      controls[s.key] = { update, busy: () => false };
+      return row;
+    }
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = s.label;
+    row.appendChild(name);
+    if (s.type === "bool") {
+      const label = document.createElement("label");
+      label.className = "switch";
+      label.innerHTML = '<input type="checkbox"><span></span>';
+      const input = label.querySelector("input");
+      input.setAttribute("aria-label", s.label);
+      input.checked = !!s.value;
+      input.addEventListener("change", () => send(s.key, input.checked));
+      row.appendChild(label);
+      controls[s.key] = { update: (v) => { input.checked = !!v; }, busy: () => false };
+    } else if (s.type === "choice") {
+      const seg = document.createElement("div");
+      seg.className = "seg";
+      seg.setAttribute("role", "group");
+      seg.setAttribute("aria-label", s.label);
+      const buttons = s.options.map((o) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = o;
+        b.addEventListener("click", () => { send(s.key, o); update(o); });
+        seg.appendChild(b);
+        return b;
+      });
+      const update = (v) => buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.textContent === v)));
+      update(s.value);
+      row.appendChild(seg);
+      controls[s.key] = { update, busy: () => false };
+    } else if (s.type === "range") {
+      const wrap = document.createElement("div");
+      wrap.className = "range";
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = s.min; input.max = s.max; input.step = s.step;
+      input.setAttribute("aria-label", s.label);
+      const out = document.createElement("output");
+      const decimals = String(s.step).includes(".") ? String(s.step).split(".")[1].length : 0;
+      const show = (v) => { out.textContent = Number(v).toFixed(decimals); };
+      input.value = s.value; show(s.value);
+      let dragging = false, last = 0;
+      input.addEventListener("input", () => {
+        dragging = true; show(input.value);
+        const now = Date.now();
+        if (now - last > 150) { last = now; send(s.key, Number(input.value)); }
+      });
+      input.addEventListener("change", () => { dragging = false; send(s.key, Number(input.value)); });
+      wrap.append(input, out);
+      row.appendChild(wrap);
+      controls[s.key] = { update: (v) => { input.value = v; show(v); }, busy: () => dragging };
+    }
+    return row;
+  }
 
   // ---- GPS ----
   const gps = { dot: document.getElementById("gps-dot"), msg: document.getElementById("gps-msg"), last: 0 };

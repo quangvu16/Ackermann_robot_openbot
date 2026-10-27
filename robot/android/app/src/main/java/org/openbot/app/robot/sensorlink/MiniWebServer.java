@@ -30,16 +30,34 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class MiniWebServer {
 
-  /** A plain HTTP answer. */
+  /** Writes a long-running response body, e.g. an MJPEG camera stream. Return to end it. */
+  public interface Streamer {
+    void stream(OutputStream out) throws IOException;
+  }
+
+  /** A plain HTTP answer, or a streamed one when {@code streamer} is set. */
   public static final class HttpResponse {
     final int status;
     final String contentType;
     final byte[] body;
+    final Streamer streamer;
 
     public HttpResponse(int status, String contentType, byte[] body) {
       this.status = status;
       this.contentType = contentType;
       this.body = body;
+      this.streamer = null;
+    }
+
+    private HttpResponse(String contentType, Streamer streamer) {
+      this.status = 200;
+      this.contentType = contentType;
+      this.body = new byte[0];
+      this.streamer = streamer;
+    }
+
+    public static HttpResponse stream(String contentType, Streamer streamer) {
+      return new HttpResponse(contentType, streamer);
     }
 
     public static HttpResponse text(int status, String contentType, String body) {
@@ -56,6 +74,7 @@ public abstract class MiniWebServer {
   private volatile ServerSocket serverSocket;
   private volatile boolean running;
   private final Set<Connection> connections = ConcurrentHashMap.newKeySet();
+  private final Set<Socket> streams = ConcurrentHashMap.newKeySet();
 
   protected MiniWebServer(int port) {
     this.port = port;
@@ -153,6 +172,16 @@ public abstract class MiniWebServer {
     for (Connection c : connections) {
       c.close(1001, "server stopped");
     }
+    for (Socket st : streams) {
+      try {
+        st.close();
+      } catch (IOException ignored) {
+      }
+    }
+  }
+
+  public boolean isRunning() {
+    return running;
   }
 
   public int getConnectionCount() {
@@ -212,7 +241,22 @@ public abstract class MiniWebServer {
       if (key == null || upgrade == null || !upgrade.equalsIgnoreCase("websocket")) {
         HttpResponse r = onHttpRequest(path);
         if (r == null) r = HttpResponse.text(404, "text/plain", "Not found\n");
-        writeHttp(out, r);
+        if (r.streamer != null) {
+          streams.add(socket);
+          try {
+            out.write(
+                ("HTTP/1.1 200 OK\r\nContent-Type: "
+                        + r.contentType
+                        + "\r\nCache-Control: no-store\r\nAccess-Control-Allow-Origin: *"
+                        + "\r\nConnection: close\r\n\r\n")
+                    .getBytes(StandardCharsets.US_ASCII));
+            r.streamer.stream(out);
+          } finally {
+            streams.remove(socket);
+          }
+        } else {
+          writeHttp(out, r);
+        }
         socket.close();
         return;
       }

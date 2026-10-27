@@ -42,6 +42,7 @@ import java.util.Locale;
 import org.openbot.app.robot.R;
 import org.openbot.app.robot.common.ControlsFragment;
 import org.openbot.app.robot.databinding.FragmentGpsNavigationBinding;
+import org.openbot.app.robot.sensorlink.OnDemandCamera;
 import org.openbot.app.robot.sensorlink.SensorLink;
 import org.openbot.app.robot.utils.Constants;
 import org.openbot.app.robot.utils.PermissionUtils;
@@ -252,6 +253,16 @@ public class GpsNavigationFragment extends ControlsFragment
     }
     requestLocationAndStart();
     SensorLink.get().addRemoteListener(remoteSensors);
+    // Opens the camera only while a browser watches it (Sensor link page).
+    if (browserCamera == null) browserCamera = new OnDemandCamera(requireContext(), this);
+    browserCamera.start();
+  }
+
+  private OnDemandCamera browserCamera;
+
+  @Override
+  protected String remoteScreenName() {
+    return "GPS Mission";
   }
 
   /** Sensor link client: GPS and compass from a SensorServer app on another phone. */
@@ -271,6 +282,7 @@ public class GpsNavigationFragment extends ControlsFragment
   @Override
   public void onPause() {
     SensorLink.get().removeRemoteListener(remoteSensors);
+    if (browserCamera != null) browserCamera.stop();
     // Never leave the wheels spinning while the screen is away.
     stopNavigation(R.string.gps_nav_status_idle);
     if (locationProvider != null) {

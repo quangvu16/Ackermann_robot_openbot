@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import org.jetbrains.annotations.NotNull;
 import org.openbot.app.robot.R;
+import org.openbot.app.robot.sensorlink.RemoteSettings;
 import org.openbot.app.robot.common.CameraFragment;
 import org.openbot.app.robot.databinding.FragmentObjectNavBinding;
 import org.openbot.app.robot.env.BorderedText;
@@ -604,6 +605,43 @@ public class ObjectNavFragment extends CameraFragment {
   private String[] getModelFiles() {
     return requireActivity().getFilesDir().list((dir1, name) -> name.endsWith(".tflite"));
   }
+
+  // region Browser settings (Sensor link page)
+
+  @Override
+  protected String remoteScreenName() {
+    return "Object Tracking";
+  }
+
+  @Override
+  protected void onRemoteSpeedMode(Enums.SpeedMode mode) {
+    setSpeedMode(mode);
+  }
+
+  @Override
+  protected void addScreenSettings(java.util.List<RemoteSettings.Setting> out) {
+    out.add(
+        RemoteSettings.Setting.range(
+            "tracking.confidence", "Object Tracking", "Detection confidence (%)", 5, 95, 5,
+            () -> Math.round(MINIMUM_CONFIDENCE_TF_OD_API * 100),
+            v -> {
+              int c = (int) Math.round((Double) v);
+              MINIMUM_CONFIDENCE_TF_OD_API = c / 100f;
+              if (binding != null) binding.confidenceValue.setText(c + "%");
+            }));
+    out.add(
+        RemoteSettings.Setting.bool(
+            "tracking.dynamicSpeed", "Object Tracking", "Slow down when the object is close",
+            () -> preferencesManager.getDynamicSpeed(),
+            v -> {
+              boolean on = (Boolean) v;
+              preferencesManager.setDynamicSpeed(on);
+              if (tracker != null) tracker.setDynamicSpeed(on);
+              if (binding != null) binding.dynamicSpeed.setChecked(on);
+            }));
+  }
+
+  // endregion
 
   private void setSpeedMode(Enums.SpeedMode speedMode) {
     if (speedMode != null) {

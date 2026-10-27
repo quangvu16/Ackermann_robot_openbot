@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.AspectRatio;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -29,13 +30,14 @@ import org.openbot.app.robot.R;
 import org.openbot.app.robot.env.ControllerToBotEventBus;
 import org.openbot.app.robot.env.ImageUtils;
 import org.openbot.app.robot.env.WebRtcServer;
+import org.openbot.app.robot.sensorlink.CameraHub;
 import org.openbot.app.robot.utils.Constants;
 import org.openbot.app.robot.utils.Enums;
 import org.openbot.app.robot.utils.PermissionUtils;
 import org.openbot.app.robot.utils.YuvToRgbConverter;
 import timber.log.Timber;
 
-public abstract class CameraFragment extends ControlsFragment {
+public abstract class CameraFragment extends ControlsFragment implements CameraHub.Owner {
 
   private ExecutorService cameraExecutor;
   private PreviewView previewView;
@@ -46,6 +48,8 @@ public abstract class CameraFragment extends ControlsFragment {
   private YuvToRgbConverter converter;
   private Bitmap bitmapBuffer;
   private int rotationDegrees;
+  /** The bound camera, for torch and zoom from the browser (Sensor link). */
+  private Camera boundCamera;
 
   protected View inflateFragment(int resId, LayoutInflater inflater, ViewGroup container) {
     return addCamera(inflater.inflate(resId, container, false), inflater, container);
@@ -167,7 +171,11 @@ public abstract class CameraFragment extends ControlsFragment {
       if (cameraProvider != null) {
         cameraProvider.unbindAll();
         WebRtcServer.setLocalPreviewActive(this, true, this::switchCameraForController);
-        cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+        boundCamera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+        if (isResumed()) {
+          CameraHub.get().setOwner(this);
+          CameraHub.get().reapply(this);
+        }
       }
     } catch (Exception e) {
       Timber.e("Use case binding failed: %s", e.toString());
@@ -186,6 +194,7 @@ public abstract class CameraFragment extends ControlsFragment {
       rotationDegrees = image.getImageInfo().getRotationDegrees();
       converter.yuvToRgb(image.getImage(), bitmapBuffer);
       WebRtcServer.onLocalPreviewFrame(image);
+      CameraHub.get().offerFrame(bitmapBuffer, rotationDegrees);
       processFrame(bitmapBuffer, image);
     } finally {
       image.close();
@@ -209,6 +218,60 @@ public abstract class CameraFragment extends ControlsFragment {
 
             }
           });
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    if (boundCamera != null) {
+      CameraHub.get().setOwner(this);
+      CameraHub.get().reapply(this);
+    }
+  }
+
+  @Override
+  public synchronized void onPause() {
+    CameraHub.get().clearOwner(this);
+    super.onPause();
+  }
+
+  // region CameraHub.Owner: camera settings from the browser page (main thread)
+
+  @Override
+  public boolean isFront() {
+    return lensFacing == CameraSelector.LENS_FACING_FRONT;
+  }
+
+  @Override
+  public void applyFacing(boolean front) {
+    if (front != isFront() && cameraProvider != null) toggleCamera();
+  }
+
+  @Override
+  public void applyTorch(boolean on) {
+    if (boundCamera != null && boundCamera.getCameraInfo().hasFlashUnit()) {
+      boundCamera.getCameraControl().enableTorch(on);
+    }
+  }
+
+  @Override
+  public void applyZoom(float ratio) {
+    if (boundCamera != null) boundCamera.getCameraControl().setZoomRatio(ratio);
+  }
+
+  @Override
+  public float maxZoom() {
+    if (boundCamera == null || boundCamera.getCameraInfo().getZoomState().getValue() == null) {
+      return 1f;
+    }
+    return boundCamera.getCameraInfo().getZoomState().getValue().getMaxZoomRatio();
+  }
+
+  @Override
+  public boolean hasFlash() {
+    return boundCamera == null || boundCamera.getCameraInfo().hasFlashUnit();
+  }
+
+  // endregion
 
   @Override
   public void onDestroy() {

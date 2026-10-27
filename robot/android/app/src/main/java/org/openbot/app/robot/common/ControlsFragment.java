@@ -32,6 +32,7 @@ import org.openbot.app.robot.env.ControllerToBotEventBus;
 import org.openbot.app.robot.env.PhoneController;
 import org.openbot.app.robot.env.SharedPreferencesManager;
 import org.openbot.app.robot.main.MainViewModel;
+import org.openbot.app.robot.sensorlink.RemoteSettings;
 import org.openbot.app.robot.sensorlink.SensorLink;
 import org.openbot.app.robot.sensorlink.SensorLinkDialog;
 import org.openbot.app.robot.server.ServerCommunication;
@@ -502,6 +503,7 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     if (sensorLinkStatusView != null && !sensorLinkAttached) {
       sensorLinkAttached = true;
       SensorLink.get().addStatusListener(sensorLinkStatusListener);
+      SensorLink.get().setScreen(remoteScreenName(), browserSettings);
       SensorLink.get().attach(requireContext());
       refreshSensorLinkStatus();
     }
@@ -527,6 +529,7 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     if (sensorLinkAttached) {
       sensorLinkAttached = false;
       SensorLink.get().removeStatusListener(sensorLinkStatusListener);
+      SensorLink.get().clearScreen(browserSettings);
       SensorLink.get().detach();
     }
     if (vehicle != null) {
@@ -560,6 +563,8 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
     vehicle.setObjectAvoidanceMargin(preferencesManager.getObjectAvoidanceMargin());
     vehicle.setObjectAvoidanceBackupSpeed(preferencesManager.getObjectAvoidanceBackup());
     toggle.setChecked(vehicle.isObjectAvoidanceEnabled());
+    avoidToggleRef = toggle;
+    avoidStatusRef = status;
     toggle.setOnClickListener(
         v -> {
           boolean enabled = toggle.isChecked();
@@ -575,6 +580,74 @@ public abstract class ControlsFragment extends Fragment implements ServerListene
 
   private TextView sensorLinkStatusView;
   private boolean sensorLinkAttached;
+  private CheckBox avoidToggleRef;
+  private TextView avoidStatusRef;
+
+  // region Browser settings (Sensor link page, server mode)
+
+  /** The name shown at the top of the browser page. */
+  protected String remoteScreenName() {
+    return getClass().getSimpleName();
+  }
+
+  /** Screens add their own settings here (e.g. tracking confidence). Main thread. */
+  protected void addScreenSettings(java.util.List<RemoteSettings.Setting> out) {}
+
+  /** Speed mode chosen in the browser; screens with a speed icon override to update it. */
+  protected void onRemoteSpeedMode(Enums.SpeedMode mode) {
+    preferencesManager.setSpeedMode(mode.getValue());
+    if (vehicle != null) vehicle.setSpeedMultiplier(mode.getValue());
+  }
+
+  private static final java.util.List<String> SPEEDS = java.util.Arrays.asList("slow", "normal", "fast");
+
+  /** Driving settings every driving screen offers, then the screen's own. */
+  private final RemoteSettings.Provider browserSettings =
+      out -> {
+        if (vehicle != null) {
+          out.add(
+              RemoteSettings.Setting.action(
+                  "drive.stop", "Driving", "Emergency stop", "STOP", "RESUME",
+                  () -> vehicle.getEmergencyStop().isLatched(),
+                  v -> {
+                    if ((Boolean) v) vehicle.getEmergencyStop().latch();
+                    else vehicle.getEmergencyStop().release();
+                    vehicle.sendControl();
+                  }));
+          out.add(
+              RemoteSettings.Setting.choice(
+                  "drive.speed", "Driving", "Speed mode", SPEEDS,
+                  () -> {
+                    Enums.SpeedMode m = Enums.SpeedMode.getByID(preferencesManager.getSpeedMode());
+                    return m == null ? "normal" : m.name().toLowerCase(java.util.Locale.ROOT);
+                  },
+                  v -> onRemoteSpeedMode(Enums.SpeedMode.valueOf(((String) v).toUpperCase(java.util.Locale.ROOT)))));
+          out.add(
+              RemoteSettings.Setting.bool(
+                  "drive.avoidance", "Driving", "Object avoidance",
+                  () -> vehicle.isObjectAvoidanceEnabled(),
+                  v -> {
+                    boolean on = (Boolean) v;
+                    vehicle.setObjectAvoidanceEnabled(on);
+                    preferencesManager.setObjectAvoidanceEnabled(on);
+                    vehicle.sendControl();
+                    if (avoidToggleRef != null) avoidToggleRef.setChecked(on);
+                    refreshObjectAvoidanceStatus(avoidStatusRef);
+                  }));
+          out.add(
+              RemoteSettings.Setting.range(
+                  "drive.avoidanceMargin", "Driving", "Avoidance distance (m)", 0.3, 3.0, 0.1,
+                  () -> preferencesManager.getObjectAvoidanceMargin(),
+                  v -> {
+                    float m = ((Double) v).floatValue();
+                    preferencesManager.setObjectAvoidanceMargin(m);
+                    vehicle.setObjectAvoidanceMargin(m);
+                  }));
+        }
+        addScreenSettings(out);
+      };
+
+  // endregion
   private final Runnable sensorLinkStatusListener = this::refreshSensorLinkStatus;
 
   /**

@@ -528,6 +528,16 @@ public class AutopilotFragment extends CameraFragment {
     }
   }
 
+  @Override
+  protected String remoteScreenName() {
+    return "Autopilot";
+  }
+
+  @Override
+  protected void onRemoteSpeedMode(Enums.SpeedMode mode) {
+    setSpeedMode(mode);
+  }
+
   private void setSpeedMode(Enums.SpeedMode speedMode) {
     if (speedMode != null && !binding.autoSwitch.isChecked()) {
       switch (speedMode) {

@@ -62,7 +62,30 @@ public final class SensorLink {
   private float remoteAccuracy = Float.NaN;
   private long remoteFixAtMs;
 
-  private SensorLink() {}
+  // Browser settings: the camera everywhere, plus whatever the open screen adds.
+  private final RemoteSettings remoteSettings = new RemoteSettings();
+  private volatile String screenName = "OpenBot";
+  private RemoteSettings.Provider screenProvider;
+
+  private SensorLink() {
+    remoteSettings.addProvider(CameraHub.get());
+  }
+
+  /** The open screen's settings for the browser page (driving, tracking...). Main thread. */
+  public void setScreen(String name, RemoteSettings.Provider provider) {
+    if (screenProvider != null) remoteSettings.removeProvider(screenProvider);
+    screenName = name;
+    screenProvider = provider;
+    if (provider != null) remoteSettings.addProvider(provider);
+  }
+
+  public void clearScreen(RemoteSettings.Provider provider) {
+    if (screenProvider == provider && provider != null) {
+      remoteSettings.removeProvider(provider);
+      screenProvider = null;
+      screenName = "OpenBot";
+    }
+  }
 
   public void attach(Context context) {
     attachCount++;
@@ -167,7 +190,9 @@ public final class SensorLink {
                     notifyStatus();
                   });
                 }
-              });
+              },
+              remoteSettings,
+              () -> screenName);
       server.start();
     } else if (settings.mode == SensorLinkSettings.Mode.CLIENT) {
       String base = SensorLinkProtocol.baseUrl(settings.address);

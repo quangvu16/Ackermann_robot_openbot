@@ -34,7 +34,7 @@ import timber.log.Timber;
  * <p>Sensors are only switched on while someone is connected to them, and off again when the last
  * client leaves, so an idle server costs no battery.
  */
-final class SensorLinkServer extends MiniWebServer {
+final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Provider {
 
   interface Callback {
     void onServerStarted();
@@ -70,16 +70,34 @@ final class SensorLinkServer extends MiniWebServer {
     }
   }
 
+  // Browser control (/control WebSocket): settings for camera, driving and sensors.
+  private final RemoteSettings remoteSettings;
+  private final ScreenName screenName;
+  private final Handler main = new Handler(android.os.Looper.getMainLooper());
+  private final Set<Connection> controlClients = new CopyOnWriteArraySet<>();
+  private final Runnable pushState = this::pushStateNow;
+  private volatile String sensorRate = "game";
+  static final java.util.List<String> SENSOR_RATES = java.util.Arrays.asList("ui", "game", "fastest");
+
+  /** The name of the screen that has the link open, for the page header. */
+  interface ScreenName {
+    String get();
+  }
+
   private final Map<String, TypeListener> listeners = new HashMap<>(); // guarded by this
   private final Set<Connection> clients = new CopyOnWriteArraySet<>();
   private final Set<Connection> gpsClients = new CopyOnWriteArraySet<>();
   private LocationCallback locationCallback; // guarded by this
   private volatile Location lastLocation;
 
-  SensorLinkServer(Context context, int port, Callback callback) {
+  SensorLinkServer(
+      Context context, int port, Callback callback, RemoteSettings remoteSettings, ScreenName screenName) {
     super(port);
     this.context = context.getApplicationContext();
     this.callback = callback;
+    this.remoteSettings = remoteSettings;
+    this.screenName = screenName;
+    remoteSettings.addProvider(this);
     this.sensorManager = (SensorManager) this.context.getSystemService(Context.SENSOR_SERVICE);
     this.locationClient = LocationServices.getFusedLocationProviderClient(this.context);
     sensorThread.start();
@@ -88,6 +106,8 @@ final class SensorLinkServer extends MiniWebServer {
 
   /** Stops the server and every sensor it switched on. Safe to call more than once. */
   void shutdown() {
+    remoteSettings.removeProvider(this);
+    main.removeCallbacks(pushState);
     stop();
     synchronized (this) {
       if (sensorManager != null) {
@@ -128,6 +148,10 @@ final class SensorLinkServer extends MiniWebServer {
             : new HttpResponse(200, "text/html; charset=utf-8", page);
       case "/sensors":
         return HttpResponse.text(200, "application/json", sensorListJson());
+      case "/camera.mjpg":
+        return HttpResponse.stream("multipart/x-mixed-replace; boundary=frame", this::streamCamera);
+      case "/camera.jpg":
+        return snapshot();
       default:
         return null;
     }
@@ -169,10 +193,126 @@ final class SensorLinkServer extends MiniWebServer {
 
   // endregion
 
+  // region Camera over HTTP
+
+  /** MJPEG: one JPEG part per frame until the browser goes away or the server stops. */
+  private void streamCamera(java.io.OutputStream out) throws IOException {
+    CameraHub hub = CameraHub.get();
+    hub.addViewer();
+    try {
+      long[] seq = {0};
+      while (isRunning()) {
+        byte[] jpeg;
+        try {
+          jpeg = hub.awaitFrame(seq[0], 1000, seq);
+        } catch (InterruptedException e) {
+          return;
+        }
+        if (jpeg == null) continue;
+        out.write(
+            ("--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + jpeg.length + "\r\n\r\n")
+                .getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        out.write(jpeg);
+        out.write("\r\n".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        out.flush();
+      }
+    } finally {
+      hub.removeViewer();
+    }
+  }
+
+  private HttpResponse snapshot() {
+    CameraHub hub = CameraHub.get();
+    hub.addViewer();
+    try {
+      byte[] jpeg = hub.awaitFrame(0, 4000, new long[1]);
+      if (jpeg != null) return new HttpResponse(200, "image/jpeg", jpeg);
+      String why = hub.getUnavailableReason();
+      return HttpResponse.text(503, "text/plain", (why == null ? "No camera picture yet" : why) + "\n");
+    } catch (InterruptedException e) {
+      return HttpResponse.text(503, "text/plain", "Interrupted\n");
+    } finally {
+      hub.removeViewer();
+    }
+  }
+
+  // endregion
+
+  // region Browser control: /control WebSocket
+
+  private void openControl(Connection conn) {
+    controlClients.add(conn);
+    main.post(pushState);
+  }
+
+  /** Settings state for every control client; repeats every 2 s so phone-side changes show too. */
+  private void pushStateNow() {
+    main.removeCallbacks(pushState);
+    if (controlClients.isEmpty() || !isRunning()) return;
+    String state = stateJson();
+    for (Connection c : controlClients) c.send(state);
+    main.postDelayed(pushState, 2000);
+  }
+
+  private String stateJson() {
+    String base = remoteSettings.stateJson(screenName.get());
+    String why = CameraHub.get().getUnavailableReason();
+    // Append the camera status: {"screen":..,"settings":[..],"camera":"<reason or empty>"}
+    return base.substring(0, base.length() - 1)
+        + ",\"camera\":\""
+        + SensorLinkProtocol.escapeJson(why == null ? "" : why)
+        + "\"}";
+  }
+
+  private void handleControl(String message) {
+    main.post(
+        () -> {
+          remoteSettings.apply(message);
+          pushStateNow();
+        });
+  }
+
+  /** Sensor-link settings: how fast sensors report. */
+  @Override
+  public void addSettings(java.util.List<RemoteSettings.Setting> out) {
+    out.add(
+        RemoteSettings.Setting.choice(
+            "sensors.rate", "Sensors", "Sensor speed (ui ≈ 15/s, game ≈ 50/s, fastest)", SENSOR_RATES,
+            () -> sensorRate,
+            v -> setSensorRate((String) v)));
+  }
+
+  private int sensorDelay() {
+    switch (sensorRate) {
+      case "ui":
+        return SensorManager.SENSOR_DELAY_UI;
+      case "fastest":
+        return SensorManager.SENSOR_DELAY_FASTEST;
+      default:
+        return SensorManager.SENSOR_DELAY_GAME;
+    }
+  }
+
+  private synchronized void setSensorRate(String rate) {
+    if (rate.equals(sensorRate)) return;
+    sensorRate = rate;
+    for (TypeListener l : listeners.values()) {
+      Sensor sensor = findSensor(l.type);
+      sensorManager.unregisterListener(l);
+      if (sensor != null) sensorManager.registerListener(l, sensor, sensorDelay(), sensorHandler);
+    }
+  }
+
+  // endregion
+
   // region WebSocket: SensorServer API
 
   @Override
   protected void onOpen(Connection conn, String path) {
+    if (path.equals("/control") || path.startsWith("/control?")) {
+      openControl(conn);
+      return;
+    }
     SensorLinkProtocol.Request request = SensorLinkProtocol.parse(path);
     switch (request.kind) {
       case GPS:
@@ -213,6 +353,7 @@ final class SensorLinkServer extends MiniWebServer {
 
   @Override
   protected void onClose(Connection conn) {
+    controlClients.remove(conn);
     if (!clients.remove(conn)) return;
     synchronized (this) {
       if (gpsClients.remove(conn) && gpsClients.isEmpty()) stopGpsLocked();
@@ -230,6 +371,10 @@ final class SensorLinkServer extends MiniWebServer {
 
   @Override
   protected void onMessage(Connection conn, String message) {
+    if (controlClients.contains(conn)) {
+      handleControl(message);
+      return;
+    }
     if (gpsClients.contains(conn)
         && SensorLinkProtocol.GET_LAST_KNOWN_LOCATION.equals(message.trim())) {
       Location l = lastLocation;
@@ -257,7 +402,7 @@ final class SensorLinkServer extends MiniWebServer {
       if (sensor == null) return;
       l = new TypeListener(type);
       listeners.put(type, l);
-      sensorManager.registerListener(l, sensor, SensorManager.SENSOR_DELAY_GAME, sensorHandler);
+      sensorManager.registerListener(l, sensor, sensorDelay(), sensorHandler);
     }
     l.clients.add(conn);
   }
