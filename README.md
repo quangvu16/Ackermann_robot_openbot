@@ -8,6 +8,7 @@ An off-road 4WD car with Ackermann steering, controlled by an ESP32-S3 and drive
 
 | Guide | What it covers |
 |---|---|
+| [Install guide](docs/INSTALL_GUIDE.md) | Start here: flash the ESP32-S3, install on Android and iPhone, first settings, upload to GitHub |
 | [Firmware guide](docs/FIRMWARE_GUIDE.md) | Wiring, Arduino settings, flashing, first power-on checks, calibration, commands, safety |
 | [App guide](docs/APPS_GUIDE.md) | Android, iOS and Linux apps: connecting, GPS missions, LiDAR plan view, avoidance |
 | [Pinout and wiring map](docs/ESP32S3_PINOUT.svg) | Every GPIO the firmware uses, the phone link, power, and pins to avoid |
