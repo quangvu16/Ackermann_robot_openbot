@@ -151,6 +151,7 @@ final class CarDashboardView: UIView {
     var onDrive: (() -> Void)?
     var onMission: (() -> Void)?
     var onSetup: (() -> Void)?
+    var onLidar: (() -> Void)?
     var onToggleMore: (() -> Void)?
 
     private static let green = UIColor(red: 0x2E / 255, green: 0x7D / 255, blue: 0x32 / 255, alpha: 1)
@@ -266,6 +267,9 @@ final class CarDashboardView: UIView {
                                           title: "dash_drive_title", detail: "dash_drive_desc", action: #selector(driveTapped)))
         stack.addArrangedSubview(makeTile(icon: Images.gpsMissionIcon, color: Colors.gpsMissionColor,
                                           title: "dash_mission_title", detail: "dash_mission_desc", action: #selector(missionTapped)))
+        stack.addArrangedSubview(makeTile(icon: UIImage(systemName: "dot.radiowaves.left.and.right"),
+                                          color: UIColor(red: 0.49, green: 0.34, blue: 0.76, alpha: 1),
+                                          title: "lidarbot_title", detail: "lidarbot_desc", action: #selector(lidarTapped)))
         stack.addArrangedSubview(makeTile(icon: Images.robotInfoIcon, color: Self.blue,
                                           title: "dash_setup_title", detail: "dash_setup_desc", action: #selector(setupTapped)))
 
@@ -380,6 +384,7 @@ final class CarDashboardView: UIView {
     @objc private func driveTapped() { onDrive?() }
     @objc private func missionTapped() { onMission?() }
     @objc private func setupTapped() { onSetup?() }
+    @objc private func lidarTapped() { onLidar?() }
     @objc private func moreTapped() { onToggleMore?() }
 
     @objc private func avoidTapped() {

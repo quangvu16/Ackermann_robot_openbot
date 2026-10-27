@@ -148,6 +148,9 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
         dashboard.onDrive = { [weak self] in self?.openScreen(Strings.ScreenFreeRoam) }
         dashboard.onMission = { [weak self] in self?.openScreen(Strings.ScreenGpsMission) }
         dashboard.onSetup = { [weak self] in self?.openScreen(Strings.ScreenRobotInfo) }
+        dashboard.onLidar = { [weak self] in
+            self?.navigationController?.pushViewController(LidarBotController(), animated: true)
+        }
         dashboard.onToggleMore = { [weak self] in
             guard let self = self else { return }
             self.showMore.toggle()

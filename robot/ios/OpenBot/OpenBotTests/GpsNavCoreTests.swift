@@ -614,3 +614,52 @@ final class SensorLinkProtocolTests: XCTestCase {
         XCTAssertEqual(SensorLinkProtocol.heading(fromRotationMatrix: east), 90, accuracy: 1e-6)
     }
 }
+
+/// LiDAR robot behaviours, same cases as LidarBehaviorsTest.java.
+final class LidarBehaviorsTests: XCTestCase {
+    private func scan(_ from: Int, _ to: Int, _ mm: Int) -> [Int] {
+        var r = [Int](repeating: 5000, count: 360)
+        if from <= to { for i in from...to { r[(i + 360) % 360] = mm } }
+        return r
+    }
+
+    private func run(_ mode: LidarBehaviors.Mode, _ ranges: [Int]) -> LidarBehaviors.Decision {
+        LidarBehaviors(mode: mode, params: .defaults(mode)).step(LidarBehaviors.fromScan(ranges, minRange: 0.15), now: 0)
+    }
+
+    func testAnglesArePositiveLeft() {
+        let p = LidarBehaviors.fromScan([0, 0, 0, 1000], minRange: 0.1)
+        XCTAssertEqual(p.count, 1)
+        XCTAssertEqual(p.angleDeg[0], 45, accuracy: 1e-9)
+    }
+
+    func testAvoidance() {
+        XCTAssertEqual(run(.avoid, scan(0, -1, 5000)).mood, .happy)
+        let right = run(.avoid, scan(25, 40, 600))
+        XCTAssertGreaterThan(right.steer, 0)
+        let boxed = run(.avoid, scan(-45, 45, 400))
+        XCTAssertEqual(boxed.mood, .scared)
+        XCTAssertLessThan(boxed.throttle, 0)
+    }
+
+    func testFollowerAndWarning() {
+        XCTAssertGreaterThan(run(.follow, scan(-3, 3, 1200)).throttle, 0)
+        XCTAssertLessThan(run(.follow, scan(-3, 3, 300)).throttle, 0)
+        XCTAssertEqual(run(.follow, scan(0, -1, 5000)).mood, .searching)
+        let close = run(.warn, scan(-2, 2, 400))
+        XCTAssertTrue(close.alarm)
+        XCTAssertEqual(close.throttle, 0)
+    }
+
+    func testNoLidarStops() {
+        let d = LidarBehaviors(mode: .patrol, params: .defaults(.patrol)).step(nil, now: 0)
+        XCTAssertEqual(d.mood, .blind)
+        XCTAssertEqual(d.throttle, 0)
+    }
+
+    func testWheelsMix() {
+        let w = LidarBehaviors.toWheels(throttle: 0.4, steer: 1)
+        XCTAssertEqual(w.left + w.right, 0.4, accuracy: 1e-9)
+        XCTAssertLessThan(w.left, w.right)
+    }
+}
