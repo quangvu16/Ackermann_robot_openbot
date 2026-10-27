@@ -46,7 +46,16 @@
         <action
             android:id="@+id/action_mainFragment_to_lidarBotFragment"
             app:destination="@id/lidarBotFragment" />
+        <action
+            android:id="@+id/action_mainFragment_to_slamFragment"
+            app:destination="@id/slamFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/slamFragment"
+        android:name="org.openbot.app.robot.slam.SlamFragment"
+        android:label="@string/slam_title"
+        tools:layout="@layout/fragment_slam" />
 
     <fragment
         android:id="@+id/lidarBotFragment"

@@ -268,4 +268,27 @@
     <string name="lidarbot_mood_worried">조심…</string>
     <string name="lidarbot_mood_scared">너무 가까워요!</string>
     <string name="lidarbot_mood_blind">보이지 않아요</string>
+    <string name="slam_title">실내 SLAM</string>
+    <string name="slam_desc">LiDAR로 방 지도를 만들고 지도를 눌러 그곳으로 이동합니다.</string>
+    <string name="slam_mode_map">지도 만들기</string>
+    <string name="slam_mode_localize">위치만 추정</string>
+    <string name="slam_explore">탐색</string>
+    <string name="slam_stop">정지</string>
+    <string name="slam_cancel">목표 취소</string>
+    <string name="slam_save">지도 저장</string>
+    <string name="slam_load">지도 불러오기</string>
+    <string name="slam_clear">지도 지우기</string>
+    <string name="slam_export">ROS용 내보내기</string>
+    <string name="slam_layer_map">지도</string>
+    <string name="slam_layer_scan">스캔</string>
+    <string name="slam_layer_path">경로</string>
+    <string name="slam_layer_trail">궤적</string>
+    <string name="slam_center">가운데</string>
+    <string name="slam_needs_scan">SLAM에는 전체 LiDAR 스캔이 필요합니다: USB(Android)로 연결하거나 차량 Wi-Fi에 접속하세요.</string>
+    <string name="slam_saved">지도를 저장했습니다</string>
+    <string name="slam_loaded">지도를 불러왔습니다. 차량이 지금 있는 곳을 길게 누르세요.</string>
+    <string name="slam_no_saved">저장된 지도가 없습니다</string>
+    <string name="slam_pose_set">차량 위치를 지정했습니다</string>
+    <string name="slam_status">%1$s · 일치 %2$d%% · 스캔 %3$d회</string>
+    <string name="slam_help">지도 만들기: 방을 천천히 한 바퀴 돕니다(RC 송신기, 게임 컨트롤러, 탐색). 그다음 지도를 눌러 차량을 보냅니다. 길게 누르면 차량 위치 지정, 두 번 누르면 차량 따라가기.</string>
 </resources>

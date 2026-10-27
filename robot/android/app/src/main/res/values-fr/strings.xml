@@ -268,4 +268,27 @@
     <string name="lidarbot_mood_worried">Attention…</string>
     <string name="lidarbot_mood_scared">Trop près !</string>
     <string name="lidarbot_mood_blind">Je ne vois rien</string>
+    <string name="slam_title">SLAM intérieur</string>
+    <string name="slam_desc">Cartographiez une pièce au LiDAR, puis touchez la carte pour y aller.</string>
+    <string name="slam_mode_map">Créer la carte</string>
+    <string name="slam_mode_localize">Localiser seulement</string>
+    <string name="slam_explore">Explorer</string>
+    <string name="slam_stop">Arrêter</string>
+    <string name="slam_cancel">Annuler le but</string>
+    <string name="slam_save">Enregistrer la carte</string>
+    <string name="slam_load">Charger la carte</string>
+    <string name="slam_clear">Effacer la carte</string>
+    <string name="slam_export">Exporter pour ROS</string>
+    <string name="slam_layer_map">Carte</string>
+    <string name="slam_layer_scan">Scan</string>
+    <string name="slam_layer_path">Chemin</string>
+    <string name="slam_layer_trail">Trace</string>
+    <string name="slam_center">Centrer</string>
+    <string name="slam_needs_scan">Le SLAM a besoin de scans LiDAR complets : branchez en USB (Android) ou rejoignez le Wi-Fi de la voiture.</string>
+    <string name="slam_saved">Carte enregistrée</string>
+    <string name="slam_loaded">Carte chargée. Appui long là où se trouve la voiture.</string>
+    <string name="slam_no_saved">Pas encore de carte enregistrée</string>
+    <string name="slam_pose_set">Voiture placée sur la carte</string>
+    <string name="slam_status">%1$s · correspondance %2$d%% · %3$d scans</string>
+    <string name="slam_help">Créer la carte : roulez lentement dans la pièce (radiocommande, manette ou Explorer). Puis touchez la carte pour y envoyer la voiture. Appui long : position de la voiture. Double appui : suivre la voiture.</string>
 </resources>

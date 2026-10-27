@@ -268,4 +268,27 @@
     <string name="lidarbot_mood_worried">Cuidado…</string>
     <string name="lidarbot_mood_scared">¡Demasiado cerca!</string>
     <string name="lidarbot_mood_blind">No veo nada</string>
+    <string name="slam_title">SLAM interior</string>
+    <string name="slam_desc">Mapea una sala con el LiDAR y toca el mapa para ir allí.</string>
+    <string name="slam_mode_map">Crear mapa</string>
+    <string name="slam_mode_localize">Solo localizar</string>
+    <string name="slam_explore">Explorar</string>
+    <string name="slam_stop">Detener</string>
+    <string name="slam_cancel">Cancelar destino</string>
+    <string name="slam_save">Guardar mapa</string>
+    <string name="slam_load">Cargar mapa</string>
+    <string name="slam_clear">Borrar mapa</string>
+    <string name="slam_export">Exportar para ROS</string>
+    <string name="slam_layer_map">Mapa</string>
+    <string name="slam_layer_scan">Escaneo</string>
+    <string name="slam_layer_path">Ruta</string>
+    <string name="slam_layer_trail">Rastro</string>
+    <string name="slam_center">Centrar</string>
+    <string name="slam_needs_scan">El SLAM necesita escaneos LiDAR completos: conecta por USB (Android) o a la Wi-Fi del coche.</string>
+    <string name="slam_saved">Mapa guardado</string>
+    <string name="slam_loaded">Mapa cargado. Mantén pulsado donde está el coche ahora.</string>
+    <string name="slam_no_saved">Aún no hay mapa guardado</string>
+    <string name="slam_pose_set">Coche colocado en el mapa</string>
+    <string name="slam_status">%1$s · coincidencia %2$d%% · %3$d escaneos</string>
+    <string name="slam_help">Crear mapa: recorre la sala despacio (emisora RC, mando o Explorar). Luego toca el mapa para enviar el coche. Mantén pulsado para indicar dónde está. Doble toque para seguirlo.</string>
 </resources>

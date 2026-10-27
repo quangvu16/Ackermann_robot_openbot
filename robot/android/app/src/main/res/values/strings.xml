@@ -427,4 +427,27 @@
     <string name="lidarbot_mood_worried">Careful…</string>
     <string name="lidarbot_mood_scared">Too close!</string>
     <string name="lidarbot_mood_blind">I can\'t see</string>
+    <string name="slam_title">Indoor SLAM</string>
+    <string name="slam_desc">Map a room with the LiDAR, then tap the map to drive there.</string>
+    <string name="slam_mode_map">Build map</string>
+    <string name="slam_mode_localize">Localize only</string>
+    <string name="slam_explore">Explore</string>
+    <string name="slam_stop">Stop</string>
+    <string name="slam_cancel">Cancel goal</string>
+    <string name="slam_save">Save map</string>
+    <string name="slam_load">Load map</string>
+    <string name="slam_clear">Clear map</string>
+    <string name="slam_export">Export for ROS</string>
+    <string name="slam_layer_map">Map</string>
+    <string name="slam_layer_scan">Scan</string>
+    <string name="slam_layer_path">Path</string>
+    <string name="slam_layer_trail">Trail</string>
+    <string name="slam_center">Centre</string>
+    <string name="slam_needs_scan">SLAM needs full LiDAR scans: connect by USB (Android) or join the car\'s Wi-Fi.</string>
+    <string name="slam_saved">Map saved</string>
+    <string name="slam_loaded">Map loaded. Long-press where the car is now.</string>
+    <string name="slam_no_saved">No saved map yet</string>
+    <string name="slam_pose_set">Car placed on the map</string>
+    <string name="slam_status">%1$s · match %2$d%% · %3$d scans</string>
+    <string name="slam_help">Build map: drive slowly round the room (RC transmitter, game controller or Explore). Then tap the map to send the car there. Long-press to say where the car is. Double-tap to follow the car.</string>
 </resources>

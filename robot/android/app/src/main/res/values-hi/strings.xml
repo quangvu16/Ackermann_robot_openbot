@@ -268,4 +268,27 @@
     <string name="lidarbot_mood_worried">सावधान…</string>
     <string name="lidarbot_mood_scared">बहुत पास!</string>
     <string name="lidarbot_mood_blind">मुझे दिख नहीं रहा</string>
+    <string name="slam_title">इनडोर SLAM</string>
+    <string name="slam_desc">LiDAR से कमरे का नक्शा बनाएँ, फिर वहाँ जाने के लिए नक्शे पर टैप करें।</string>
+    <string name="slam_mode_map">नक्शा बनाएँ</string>
+    <string name="slam_mode_localize">केवल स्थान</string>
+    <string name="slam_explore">खोजें</string>
+    <string name="slam_stop">रोकें</string>
+    <string name="slam_cancel">लक्ष्य रद्द करें</string>
+    <string name="slam_save">नक्शा सहेजें</string>
+    <string name="slam_load">नक्शा लोड करें</string>
+    <string name="slam_clear">नक्शा मिटाएँ</string>
+    <string name="slam_export">ROS के लिए निर्यात</string>
+    <string name="slam_layer_map">नक्शा</string>
+    <string name="slam_layer_scan">स्कैन</string>
+    <string name="slam_layer_path">पथ</string>
+    <string name="slam_layer_trail">निशान</string>
+    <string name="slam_center">बीच में</string>
+    <string name="slam_needs_scan">SLAM को पूरे LiDAR स्कैन चाहिए: USB (Android) से जोड़ें या कार के Wi-Fi से जुड़ें।</string>
+    <string name="slam_saved">नक्शा सहेजा गया</string>
+    <string name="slam_loaded">नक्शा लोड हुआ। जहाँ कार अभी है वहाँ देर तक दबाएँ।</string>
+    <string name="slam_no_saved">अभी कोई सहेजा नक्शा नहीं</string>
+    <string name="slam_pose_set">कार नक्शे पर रखी गई</string>
+    <string name="slam_status">%1$s · मिलान %2$d%% · %3$d स्कैन</string>
+    <string name="slam_help">नक्शा बनाएँ: कमरे में धीरे घूमें (RC, गेम कंट्रोलर या खोजें)। फिर कार भेजने के लिए नक्शे पर टैप करें। कार कहाँ है बताने के लिए देर तक दबाएँ। कार के साथ चलने के लिए दो बार टैप करें।</string>
 </resources>
