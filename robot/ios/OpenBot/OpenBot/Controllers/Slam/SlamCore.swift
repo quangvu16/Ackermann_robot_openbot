@@ -92,25 +92,26 @@ final class OccupancyGrid {
     }
 
     /// Beams pass through free cells and end in a wall (unless at max range).
-    func integrate(_ pose: SlamPose, angles: [Double], ranges: [Double], maxRange: Double) {
+    func integrate(_ pose: SlamPose, angles: [Double], ranges: [Double], maxRange: Double,
+                   lOcc: Float = OccupancyGrid.lOcc, lFree: Float = OccupancyGrid.lFree) {
         let x0 = cellX(pose.x), y0 = cellY(pose.y)
         for i in 0..<angles.count {
             let hit = ranges[i] < maxRange
             let d = min(ranges[i], maxRange)
             let a = pose.theta + angles[i]
             let x1 = cellX(pose.x + d * cos(a)), y1 = cellY(pose.y + d * sin(a))
-            traceFree(x0, y0, x1, y1)
-            if hit { add(x1, y1, Self.lOcc - Self.lFree) }
+            traceFree(x0, y0, x1, y1, lFree)
+            if hit { add(x1, y1, lOcc - lFree) }
         }
         version += 1
     }
 
-    private func traceFree(_ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) {
+    private func traceFree(_ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int, _ lFree: Float) {
         let dx = abs(x1 - x0), dy = -abs(y1 - y0)
         let sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1
         var err = dx + dy, x = x0, y = y0
         for _ in 0..<4096 {
-            add(x, y, Self.lFree)
+            add(x, y, lFree)
             if x == x1 && y == y1 { return }
             let e2 = 2 * err
             if e2 >= dy { err += dy; x += sx }
@@ -1109,12 +1110,13 @@ struct SeededRandom {
     }
 }
 
-// MARK: - Navigation (Nav2-like: inflated costmap, A*, regulated pure pursuit, backup)
+// MARK: - Navigation (Nav2-like: costmap, chosen planner and controller, backup recovery)
 
 final class SlamNavigator {
     enum State { case idle, driving, blocked, backingUp, arrived, noPath }
 
     struct Params {
+        var planner = NavPlanner.navfn, controller = NavController.rpp
         var speed = 0.35, wheelbase = 0.26, maxSteerDeg = 28.0, lookahead = 0.55
         var robotRadius = 0.22, inflation = 0.45, goalTolerance = 0.25, stopDistance = 0.35
     }
@@ -1127,17 +1129,23 @@ final class SlamNavigator {
 
     var params = Params()
     private(set) var goal: (Double, Double)?
-    private(set) var path: [(Double, Double)] = []
+    private var route: [NavPoint] = []
+    var path: [(Double, Double)] { route.map { ($0.0, $0.1) } }
     private(set) var state: State = .idle
     private var lastPlan = -1e9, blockedSince = -1.0, backUntil = -1.0, backSteer = 0.0
     // Multi-point turn when the path is behind (side chosen once).
     private var turnSide = 0.0, turnPhaseStart = 0.0, turnBacking = true
+    private var costmap: NavCostmap?
+    private var progress = 0
+    private let dwb = NavControllers.Dwb()
+    private let mppi = NavControllers.Mppi()
 
     func setGoal(_ x: Double, _ y: Double) {
-        goal = (x, y); path = []; lastPlan = -1e9; blockedSince = -1; backUntil = -1; state = .driving; turnSide = 0
+        goal = (x, y); route = []; lastPlan = -1e9; blockedSince = -1; backUntil = -1; state = .driving; turnSide = 0
+        progress = 0; mppi.reset()
     }
 
-    func cancel() { goal = nil; path = []; state = .idle }
+    func cancel() { goal = nil; route = []; state = .idle }
 
     func step(pose: SlamPose, grid: OccupancyGrid, frontMin: Double, now: Double) -> Command {
         var c = Command()
@@ -1163,17 +1171,29 @@ final class SlamNavigator {
             return c
         }
         blockedSince = -1
-        if path.isEmpty || now - lastPlan > 2 {
+        let replan = params.planner == .hybridAStar ? 4.0 : 2.0
+        if route.isEmpty || now - lastPlan > replan {
             lastPlan = now
-            guard let p = Self.plan(grid, from: (pose.x, pose.y), to: g, params) else {
-                state = .noPath; path = []; c.state = state; c.message = "No path to the goal on this map"; return c
+            let m = NavCostmap(grid, params)
+            costmap = m
+            progress = 0
+            guard let p = NavPlanners.plan(m, pose, g, params) else {
+                state = .noPath; route = []; c.state = state; c.message = "No path to the goal on this map"; return c
             }
-            path = p
+            route = p
         }
+        state = .driving; c.state = state
+        if params.controller != .rpp, let m = costmap {
+            let u = params.controller == .dwb ? dwb.step(pose, route, m, params) : mppi.step(pose, route, g, m, params)
+            c.throttle = u.0; c.steer = u.1
+            if frontMin < params.stopDistance * 2.5 && c.throttle > 0 { c.throttle *= 0.55 }
+            c.message = String(format: "%@: %.1f m to go", params.controller.label, toGoal)
+            return c
+        }
+        if route.contains(where: { $0.2 < 0 }) { return followWithReverse(pose, toGoal, frontMin, c) }
         let la = lookahead(pose) ?? g
         let alpha = angle(pose, la)
         let ld = max(0.15, pose.distance(to: la.0, la.1))
-        state = .driving; c.state = state
         if turnSide == 0 && abs(alpha) > 100 * .pi / 180 {
             turnSide = alpha >= 0 ? 1 : -1; turnBacking = true; turnPhaseStart = now
         } else if turnSide != 0 && abs(alpha) < 60 * .pi / 180 {
@@ -1200,128 +1220,57 @@ final class SlamNavigator {
         return c
     }
 
+    /// Regulated Pure Pursuit with reversing: one direction at a time, never past a cusp.
+    private func followWithReverse(_ pose: SlamPose, _ toGoal: Double, _ frontMin: Double, _ cmd: Command) -> Command {
+        var c = cmd
+        var end = progress
+        while end < route.count - 1 && route[end + 1].2 == route[progress].2 { end += 1 }
+        var near = progress, bd = Double.greatestFiniteMagnitude
+        for i in progress...end {
+            let d = pose.distance(to: route[i].0, route[i].1)
+            if d < bd { bd = d; near = i }
+        }
+        progress = near
+        if end < route.count - 1 && pose.distance(to: route[end].0, route[end].1) < 0.15 {
+            progress = end + 1
+            return followWithReverse(pose, toGoal, frontMin, cmd)
+        }
+        let dir = route[progress].2
+        var la = route[end]
+        for i in near...end where pose.distance(to: route[i].0, route[i].1) >= params.lookahead { la = route[i]; break }
+        let heading = dir > 0 ? pose.theta : pose.theta + .pi
+        let alpha = SlamPose.wrap(atan2(la.1 - pose.y, la.0 - pose.x) - heading)
+        let ld = max(0.15, pose.distance(to: la.0, la.1))
+        let steer = min(1, max(-1, atan2(2 * params.wheelbase * sin(alpha), ld) / (params.maxSteerDeg * .pi / 180)))
+        var v = params.speed * min(1, max(0.4, 1 - 0.5 * abs(steer)))
+        if toGoal < 0.8 { v *= max(0.45, toGoal / 0.8) }
+        if dir > 0 && frontMin < params.stopDistance * 2.5 { v *= 0.55 }
+        if dir < 0 { v *= 0.7 }
+        c.throttle = Double(dir) * v
+        c.steer = steer
+        c.message = String(format: "%@ to the goal: %.1f m to go", dir > 0 ? "Driving" : "Reversing", toGoal)
+        return c
+    }
+
     private func lookahead(_ pose: SlamPose) -> (Double, Double)? {
-        guard !path.isEmpty else { return nil }
+        guard !route.isEmpty else { return nil }
         var nearest = 0, best = Double.greatestFiniteMagnitude
-        for (i, p) in path.enumerated() {
+        for (i, p) in route.enumerated() {
             let d = pose.distance(to: p.0, p.1)
             if d < best { best = d; nearest = i }
         }
-        for i in nearest..<path.count where pose.distance(to: path[i].0, path[i].1) >= params.lookahead { return path[i] }
-        return path.last
+        for i in nearest..<route.count where pose.distance(to: route[i].0, route[i].1) >= params.lookahead { return (route[i].0, route[i].1) }
+        return (route[route.count - 1].0, route[route.count - 1].1)
     }
 
     private func angle(_ pose: SlamPose, _ p: (Double, Double)) -> Double {
         SlamPose.wrap(atan2(p.1 - pose.y, p.0 - pose.x) - pose.theta)
     }
 
-    /// A* on a 10 cm inflated costmap with line-of-sight shortcuts; nil when unreachable.
-    static func plan(_ grid: OccupancyGrid, from s: (Double, Double), to g: (Double, Double), _ p: Params) -> [(Double, Double)]? {
-        let factor = max(1, Int((0.10 / grid.resolution).rounded()))
-        let res = grid.resolution * Double(factor)
-        let w = grid.width / factor, h = grid.height / factor
-        var cost = [Float](repeating: 1, count: w * h)
-        var occ = [Bool](repeating: false, count: w * h)
-        for y in 0..<h {
-            for x in 0..<w {
-                var o = false, known = false
-                outer: for dy in 0..<factor {
-                    for dx in 0..<factor {
-                        let v = grid.get(x * factor + dx, y * factor + dy)
-                        if v > OccupancyGrid.occThreshold { o = true; break outer }
-                        if v < OccupancyGrid.freeThreshold { known = true }
-                    }
-                }
-                occ[y * w + x] = o
-                if !o && !known { cost[y * w + x] = 3 }
-            }
-        }
-        let rL = Int(ceil(p.robotRadius / res)), rS = Int(ceil((p.robotRadius + p.inflation) / res))
-        for y in 0..<h {
-            for x in 0..<w where occ[y * w + x] {
-                for dy in -rS...rS {
-                    for dx in -rS...rS {
-                        let nx = x + dx, ny = y + dy
-                        guard nx >= 0, ny >= 0, nx < w, ny < h else { continue }
-                        let d = hypot(Double(dx), Double(dy)), i = ny * w + nx
-                        if d <= Double(rL) { cost[i] = -1 }
-                        else if d <= Double(rS) && cost[i] >= 0 {
-                            cost[i] = max(cost[i], Float(1 + 8 * (1 - (d - Double(rL)) / (Double(rS - rL) + 1e-9))))
-                        }
-                    }
-                }
-            }
-        }
-        func cx(_ v: Double) -> Int { Int(floor((v - grid.originX) / res)) }
-        func cy(_ v: Double) -> Int { Int(floor((v - grid.originY) / res)) }
-        func free(_ x: Int, _ y: Int) -> Bool { x >= 0 && y >= 0 && x < w && y < h && cost[y * w + x] >= 0 }
-        let x0 = cx(s.0), y0 = cy(s.1), x1 = cx(g.0), y1 = cy(g.1)
-        guard free(x1, y1), x0 >= 0, y0 >= 0, x0 < w, y0 < h else { return nil }
-        let n = w * h, start = y0 * w + x0, target = y1 * w + x1
-        var gs = [Float](repeating: .greatestFiniteMagnitude, count: n)
-        var from = [Int](repeating: -1, count: n)
-        var closed = [Bool](repeating: false, count: n)
-        gs[start] = 0
-        func octile(_ ax: Int, _ ay: Int) -> Double {
-            let dx = Double(abs(x1 - ax)), dy = Double(abs(y1 - ay))
-            return max(dx, dy) + (sqrt(2) - 1) * min(dx, dy)
-        }
-        var open = MinHeap()
-        open.push(octile(x0, y0), start)
-        let dxs = [1, -1, 0, 0, 1, 1, -1, -1], dys = [0, 0, 1, -1, 1, -1, 1, -1]
-        var expanded = 0
-        while let (_, cur) = open.pop(), expanded < 400_000 {
-            if closed[cur] { continue }
-            closed[cur] = true
-            expanded += 1
-            if cur == target { break }
-            let ux = cur % w, uy = cur / w
-            for k in 0..<8 {
-                let nx = ux + dxs[k], ny = uy + dys[k]
-                guard free(nx, ny) else { continue }
-                let ni = ny * w + nx
-                if closed[ni] { continue }
-                let ng = gs[cur] + Float((k < 4 ? 1 : sqrt(2)) * Double(cost[ni]))
-                if ng < gs[ni] { gs[ni] = ng; from[ni] = cur; open.push(Double(ng) + octile(nx, ny), ni) }
-            }
-        }
-        if from[target] < 0 && target != start { return nil }
-        var cells: [(Int, Int)] = []
-        var c = target
-        while c != -1 {
-            cells.insert((c % w, c / w), at: 0)
-            if c == start { break }
-            c = from[c]
-        }
-        func lineFree(_ a: (Int, Int), _ b: (Int, Int)) -> Bool {
-            let steps = max(abs(b.0 - a.0), abs(b.1 - a.1))
-            for st in 0...max(0, steps) {
-                let t = steps == 0 ? 0 : Double(st) / Double(steps)
-                let x = Int((Double(a.0) + Double(b.0 - a.0) * t).rounded()), y = Int((Double(a.1) + Double(b.1 - a.1) * t).rounded())
-                if !free(x, y) || cost[y * w + x] > 4 { return false }
-            }
-            return true
-        }
-        var out: [(Double, Double)] = [s]
-        var i = 0
-        while i < cells.count - 1 {
-            var j = cells.count - 1
-            while j > i + 1 && !lineFree(cells[i], cells[j]) { j -= 1 }
-            out.append((grid.originX + (Double(cells[j].0) + 0.5) * res, grid.originY + (Double(cells[j].1) + 0.5) * res))
-            i = j
-        }
-        out[out.count - 1] = g
-        var dense: [(Double, Double)] = []
-        for k in 0..<(out.count - 1) {
-            let a = out[k], b = out[k + 1]
-            let m = max(1, Int(ceil(hypot(b.0 - a.0, b.1 - a.1) / 0.1)))
-            for q in 0..<m {
-                let t = Double(q) / Double(m)
-                dense.append((a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t))
-            }
-        }
-        dense.append(out[out.count - 1])
-        return dense
+    /// Plans with the chosen planner; nil when unreachable.
+    static func plan(_ grid: OccupancyGrid, from s: (Double, Double), to g: (Double, Double), _ p: Params,
+                     heading: Double = 0) -> [(Double, Double)]? {
+        NavPlanners.plan(NavCostmap(grid, p), SlamPose(s.0, s.1, heading), g, p)?.map { ($0.0, $0.1) }
     }
 }
 

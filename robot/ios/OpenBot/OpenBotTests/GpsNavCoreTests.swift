@@ -795,4 +795,82 @@ final class SlamCoreTests: XCTestCase {
         g.optimize()
         XCTAssertLessThan(g.poses[n - 1].distance(to: truthLast), 0.05)
     }
+
+    /// Bicycle model with the firmware's servo flip in reverse.
+    private func drive(_ st: (Double, Double, Double), _ throttle: Double, _ steer: Double) -> (Double, Double, Double) {
+        let v = throttle * 0.6
+        var delta = steer * 28 * .pi / 180
+        if throttle < 0 { delta = -delta }
+        let th = st.2 + v / 0.26 * tan(delta) * 0.1
+        return (st.0 + v * cos(th) * 0.1, st.1 + v * sin(th) * 0.1, th)
+    }
+
+    func testEverySlamEngineTracksADrive() {
+        for t in SlamType.allCases {
+            let slam = makeSlam(t, .indoorDefault())
+            var x = 0.0
+            for i in 0..<40 {
+                let s = scan(x, 0, 0)
+                slam.update(angles: s.0, ranges: s.1, imuYaw: 0, time: Double(i) * 0.1)
+                x += 0.04
+            }
+            let s = scan(x, 0, 0)
+            let p = slam.update(angles: s.0, ranges: s.1, imuYaw: 0, time: 4.0)
+            XCTAssertEqual(p.x, x, accuracy: 0.15, "\(t.label)")
+            XCTAssertEqual(p.y, 0, accuracy: 0.15, "\(t.label)")
+            XCTAssertEqual(slam.type, t)
+        }
+    }
+
+    func testSwitchingEngineKeepsTheMap() {
+        let sys = SlamSystem(.cartographer, .indoorDefault())
+        for i in 0..<10 { let s = scan(0.03 * Double(i), 0, 0); sys.update(angles: s.0, ranges: s.1, imuYaw: 0, time: Double(i) * 0.1) }
+        sys.setEngine(.hector)
+        XCTAssertEqual(sys.type, .hector)
+        let s = scan(0.33, 0, 0)
+        XCTAssertEqual(sys.update(angles: s.0, ranges: s.1, imuYaw: 0, time: 1).x, 0.33, accuracy: 0.08)
+    }
+
+    func testEveryPlannerGoesAroundTheBox() {
+        let g = roomGrid()
+        for pl in NavPlanner.allCases {
+            var p = SlamNavigator.Params()
+            p.planner = pl
+            let path = SlamNavigator.plan(g, from: (-1, 1), to: (3.2, 1), p)
+            XCTAssertNotNil(path, pl.label)
+            for q in path ?? [] { XCTAssertFalse(q.0 > 1.35 && q.0 < 2.15 && q.1 > 0.35 && q.1 < 1.65, pl.label) }
+        }
+    }
+
+    func testPlannersWithPurePursuitAndDwbArrive() {
+        let g = roomGrid()
+        for pl in NavPlanner.allCases {
+            for co in [NavController.rpp, .dwb] {
+                let nav = SlamNavigator()
+                nav.params.planner = pl
+                nav.params.controller = co
+                nav.setGoal(3.2, 1.0)
+                var st = (-1.0, 0.0, 0.0), arrived = false
+                for k in 0..<900 where !arrived {
+                    let c = nav.step(pose: SlamPose(st.0, st.1, st.2), grid: g, frontMin: .infinity, now: Double(k) * 0.1)
+                    arrived = c.state == .arrived
+                    st = drive(st, c.throttle, c.steer)
+                }
+                XCTAssertTrue(arrived, "\(pl.label) / \(co.label)")
+            }
+        }
+    }
+
+    func testMppiStartsTowardsTheGoal() {
+        let nav = SlamNavigator()
+        nav.params.controller = .mppi
+        nav.setGoal(3.2, 1.0)
+        var st = (-1.0, 0.0, 0.0)
+        let g = roomGrid()
+        for k in 0..<30 {
+            let c = nav.step(pose: SlamPose(st.0, st.1, st.2), grid: g, frontMin: .infinity, now: Double(k) * 0.1)
+            st = drive(st, c.throttle, c.steer)
+        }
+        XCTAssertGreaterThan(st.0, -0.95)
+    }
 }

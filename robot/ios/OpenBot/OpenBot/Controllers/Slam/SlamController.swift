@@ -21,7 +21,7 @@ final class SlamController: UIViewController {
 
     private let queue = DispatchQueue(label: "SlamController")
     // Owned by `queue`:
-    private let slam = SlamEngine(grid: .indoorDefault())
+    private let slam = SlamSystem(.cartographer, .indoorDefault())
     private let navigator = SlamNavigator()
     private let explorer = LidarBehaviors(mode: .avoid, params: .defaults(.avoid))
     private var exploring = false
@@ -35,6 +35,7 @@ final class SlamController: UIViewController {
     private var scanInFlight = false // main thread: drop scans while the last one is being matched
     private var shownRelocalizeSeq = 0
     private let findButton = UIButton(type: .system)
+    private var algorithmsText = ""
 
     // Gyro yaw: rotation rate about gravity, integrated (works however the phone is mounted).
     private let motion = CMMotionManager()
@@ -48,6 +49,7 @@ final class SlamController: UIViewController {
         layout()
         mapView.onTap = { [weak self] x, y in self?.setGoal(x, y) }
         mapView.onLongPress = { [weak self] x, y in self?.placeCar(x, y) }
+        applyAlgorithms(savedAlgorithms())
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -163,7 +165,7 @@ final class SlamController: UIViewController {
         let files = UIStackView()
         files.distribution = .fillEqually
         files.spacing = 6
-        for (key, sel) in [("slam_save", #selector(saveTapped)), ("slam_load", #selector(loadTapped)),
+        for (key, sel) in [("slam_algorithms", #selector(algorithmsTapped)), ("slam_save", #selector(saveTapped)), ("slam_load", #selector(loadTapped)),
                            ("slam_clear", #selector(clearTapped)), ("slam_export", #selector(exportTapped))] {
             var c = UIButton.Configuration.bordered()
             c.title = L10n.string(key)
@@ -233,6 +235,91 @@ final class SlamController: UIViewController {
         uiExploring = false
         queue.async { self.exploring = false; self.navigator.setGoal(x, y) }
         showButtons()
+    }
+
+    // MARK: Algorithm choices (saved on the phone)
+
+    typealias Algorithms = (slam: SlamType, localizer: SlamLocalizer, planner: NavPlanner, controller: NavController)
+
+    private func savedAlgorithms() -> Algorithms {
+        let d = UserDefaults.standard
+        return (SlamType(rawValue: d.integer(forKey: "slam.algo.slam")) ?? .cartographer,
+                SlamLocalizer(rawValue: d.integer(forKey: "slam.algo.localizer")) ?? .scanMatching,
+                NavPlanner(rawValue: d.integer(forKey: "slam.algo.planner")) ?? .navfn,
+                NavController(rawValue: d.integer(forKey: "slam.algo.controller")) ?? .rpp)
+    }
+
+    private func applyAlgorithms(_ a: Algorithms) {
+        let d = UserDefaults.standard
+        d.set(a.slam.rawValue, forKey: "slam.algo.slam")
+        d.set(a.localizer.rawValue, forKey: "slam.algo.localizer")
+        d.set(a.planner.rawValue, forKey: "slam.algo.planner")
+        d.set(a.controller.rawValue, forKey: "slam.algo.controller")
+        algorithmsText = [a.slam.label, a.localizer.label, a.planner.label, a.controller.label].joined(separator: " · ")
+        queue.async {
+            self.slam.setEngine(a.slam)
+            self.slam.setLocalizer(a.localizer)
+            self.navigator.params.planner = a.planner
+            self.navigator.params.controller = a.controller
+            if let g = self.navigator.goal { self.navigator.setGoal(g.0, g.1) } // re-plan with the new planner
+        }
+    }
+
+    /// Four pickers (SLAM, localizer, planner, controller), each a button with a menu.
+    @objc private func algorithmsTapped() {
+        let vc = UIViewController()
+        vc.title = L10n.string("slam_algorithms")
+        vc.view.backgroundColor = .systemBackground
+        var current = savedAlgorithms()
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        func row(_ titleKey: String, _ labels: [String], _ selected: Int, _ pick: @escaping (Int) -> Void) {
+            let t = UILabel()
+            t.text = L10n.string(titleKey)
+            t.font = .boldSystemFont(ofSize: 15)
+            stack.addArrangedSubview(t)
+            let b = UIButton(type: .system)
+            var c = UIButton.Configuration.bordered()
+            c.title = labels[selected]
+            b.configuration = c
+            b.showsMenuAsPrimaryAction = true
+            b.menu = UIMenu(children: labels.enumerated().map { i, l in
+                UIAction(title: l, state: i == selected ? .on : .off) { _ in
+                    pick(i)
+                    var cc = b.configuration
+                    cc?.title = l
+                    b.configuration = cc
+                }
+            })
+            stack.addArrangedSubview(b)
+        }
+        row("slam_algo_slam", SlamType.allCases.map { $0.label }, current.slam.rawValue) { current.slam = SlamType(rawValue: $0)! }
+        row("slam_algo_localizer", SlamLocalizer.allCases.map { $0.label }, current.localizer.rawValue) { current.localizer = SlamLocalizer(rawValue: $0)! }
+        row("slam_algo_planner", NavPlanner.allCases.map { $0.label }, current.planner.rawValue) { current.planner = NavPlanner(rawValue: $0)! }
+        row("slam_algo_controller", NavController.allCases.map { $0.label }, current.controller.rawValue) { current.controller = NavController(rawValue: $0)! }
+        let note = UILabel()
+        note.text = L10n.string("slam_algo_note")
+        note.font = .systemFont(ofSize: 13)
+        note.textColor = .secondaryLabel
+        note.numberOfLines = 0
+        stack.addArrangedSubview(note)
+        var ok = UIButton.Configuration.filled()
+        ok.title = "OK"
+        let done = UIButton(configuration: ok, primaryAction: UIAction { [weak self, weak vc] _ in
+            self?.applyAlgorithms(current)
+            vc?.dismiss(animated: true)
+        })
+        stack.addArrangedSubview(done)
+        vc.view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: vc.view.layoutMarginsGuide.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: vc.view.layoutMarginsGuide.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.topAnchor, constant: 20),
+        ])
+        if let sheet = vc.sheetPresentationController { sheet.detents = [.medium(), .large()] }
+        present(vc, animated: true)
     }
 
     /// Find the car on the map with no hint (branch and bound over the whole map).
@@ -393,7 +480,7 @@ final class SlamController: UIViewController {
             self.mapView.snapshot = snap
             self.mapView.setNeedsDisplay()
             self.mapStatus.text = String(format: L10n.string("slam_status"), pose.text, Int32(quality), Int32(scans))
-                + " · " + String(format: L10n.string("slam_graph"), Int32(submapCount), Int32(loops))
+                + " · " + String(format: L10n.string("slam_graph"), Int32(submapCount), Int32(loops)) + "\n" + self.algorithmsText
             self.statusLabel.text = status
             self.uiHasGoal = hasGoal
             self.uiExploring = exploringNow
