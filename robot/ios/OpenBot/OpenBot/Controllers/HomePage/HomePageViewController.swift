@@ -336,6 +336,10 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
             navigationController?.pushViewController(LidarBotController(), animated: true)
             return
         }
+        if identifier == Strings.ScreenSlam {
+            navigationController?.pushViewController(SlamController(), animated: true)
+            return
+        }
         let viewController = (storyboard?.instantiateViewController(withIdentifier: identifier))!
         navigationController?.pushViewController(viewController, animated: true);
     }

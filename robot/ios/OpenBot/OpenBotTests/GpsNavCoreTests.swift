@@ -663,3 +663,61 @@ final class LidarBehaviorsTests: XCTestCase {
         XCTAssertLessThan(w.left, w.right)
     }
 }
+
+/// Indoor SLAM core, same room as SlamTest.java.
+final class SlamCoreTests: XCTestCase {
+    static let room: [[Double]] = [
+        [-2, -1.5, 4, -1.5], [4, -1.5, 4, 2.5], [4, 2.5, -2, 2.5], [-2, 2.5, -2, -1.5],
+        [1.5, 0.5, 2.0, 0.5], [2.0, 0.5, 2.0, 1.5], [2.0, 1.5, 1.5, 1.5], [1.5, 1.5, 1.5, 0.5],
+    ]
+
+    private func scan(_ x: Double, _ y: Double, _ th: Double) -> ([Double], [Double]) {
+        var a = [Double](), r = [Double]()
+        for i in 0..<360 {
+            let ang = -(Double(i) + 0.5) * .pi / 180
+            let g = th + ang, dx = cos(g), dy = sin(g)
+            var best = 9.0
+            for s in Self.room {
+                let ex = s[2] - s[0], ey = s[3] - s[1], den = dx * ey - dy * ex
+                if abs(den) < 1e-9 { continue }
+                let t = ((s[0] - x) * ey - (s[1] - y) * ex) / den
+                let u = ((s[0] - x) * dy - (s[1] - y) * dx) / den
+                if t > 0 && u >= 0 && u <= 1 { best = min(best, t) }
+            }
+            a.append(ang); r.append(best)
+        }
+        return (a, r)
+    }
+
+    func testSlamTracksAStraightDrive() {
+        let slam = SlamEngine(grid: .indoorDefault())
+        var x = 0.0
+        for _ in 0..<40 {
+            let s = scan(x, 0, 0)
+            slam.update(angles: s.0, ranges: s.1, imuYaw: 0)
+            x += 0.04
+        }
+        let s = scan(x, 0, 0)
+        let p = slam.update(angles: s.0, ranges: s.1, imuYaw: 0)
+        XCTAssertEqual(p.x, x, accuracy: 0.15)
+        XCTAssertEqual(p.y, 0, accuracy: 0.15)
+    }
+
+    func testPlannerAndMapFile() {
+        let g = OccupancyGrid.indoorDefault()
+        for cy in g.cellY(-1.5)...g.cellY(2.5) { for cx in g.cellX(-2)...g.cellX(4) { g.set(cx, cy, -2) } }
+        for s in Self.room {
+            let n = Int(hypot(s[2] - s[0], s[3] - s[1]) / 0.02) + 1
+            for k in 0...n {
+                let t = Double(k) / Double(n)
+                g.set(g.cellX(s[0] + (s[2] - s[0]) * t), g.cellY(s[1] + (s[3] - s[1]) * t), 3)
+            }
+        }
+        let path = SlamNavigator.plan(g, from: (-1, 1), to: (3.2, 1), SlamNavigator.Params())
+        XCTAssertNotNil(path)
+        for q in path ?? [] { XCTAssertFalse(q.0 > 1.35 && q.0 < 2.15 && q.1 > 0.35 && q.1 < 1.65) }
+        let h = OccupancyGrid.read(g.data())
+        XCTAssertNotNil(h)
+        XCTAssertTrue(h?.isOccupied(h!.cellX(4), h!.cellY(0)) ?? false)
+    }
+}

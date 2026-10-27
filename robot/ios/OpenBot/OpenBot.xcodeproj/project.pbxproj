@@ -72,6 +72,8 @@
 		6A00000000000000000000B9 /* LidarCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000B8 /* LidarCoreTests.swift */; };
 		6A00000000000000000000A5 /* GpsNavLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000A4 /* GpsNavLocationProvider.swift */; };
 		6A00000000000000000000A7 /* GpsMissionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000A6 /* GpsMissionController.swift */; };
+		6A00000000000000000000D5 /* SlamCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000D4 /* SlamCore.swift */; };
+		6A00000000000000000000D7 /* SlamController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000D6 /* SlamController.swift */; };
 		6A00000000000000000000CF /* LidarBehaviors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000CE /* LidarBehaviors.swift */; };
 		6A00000000000000000000D1 /* LidarBotController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000D0 /* LidarBotController.swift */; };
 		6A00000000000000000000C5 /* SensorLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000C4 /* SensorLink.swift */; };
@@ -246,6 +248,8 @@
 		6A00000000000000000000A2 /* GpsNavCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsNavCore.swift; sourceTree = "<group>"; };
 		6A00000000000000000000A4 /* GpsNavLocationProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsNavLocationProvider.swift; sourceTree = "<group>"; };
 		6A00000000000000000000A6 /* GpsMissionController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsMissionController.swift; sourceTree = "<group>"; };
+		6A00000000000000000000D4 /* SlamCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SlamCore.swift; sourceTree = "<group>"; };
+		6A00000000000000000000D6 /* SlamController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SlamController.swift; sourceTree = "<group>"; };
 		6A00000000000000000000CE /* LidarBehaviors.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarBehaviors.swift; sourceTree = "<group>"; };
 		6A00000000000000000000D0 /* LidarBotController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarBotController.swift; sourceTree = "<group>"; };
 		6A00000000000000000000C4 /* SensorLink.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorLink.swift; sourceTree = "<group>"; };
@@ -599,6 +603,7 @@
 				66AC71E429B885410022108A /* DataCollection */,
 				66AC71E729B885410022108A /* PointGoalNavigation */,
 				6A00000000000000000000A1 /* GpsNav */,
+				6A00000000000000000000D3 /* Slam */,
 				6A00000000000000000000D2 /* LidarBot */,
 				6A00000000000000000000B1 /* Lidar */,
 				66AC71E929B885410022108A /* CameraController.swift */,
@@ -656,6 +661,15 @@
 				6A00000000000000000000D0 /* LidarBotController.swift */,
 			);
 			path = LidarBot;
+			sourceTree = "<group>";
+		};
+		6A00000000000000000000D3 /* Slam */ = {
+			isa = PBXGroup;
+			children = (
+				6A00000000000000000000D4 /* SlamCore.swift */,
+				6A00000000000000000000D6 /* SlamController.swift */,
+			);
+			path = Slam;
 			sourceTree = "<group>";
 		};
 		6A00000000000000000000A1 /* GpsNav */ = {
@@ -1424,6 +1438,8 @@
 				6A00000000000000000000A3 /* GpsNavCore.swift in Sources */,
 				6A00000000000000000000A5 /* GpsNavLocationProvider.swift in Sources */,
 				6A00000000000000000000A7 /* GpsMissionController.swift in Sources */,
+				6A00000000000000000000D5 /* SlamCore.swift in Sources */,
+				6A00000000000000000000D7 /* SlamController.swift in Sources */,
 				6A00000000000000000000CF /* LidarBehaviors.swift in Sources */,
 				6A00000000000000000000D1 /* LidarBotController.swift in Sources */,
 				6A00000000000000000000C5 /* SensorLink.swift in Sources */,

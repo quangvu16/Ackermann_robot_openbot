@@ -96,6 +96,10 @@ struct Constants {
                          icon: UIImage(systemName: "dot.radiowaves.left.and.right")?.withTintColor(.white, renderingMode: .alwaysOriginal) ?? UIImage(),
                          identifier: Strings.ScreenLidarBot,
                          color: UIColor(red: 0.49, green: 0.34, blue: 0.76, alpha: 1)),
+                ModeItem(label: L10n.string("slam_title"),
+                         icon: UIImage(systemName: "map")?.withTintColor(.white, renderingMode: .alwaysOriginal) ?? UIImage(),
+                         identifier: Strings.ScreenSlam,
+                         color: UIColor(red: 0, green: 0.54, blue: 0.48, alpha: 1)),
             ],
             // AI
             [
