@@ -36,6 +36,7 @@ public class RobotInfoFragment extends ControlsFragment {
   @Override
   public void onViewCreated(@NotNull View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
+    setupSensorLinkControls(binding.sensorLink.getRoot());
 
     if (vehicle == null) {
       mViewModel
@@ -281,5 +282,10 @@ public class RobotInfoFragment extends ControlsFragment {
   public void onResume() {
     super.onResume();
     binding.bleToggle.setChecked(vehicle.bleConnected());
+  }
+
+  @Override
+  protected String remoteScreenName() {
+    return "Car setup";
   }
 }

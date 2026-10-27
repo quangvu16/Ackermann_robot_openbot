@@ -35,6 +35,8 @@ class RobotInfoFrame: UIViewController {
     var lidarScanner = LidarScanner()
     var lidarTimer: Timer?
     private var rcTimer: Timer?
+    /// Sensor link (WebSocket) button: share sensors and LiDAR with a browser or script.
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "Car setup")
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -57,10 +59,12 @@ class RobotInfoFrame: UIViewController {
         rcTimer?.invalidate()
         rcTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.showRcMode() }
         showRcMode()
+        sensorLinkItem.appeared()
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        sensorLinkItem.disappeared()
         stopLidar()
         rcTimer?.invalidate()
         rcTimer = nil
@@ -396,12 +400,12 @@ class RobotInfoFrame: UIViewController {
             navigationItem.leftBarButtonItem = newBackButton
         }
         // Full avoidance settings: quick-disable, AVOID_MARGIN, AVOID_BACKUP_SPD.
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        navigationItem.rightBarButtonItems = [UIBarButtonItem(
             title: L10n.string("avoid_settings"),
             style: .plain,
             target: self,
             action: #selector(showAvoidanceSettings)
-        )
+        ), sensorLinkItem]
     }
 
     @objc func showAvoidanceSettings() {

@@ -124,6 +124,7 @@ class FreeRoamController: CameraController, UIGestureRecognizerDelegate {
     /// Called after the view was dismissed, covered or otherwise hidden.
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated);
+        sensorLinkItem.disappeared()
         stopLidar()
     }
 
@@ -215,6 +216,7 @@ class FreeRoamController: CameraController, UIGestureRecognizerDelegate {
     /// Initialization routine
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        sensorLinkItem.appeared()
     }
 
     /// function to apply the portrait constraints on objects
@@ -693,8 +695,11 @@ class FreeRoamController: CameraController, UIGestureRecognizerDelegate {
             let newBackButton = UIBarButtonItem(image: backNavigationIcon, title: Strings.freeRoam, target: self, action: #selector(FreeRoamController.back(sender:)), titleColor: Colors.navigationColor ?? .white)
             navigationItem.leftBarButtonItem = newBackButton
         }
-        navigationItem.rightBarButtonItem = avoidanceToggle
+        navigationItem.rightBarButtonItems = [avoidanceToggle, sensorLinkItem]
     }
+
+    /// Sensor link (WebSocket) button: share sensors, camera and LiDAR with a browser or script.
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "Drive", camera: self)
 
     @objc func back(sender: UIBarButtonItem) {
         _ = navigationController?.popViewController(animated: true)

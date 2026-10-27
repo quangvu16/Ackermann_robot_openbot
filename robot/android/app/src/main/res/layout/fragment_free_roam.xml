@@ -25,7 +25,7 @@
         android:id="@+id/speed"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/object_avoidance"
+        app:layout_constraintBottom_toTopOf="@+id/sensor_link"
         app:layout_constraintDimensionRatio="w,1:1"
         app:layout_constraintEnd_toStartOf="@+id/sonar"
         app:layout_constraintHorizontal_weight="2"
@@ -44,7 +44,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:button="@drawable/usb_toggle"
-        app:layout_constraintBottom_toTopOf="@+id/object_avoidance"
+        app:layout_constraintBottom_toTopOf="@+id/sensor_link"
         app:layout_constraintStart_toEndOf="@+id/battery" />
 
     <CheckBox
@@ -52,8 +52,21 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:button="@drawable/ble_toggle"
-        app:layout_constraintBottom_toTopOf="@+id/object_avoidance"
+        app:layout_constraintBottom_toTopOf="@+id/sensor_link"
         app:layout_constraintStart_toEndOf="@+id/battery" />
+
+    <!-- SensorServer WebSocket link (sensor_link_control.xml): share this phone's sensors, camera
+         and LiDAR with a browser or script, or use another phone's. -->
+    <include
+        android:id="@+id/sensor_link"
+        layout="@layout/sensor_link_control"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/object_avoidance"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <!-- Quick-disable for object avoidance plus its status line. Shared across every screen that
          drives the car; see object_avoidance_control.xml. Sits between the gauges and the drive

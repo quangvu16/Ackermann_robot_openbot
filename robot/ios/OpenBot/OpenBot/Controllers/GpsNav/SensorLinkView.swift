@@ -2,8 +2,8 @@
 //  SensorLinkView.swift
 //  OpenBot
 //
-//  The Sensor link button for the navigation bar of GPS Mission, Object
-//  Tracking and Autopilot, and the settings sheet it opens.
+//  The Sensor link button for the navigation bar of Drive, GPS Mission, Object
+//  Tracking, Autopilot, LiDAR robot, Indoor SLAM and Car setup, and the settings sheet it opens.
 //
 
 import UIKit

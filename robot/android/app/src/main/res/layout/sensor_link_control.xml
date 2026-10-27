@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sensor link (SensorServer WebSocket) status and settings button, shared by GPS Mission,
-     Object Tracking and Autopilot. Wired up by ControlsFragment.setupSensorLinkControls(). -->
+<!-- Sensor link (SensorServer WebSocket) status and settings button, shared by Drive, GPS Mission,
+     Object Tracking, Autopilot, LiDAR robot, Indoor SLAM and Car setup. Wired up by ControlsFragment.setupSensorLinkControls(). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"

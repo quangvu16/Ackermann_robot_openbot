@@ -44,6 +44,7 @@ public class FreeRoamFragment extends ControlsFragment {
   @Override
   public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
+    setupSensorLinkControls(binding.sensorLink.getRoot());
 
     phoneController = PhoneController.getInstance(requireContext());
 
@@ -355,5 +356,10 @@ public class FreeRoamFragment extends ControlsFragment {
                 Enums.SpeedMode.getByID(preferencesManager.getSpeedMode())));
         break;
     }
+  }
+
+  @Override
+  protected String remoteScreenName() {
+    return "Drive";
   }
 }

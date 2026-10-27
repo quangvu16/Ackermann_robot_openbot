@@ -177,6 +177,15 @@
             android:valueFrom="10"
             android:valueTo="120" />
 
+        <!-- SensorServer WebSocket link (sensor_link_control.xml): watch the LiDAR and change the
+             behaviour from a browser. -->
+        <include
+            android:id="@+id/sensor_link"
+            layout="@layout/sensor_link_control"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -34,6 +34,10 @@ final class LidarBotController: UIViewController {
     private var vehicleControl = Control()
     private let bluetooth = bluetoothDataController.shared
     private let modeKey = "lidarbot_mode"
+    /// Sensor link (WebSocket) button; in server mode the browser page can change the behaviour too.
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "LiDAR robot") { [unowned self] out in
+        self.addBrowserSettings(&out)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,6 +47,7 @@ final class LidarBotController: UIViewController {
         mode = LidarBehaviors.Mode(rawValue: UserDefaults.standard.string(forKey: modeKey) ?? "") ?? .follow
         layout()
         showMode()
+        navigationItem.rightBarButtonItem = sensorLinkItem
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -50,11 +55,13 @@ final class LidarBotController: UIViewController {
         SharedLidar.acquire()
         face.startAnimating()
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in self?.step() }
+        sensorLinkItem.appeared()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         stopBehaviour() // never leave the car driving itself off screen
+        sensorLinkItem.disappeared()
         timer?.invalidate()
         timer = nil
         face.stopAnimating()
@@ -141,6 +148,33 @@ final class LidarBotController: UIViewController {
         safety.textColor = .secondaryLabel
         safety.numberOfLines = 0
         stack.addArrangedSubview(safety)
+    }
+
+    // MARK: Browser settings (main queue)
+
+    private func addBrowserSettings(_ out: inout [RemoteSetting]) {
+        out.append(.choice("lidarbot.mode", "LiDAR robot", "Behaviour", LidarBehaviors.Mode.allCases.map { $0.rawValue },
+                           get: { [unowned self] in self.mode.rawValue },
+                           set: { [unowned self] v in
+                               guard let m = LidarBehaviors.Mode(rawValue: v),
+                                     let i = LidarBehaviors.Mode.allCases.firstIndex(of: m) else { return }
+                               self.modePicker.selectedSegmentIndex = i
+                               self.modeChanged()
+                           }))
+        out.append(.action("lidarbot.run", "LiDAR robot", "Run the behaviour", "START", "STOP",
+                           get: { [unowned self] in self.behaviour != nil },
+                           set: { [unowned self] on in
+                               if on && self.behaviour == nil { self.startBehaviour() } else if !on && self.behaviour != nil { self.stopBehaviour() }
+                           }))
+        out.append(.range("lidarbot.speed", "LiDAR robot", "Speed (fraction)", 0, 1, 0.05,
+                          get: { [unowned self] in self.current.speed },
+                          set: { [unowned self] v in var p = self.current; p.speed = v; self.current = p; self.showMode() }))
+        out.append(.range("lidarbot.distance", "LiDAR robot", "Distance (m)", 0.2, 2.0, 0.05,
+                          get: { [unowned self] in self.current.responseDist },
+                          set: { [unowned self] v in var p = self.current; p.responseDist = v; self.current = p; self.showMode() }))
+        out.append(.range("lidarbot.angle", "LiDAR robot", "Angle (± degrees)", 10, 120, 5,
+                          get: { [unowned self] in self.current.laserAngle },
+                          set: { [unowned self] v in var p = self.current; p.laserAngle = v; self.current = p; self.showMode() }))
     }
 
     // MARK: UI

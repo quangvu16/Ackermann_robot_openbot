@@ -104,7 +104,7 @@ When a FlySky RC transmitter is connected to the car (see [FIRMWARE_GUIDE.md](FI
 
 ## 2c. Sensor link: SensorServer over WebSocket (Android and iOS)
 
-The **GPS Mission**, **Object Tracking** and **Autopilot** screens have a **Sensor link**. On Android it is a row in the bottom panel with a **Sensor link** button. On iOS it is an antenna button in the top bar. The link speaks the WebSocket API of the [SensorServer](https://github.com/UmerCodez/SensorServer) app, so tools made for SensorServer work with OpenBot.
+The **Drive**, **GPS Mission**, **Object Tracking**, **Autopilot**, **LiDAR robot**, **Indoor SLAM** and **Car setup** screens have a **Sensor link**. It runs only while one of these screens is open, and the browser page's settings card shows that screen's own settings. For example, on LiDAR robot it shows behaviour, start/stop, speed, distance and angle. On Android it is a row in the bottom panel with a **Sensor link** button. On iOS it is an antenna button in the top bar. The link speaks the WebSocket API of the [SensorServer](https://github.com/UmerCodez/SensorServer) app, so tools made for SensorServer work with OpenBot.
 
 | Mode | What it does | Example |
 |---|---|---|
@@ -206,7 +206,7 @@ The status line shows the state, the **match %** (how many scan points land on k
 
 ### Sensor link on the Indoor SLAM screen
 
-The Indoor SLAM screen now has the **Sensor link** (WebSocket) control, like GPS Mission, Object Tracking and Autopilot: the row at the bottom on Android, the antenna button in the top bar on iOS.
+The Indoor SLAM screen has the **Sensor link** (WebSocket) control, like the other driving screens (section 2c): the row at the bottom on Android, the antenna button in the top bar on iOS.
 
 - **Server mode:** open `http://<phone>:8080/` in a browser. The new **Indoor SLAM** card shows the map, the car (blue arrow), the path (green) and the goal (pink). **Tap the map to send the car there.** It also has **Explore**, **Cancel goal** and **Find me**. The settings card adds the SLAM screen's settings: mode (build map / localize only), the four algorithm choices, Explore and Find me.
 - **WebSocket `/slam`**, for your own code:

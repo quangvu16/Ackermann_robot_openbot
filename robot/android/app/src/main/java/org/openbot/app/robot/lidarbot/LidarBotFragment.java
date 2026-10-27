@@ -89,6 +89,7 @@ public class LidarBotFragment extends ControlsFragment {
           prefs.edit().putString(PREF_MODE, m.name()).apply();
           showMode();
         });
+    setupSensorLinkControls(binding.sensorLink.getRoot());
     binding.startStop.setOnClickListener(v -> {
       if (running) stopBehaviour();
       else startBehaviour();
@@ -111,6 +112,49 @@ public class LidarBotFragment extends ControlsFragment {
   @Override
   protected String remoteScreenName() {
     return "LiDAR robot";
+  }
+
+  /** Browser page settings (Sensor link, server mode): behaviour, start/stop and its three sliders. */
+  @Override
+  protected void addScreenSettings(java.util.List<org.openbot.app.robot.sensorlink.RemoteSettings.Setting> out) {
+    if (binding == null) return;
+    java.util.List<String> modes = new java.util.ArrayList<>();
+    for (LidarBehaviors.Mode m : LidarBehaviors.Mode.values()) modes.add(m.name().toLowerCase(Locale.ROOT));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.choice(
+        "lidarbot.mode", "LiDAR robot", "Behaviour", modes,
+        () -> mode.name().toLowerCase(Locale.ROOT),
+        v -> binding.modeGroup.check(buttonFor(LidarBehaviors.Mode.valueOf(((String) v).toUpperCase(Locale.ROOT))))));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.action(
+        "lidarbot.run", "LiDAR robot", "Run the behaviour", "START", "STOP", () -> running,
+        v -> {
+          boolean on = (Boolean) v;
+          if (on && !running) startBehaviour();
+          else if (!on && running) stopBehaviour();
+        }));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.range(
+        "lidarbot.speed", "LiDAR robot", "Speed (fraction)", 0, 1, 0.05,
+        () -> current().speed,
+        v -> {
+          current().speed = (Double) v;
+          binding.speed.setValue(snap(((Double) v).floatValue(), 0f, 1f, 0.05f));
+          showParams();
+        }));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.range(
+        "lidarbot.distance", "LiDAR robot", "Distance (m)", 0.2, 2.0, 0.05,
+        () -> current().responseDist,
+        v -> {
+          current().responseDist = (Double) v;
+          binding.distance.setValue(snap(((Double) v).floatValue(), 0.2f, 2.0f, 0.05f));
+          showParams();
+        }));
+    out.add(org.openbot.app.robot.sensorlink.RemoteSettings.Setting.range(
+        "lidarbot.angle", "LiDAR robot", "Angle (± degrees)", 10, 120, 5,
+        () -> current().laserAngle,
+        v -> {
+          current().laserAngle = (Double) v;
+          binding.angle.setValue(snap(((Double) v).floatValue(), 10f, 120f, 5f));
+          showParams();
+        }));
   }
 
   @Override
