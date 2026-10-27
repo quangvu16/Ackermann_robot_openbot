@@ -23,6 +23,8 @@
 	<true/>
 	<key>UIFileSharingEnabled</key>
 	<true/>
+	<key>NSMotionUsageDescription</key>
+	<string>The barometer and motion sensors give height, heading and tilt for the map and the sensor link.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>OpenBot listens for LiDAR scans from the robot on your Wi-Fi network, talks to controllers on the same network, and shares or reads phone sensors over the Sensor link.</string>
 	<key>CFBundleLocalizations</key>
