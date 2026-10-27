@@ -15,9 +15,21 @@ final class SensorLinkBarItem: UIBarButtonItem {
     private weak var owner: UIViewController?
     private let button = UIButton(type: .system)
     private var attached = false
+    private let screenName: String
+    private let screenSettings: ClosureSettingsProvider
+    private weak var cameraOwner: CameraHubOwner?
 
-    init(owner: UIViewController) {
+    /// `screen` names the screen on the browser page; `extra` adds its own settings
+    /// after the driving ones; `camera` is the screen's camera, if it has one.
+    init(owner: UIViewController, screen: String, camera: CameraHubOwner? = nil,
+         extra: ((inout [RemoteSetting]) -> Void)? = nil) {
         self.owner = owner
+        self.screenName = screen
+        self.cameraOwner = camera
+        self.screenSettings = ClosureSettingsProvider { out in
+            SensorLinkDrivingSettings.add(&out)
+            extra?(&out)
+        }
         super.init()
         button.setImage(UIImage(systemName: "antenna.radiowaves.left.and.right"), for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 13, weight: .semibold)
@@ -37,12 +49,20 @@ final class SensorLinkBarItem: UIBarButtonItem {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
-        if attached { SensorLink.shared.detach() }
+        if attached {
+            SensorLink.shared.clearScreen(screenSettings)
+            SensorLink.shared.detach()
+        }
     }
 
     func appeared() {
         guard !attached else { return }
         attached = true
+        SensorLink.shared.setScreen(screenName, screenSettings)
+        if let camera = cameraOwner {
+            CameraHub.shared.owner = camera
+            CameraHub.shared.reapply(camera)
+        }
         SensorLink.shared.attach()
         refresh()
     }
@@ -50,6 +70,8 @@ final class SensorLinkBarItem: UIBarButtonItem {
     func disappeared() {
         guard attached else { return }
         attached = false
+        SensorLink.shared.clearScreen(screenSettings)
+        if let camera = cameraOwner, CameraHub.shared.owner === camera { CameraHub.shared.owner = nil }
         SensorLink.shared.detach()
     }
 

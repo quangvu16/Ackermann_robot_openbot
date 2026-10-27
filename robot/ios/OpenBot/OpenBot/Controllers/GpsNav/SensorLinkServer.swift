@@ -25,7 +25,7 @@ import CryptoKit
 import Foundation
 import Network
 
-final class SensorLinkServer {
+final class SensorLinkServer: RemoteSettingsProvider {
     /// All three are called on the main queue.
     var onStarted: (() -> Void)?
     var onFailed: ((String) -> Void)?
@@ -41,11 +41,23 @@ final class SensorLinkServer {
         self?.broadcastGps(fix)
     }
 
-    init(port: Int) {
+    // Browser page: settings over /control, camera over /camera.mjpg (see SensorLinkRemote.swift).
+    private let remoteSettings: RemoteSettings
+    private let screenName: () -> String
+    private var pushTimer: Timer?            // main queue
+    private var sensorRate = "game"           // main queue
+
+    init(port: Int, remoteSettings: RemoteSettings, screenName: @escaping () -> String) {
         self.port = port
+        self.remoteSettings = remoteSettings
+        self.screenName = screenName
     }
 
     func start() {
+        remoteSettings.add(self)
+        CameraHub.shared.onFrame = { [weak self] jpeg in
+            self?.queue.async { self?.sendFrame(jpeg) }
+        }
         let status = CLLocationManager().authorizationStatus
         let authorized = status == .authorizedWhenInUse || status == .authorizedAlways
         queue.async { self.sensors.canUseLocation = authorized }
@@ -74,6 +86,8 @@ final class SensorLinkServer {
                 c.onText = { [weak self] c, text in self?.received(c, text: text) }
                 c.onClose = { [weak self] c in self?.closed(c) }
                 c.httpHandler = { [weak self] path in self?.httpResponse(path) ?? HTTPReply(status: 503, contentType: "text/plain", body: Data()) }
+                c.onStream = { [weak self] c in self?.startedStream(c) }
+                c.onSnapshot = { [weak self] c in self?.wantsSnapshot(c) }
                 // Held here from the start: its own callbacks only hold it weakly.
                 self.connections[ObjectIdentifier(c)] = c
                 c.start()
@@ -86,6 +100,11 @@ final class SensorLinkServer {
     }
 
     func stop() {
+        remoteSettings.remove(self)
+        pushTimer?.invalidate()
+        pushTimer = nil
+        CameraHub.shared.onFrame = nil
+        CameraHub.shared.setViewers(0)
         queue.async {
             self.listener?.cancel()
             self.listener = nil
@@ -102,6 +121,12 @@ final class SensorLinkServer {
     // MARK: Connections (all on `queue`)
 
     private func opened(_ c: WebSocketConnection, path: String) {
+        if path == "/control" || path.hasPrefix("/control?") {
+            c.isControl = true
+            c.registered = true
+            report { self.pushState() }
+            return
+        }
         let request = SensorLinkProtocol.parse(path)
         switch request.kind {
         case .gps:
@@ -128,6 +153,13 @@ final class SensorLinkServer {
     }
 
     private func received(_ c: WebSocketConnection, text: String) {
+        if c.isControl {
+            report {
+                self.remoteSettings.apply(text)
+                self.pushState()
+            }
+            return
+        }
         if c.wantsGps, text.trimmingCharacters(in: .whitespacesAndNewlines) == SensorLinkProtocol.getLastKnownLocation,
            let fix = sensors.lastFix {
             c.send(SensorLinkProtocol.gpsJSON(fix))
@@ -136,13 +168,15 @@ final class SensorLinkServer {
 
     private func closed(_ c: WebSocketConnection) {
         guard connections.removeValue(forKey: ObjectIdentifier(c)) != nil, c.registered else { return }
+        if c.isStream || c.isSnapshot { updateViewers(); return }
+        if c.isControl { return }
         if c.wantsGps { sensors.releaseGps() }
         c.types.forEach { sensors.release($0) }
         reportCount()
     }
 
     private func reportCount() {
-        let count = connections.values.filter { $0.registered }.count
+        let count = connections.values.filter { $0.registered && !$0.isControl && !$0.isStream && !$0.isSnapshot }.count
         report { self.onClientCount?(count) }
     }
 
@@ -169,6 +203,79 @@ final class SensorLinkServer {
         for c in connections.values where c.registered && c.wantsGps { c.send(text) }
     }
 
+    // MARK: Camera (on `queue`)
+
+    private func updateViewers() {
+        CameraHub.shared.setViewers(connections.values.filter { $0.registered && ($0.isStream || $0.isSnapshot) }.count)
+    }
+
+    private func startedStream(_ c: WebSocketConnection) {
+        c.isStream = true
+        c.registered = true
+        updateViewers()
+    }
+
+    private func wantsSnapshot(_ c: WebSocketConnection) {
+        let hub = CameraHub.shared
+        if let jpeg = hub.latest, ProcessInfo.processInfo.systemUptime - hub.latestUptime < 1.5 {
+            c.respond(status: 200, contentType: "image/jpeg", body: jpeg)
+            return
+        }
+        c.isSnapshot = true
+        c.registered = true
+        updateViewers()
+        queue.asyncAfter(deadline: .now() + 4) { [weak self, weak c] in
+            guard let self = self, let c = c, c.isSnapshot else { return }
+            c.isSnapshot = false
+            let why = hub.reason ?? "No camera picture yet"
+            c.respond(status: 503, contentType: "text/plain", body: Data((why + "\n").utf8))
+            self.updateViewers()
+        }
+    }
+
+    private func sendFrame(_ jpeg: Data) {
+        let head = Data("--frame\r\nContent-Type: image/jpeg\r\nContent-Length: \(jpeg.count)\r\n\r\n".utf8)
+        let part = head + jpeg + Data("\r\n".utf8)
+        for c in connections.values where c.registered {
+            if c.isStream, c.canTakeMore {
+                c.sendRaw(part) // a slow browser skips frames instead of piling them up
+            } else if c.isSnapshot {
+                c.isSnapshot = false
+                c.respond(status: 200, contentType: "image/jpeg", body: jpeg)
+            }
+        }
+    }
+
+    // MARK: Settings (main queue)
+
+    /// Sends the settings state to every /control client; repeats every 2 s so phone-side changes show too.
+    private func pushState() {
+        let state = remoteSettings.stateJSON(screen: screenName(), camera: CameraHub.shared.reason ?? "")
+        queue.async {
+            let clients = self.connections.values.filter { $0.registered && $0.isControl }
+            clients.forEach { $0.send(state) }
+            let any = !clients.isEmpty
+            DispatchQueue.main.async {
+                if any && self.pushTimer == nil {
+                    self.pushTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.pushState() }
+                } else if !any {
+                    self.pushTimer?.invalidate()
+                    self.pushTimer = nil
+                }
+            }
+        }
+    }
+
+    func addSettings(_ out: inout [RemoteSetting]) {
+        out.append(.choice("sensors.rate", "Sensors", "Sensor speed (ui ≈ 15/s, game ≈ 50/s, fastest)", ["ui", "game", "fastest"],
+                           get: { [unowned self] in self.sensorRate },
+                           set: { [unowned self] rate in
+                               self.sensorRate = rate
+                               let interval = rate == "ui" ? 1.0 / 15 : rate == "fastest" ? 1.0 / 100 : 1.0 / 50
+                               self.queue.async { self.sensors.setInterval(interval) }
+                           }))
+    }
+
     /// Plain HTTP: the live dashboard at `/` and the sensor list it reads at `/sensors`.
     private func httpResponse(_ path: String) -> HTTPReply {
         let route = path.split(separator: "?", maxSplits: 1).first.map(String.init) ?? path
@@ -179,6 +286,10 @@ final class SensorLinkServer {
                 return HTTPReply(status: 200, contentType: "text/html; charset=utf-8", body: page)
             }
             return HTTPReply(status: 500, contentType: "text/plain", body: Data("Dashboard missing from the app\n".utf8))
+        case "/camera.mjpg":
+            return HTTPReply(status: 200, contentType: "multipart/x-mixed-replace; boundary=frame", body: Data(), mode: .stream)
+        case "/camera.jpg":
+            return HTTPReply(status: 200, contentType: "image/jpeg", body: Data(), mode: .snapshot)
         case "/sensors":
             let list = SensorLinkSensors.allTypes.filter { sensors.isAvailable($0) }.map {
                 "{\"type\":\"\($0)\",\"name\":\"\(SensorLinkSensors.displayName($0))\"}"
@@ -194,9 +305,11 @@ final class SensorLinkServer {
 
 /// A plain HTTP answer.
 private struct HTTPReply {
+    enum Mode { case full, stream, snapshot }
     let status: Int
     let contentType: String
     let body: Data
+    var mode: Mode = .full
 }
 
 /// One client: HTTP upgrade, then RFC 6455 frames. Server frames are never
@@ -211,6 +324,11 @@ private final class WebSocketConnection {
     var registered = false
     var wantsGps = false
     var multi = false
+    var isControl = false   // /control settings socket
+    var isStream = false    // /camera.mjpg
+    var isSnapshot = false  // /camera.jpg waiting for a frame
+    var onStream: ((WebSocketConnection) -> Void)?
+    var onSnapshot: ((WebSocketConnection) -> Void)?
     var types: Set<String> = []
 
     private let connection: NWConnection
@@ -279,13 +397,19 @@ private final class WebSocketConnection {
             headers[name] = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
         }
         guard headers["upgrade"]?.lowercased() == "websocket", let key = headers["sec-websocket-key"] else {
-            // A plain browser visit: the dashboard page, or the sensor list it asks for.
+            // A plain browser visit: the page, the sensor list, or the camera.
             let reply = httpHandler?(path) ?? HTTPReply(status: 404, contentType: "text/plain", body: Data())
-            let reason = reply.status == 200 ? "OK" : reply.status == 404 ? "Not Found" : "Error"
-            let head = "HTTP/1.1 \(reply.status) \(reason)\r\nContent-Type: \(reply.contentType)\r\n"
-                + "Content-Length: \(reply.body.count)\r\nCache-Control: no-store\r\n"
-                + "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
-            write(Data(head.utf8) + reply.body, thenClose: true)
+            switch reply.mode {
+            case .full:
+                respond(status: reply.status, contentType: reply.contentType, body: reply.body)
+            case .stream:
+                let head = "HTTP/1.1 200 OK\r\nContent-Type: \(reply.contentType)\r\nCache-Control: no-store\r\n"
+                    + "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
+                write(Data(head.utf8), thenClose: false)
+                onStream?(self)
+            case .snapshot:
+                onSnapshot?(self)
+            }
             return
         }
         let digest = Insecure.SHA1.hash(data: Data((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").utf8))
@@ -343,6 +467,22 @@ private final class WebSocketConnection {
                 break
             }
         }
+    }
+
+    /// A complete HTTP answer, then hang up.
+    func respond(status: Int, contentType: String, body: Data) {
+        let reason = status == 200 ? "OK" : status == 404 ? "Not Found" : "Error"
+        let head = "HTTP/1.1 \(status) \(reason)\r\nContent-Type: \(contentType)\r\n"
+            + "Content-Length: \(body.count)\r\nCache-Control: no-store\r\n"
+            + "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
+        write(Data(head.utf8) + body, thenClose: true)
+    }
+
+    /// True while fewer than 3 writes are in flight (for skipping camera frames).
+    var canTakeMore: Bool { !closed && pendingSends < 3 }
+
+    func sendRaw(_ data: Data) {
+        write(data, thenClose: false)
     }
 
     func send(_ text: String) {
@@ -528,6 +668,14 @@ private final class SensorLinkSensors: NSObject, CLLocationManagerDelegate {
         case Self.pressure: altimeter.stopRelativeAltitudeUpdates()
         default: break
         }
+    }
+
+    /// Seconds between readings for the CoreMotion sensors (the browser's "Sensor speed").
+    func setInterval(_ interval: TimeInterval) {
+        motion.accelerometerUpdateInterval = interval
+        motion.gyroUpdateInterval = interval
+        motion.magnetometerUpdateInterval = interval
+        motion.deviceMotionUpdateInterval = interval
     }
 
     func stopAll() {

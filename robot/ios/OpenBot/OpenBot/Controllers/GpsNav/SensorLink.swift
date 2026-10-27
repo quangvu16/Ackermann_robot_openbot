@@ -257,7 +257,29 @@ final class SensorLink {
     private var remoteAccuracy: Double?
     private var remoteFixUptime: TimeInterval = 0
 
-    private init() {}
+    // Browser settings: the camera everywhere, plus whatever the open screen adds.
+    let remoteSettings = RemoteSettings()
+    private(set) var screenName = "OpenBot"
+    private var screenProvider: RemoteSettingsProvider?
+
+    private init() {
+        remoteSettings.add(CameraHub.shared)
+    }
+
+    /// The open screen's name and settings for the browser page. Main thread.
+    func setScreen(_ name: String, _ provider: RemoteSettingsProvider) {
+        if let old = screenProvider { remoteSettings.remove(old) }
+        screenName = name
+        screenProvider = provider
+        remoteSettings.add(provider)
+    }
+
+    func clearScreen(_ provider: RemoteSettingsProvider) {
+        guard screenProvider === provider else { return }
+        remoteSettings.remove(provider)
+        screenProvider = nil
+        screenName = "OpenBot"
+    }
 
     func attach() {
         attachCount += 1
@@ -327,7 +349,8 @@ final class SensorLink {
         resetStatus()
         switch settings.mode {
         case .server:
-            let server = SensorLinkServer(port: settings.port)
+            let server = SensorLinkServer(port: settings.port, remoteSettings: remoteSettings,
+                                          screenName: { [weak self] in self?.screenName ?? "OpenBot" })
             server.onStarted = { [weak self] in
                 self?.serverError = nil
                 self?.notify()

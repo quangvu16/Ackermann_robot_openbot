@@ -75,6 +75,7 @@
 		6A00000000000000000000C5 /* SensorLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000C4 /* SensorLink.swift */; };
 		6A00000000000000000000C7 /* SensorLinkServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000C6 /* SensorLinkServer.swift */; };
 		6A00000000000000000000C9 /* SensorLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000C8 /* SensorLinkView.swift */; };
+		6A00000000000000000000CD /* SensorLinkRemote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000CC /* SensorLinkRemote.swift */; };
 		6A00000000000000000000A9 /* GpsNavCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000A8 /* GpsNavCoreTests.swift */; };
 		66AC720729B885410022108A /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AC71E929B885410022108A /* CameraController.swift */; };
 		66AC720829B885410022108A /* HomePageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AC71EB29B885410022108A /* HomePageViewController.swift */; };
@@ -246,6 +247,7 @@
 		6A00000000000000000000C4 /* SensorLink.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorLink.swift; sourceTree = "<group>"; };
 		6A00000000000000000000C6 /* SensorLinkServer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorLinkServer.swift; sourceTree = "<group>"; };
 		6A00000000000000000000C8 /* SensorLinkView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorLinkView.swift; sourceTree = "<group>"; };
+		6A00000000000000000000CC /* SensorLinkRemote.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SensorLinkRemote.swift; sourceTree = "<group>"; };
 		6A00000000000000000000A8 /* GpsNavCoreTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsNavCoreTests.swift; sourceTree = "<group>"; };
 		6A00000000000000000000B2 /* LidarCore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarCore.swift; sourceTree = "<group>"; };
 		6A00000000000000000000B4 /* LidarScanner.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LidarScanner.swift; sourceTree = "<group>"; };
@@ -651,6 +653,7 @@
 				6A00000000000000000000C4 /* SensorLink.swift */,
 				6A00000000000000000000C6 /* SensorLinkServer.swift */,
 				6A00000000000000000000C8 /* SensorLinkView.swift */,
+				6A00000000000000000000CC /* SensorLinkRemote.swift */,
 			);
 			path = GpsNav;
 			sourceTree = "<group>";
@@ -1410,6 +1413,7 @@
 				6A00000000000000000000C5 /* SensorLink.swift in Sources */,
 				6A00000000000000000000C7 /* SensorLinkServer.swift in Sources */,
 				6A00000000000000000000C9 /* SensorLinkView.swift in Sources */,
+				6A00000000000000000000CD /* SensorLinkRemote.swift in Sources */,
 				6A00000000000000000000B3 /* LidarCore.swift in Sources */,
 				6A00000000000000000000B5 /* LidarScanner.swift in Sources */,
 				6A00000000000000000000B7 /* LidarView.swift in Sources */,

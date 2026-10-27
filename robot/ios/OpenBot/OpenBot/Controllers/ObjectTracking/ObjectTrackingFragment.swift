@@ -28,10 +28,17 @@ class ObjectTrackingFragment: CameraController {
     private var bufferHeight = 0
     private var bufferWidth = 0
     private let edgeOffset: CGFloat = 2.0
-    private var useDynamicSpeed: Bool = false
+    private(set) var useDynamicSpeed: Bool = false
     let webSocketMsgHandler = WebSocketMessageHandler();
     let fragmentType = FragmentType.shared
-    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self)
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "Object Tracking", camera: self) { [unowned self] out in
+        out.append(.range("tracking.confidence", "Object Tracking", "Detection confidence (%)", 5, 95, 5,
+                          get: { Double((self.MINIMUM_CONFIDENCE_TF_OD_API * 100).rounded()) },
+                          set: { NotificationCenter.default.post(name: .updateConfidence, object: Int($0.rounded())) }))
+        out.append(.bool("tracking.dynamicSpeed", "Object Tracking", "Slow down when the object is close",
+                         get: { self.useDynamicSpeed },
+                         set: { self.setDynamicSpeed(isEnabled: $0) }))
+    }
 
     /// Called after the view fragment has loaded.
     override func viewDidLoad() {
@@ -331,6 +338,7 @@ class ObjectTrackingFragment: CameraController {
 
     /// callback function when any image is clicked on object tracking fragment.
     override func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        CameraHub.shared.offer(sampleBuffer) // browser camera view (Sensor link)
 
         // extract the image buffer from the sample buffer
         let pixelBuffer: CVPixelBuffer? = CMSampleBufferGetImageBuffer(sampleBuffer)

@@ -25,7 +25,7 @@ class AutopilotFragment: CameraController {
     var autopilotEnabled = false
     let webSocketMsgHandler = WebSocketMessageHandler();
     let fragmentType = FragmentType.shared
-    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self)
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "Autopilot", camera: self)
 
     /// Called after the view fragment has loaded.
     override func viewDidLoad() {
@@ -199,6 +199,7 @@ class AutopilotFragment: CameraController {
     ///   - sampleBuffer:
     ///   - connection:
     override func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        CameraHub.shared.offer(sampleBuffer) // browser camera view (Sensor link)
 
         // extract the image buffer from the sample buffer
         let pixelBuffer: CVPixelBuffer? = CMSampleBufferGetImageBuffer(sampleBuffer)

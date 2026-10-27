@@ -41,7 +41,9 @@ final class GpsMissionController: UIViewController {
     private var latestFixUptime: TimeInterval = 0
     private let fixTimeout: TimeInterval = 3
     private let avoidanceToggle = AvoidanceToggleItem()
-    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self)
+    /// Opens the camera only while a browser watches it (Sensor link page).
+    private let browserCamera = OnDemandCamera()
+    private lazy var sensorLinkItem = SensorLinkBarItem(owner: self, screen: "GPS Mission", camera: browserCamera)
     private var navigationTimer: Timer?
 
     private let bluetooth = bluetoothDataController.shared
@@ -71,6 +73,7 @@ final class GpsMissionController: UIViewController {
         startNavigationTimer()
         SensorLink.shared.remoteDelegate = self
         sensorLinkItem.appeared()
+        browserCamera.start()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -82,6 +85,7 @@ final class GpsMissionController: UIViewController {
         locationProvider.stop()
         saveMission()
         if SensorLink.shared.remoteDelegate === self { SensorLink.shared.remoteDelegate = nil }
+        browserCamera.stop()
         sensorLinkItem.disappeared()
     }
 

@@ -134,7 +134,13 @@ ws://<address>:8080/gps
    - a **GPS** card (latitude, longitude, accuracy, speed, course, time since the last fix, and an *Open map* link);
    - one card per sensor with a switch. Turned on, it shows live values, a graph of the last 3 seconds and the readings per second. The rotation vector card also shows the compass heading;
    - a **Pause** button, to freeze the numbers while you read them.
+   - a **Camera** card: the phone camera live, with a **Snapshot** link (saves a JPEG) and a switch to turn the view off;
+   - a **Settings** card that changes the phone from the browser. **Driving** comes first: a big **STOP / RESUME** button, speed mode, object avoidance on/off and its distance. Then **Camera** (front/back lens, flashlight, zoom, stream quality, frames per second), the screen's own settings (Object Tracking: detection confidence, slow down when close) and **Sensors** (sensor speed).
    The page needs no internet: the phone serves it. Your switch choices are remembered in that browser.
+
+   *Example:* the car drives an Autopilot run in the garden. On the laptop you watch the camera, lower the speed to *slow* and switch the flashlight on as it gets dark. If it heads for the flower bed, you press **STOP** in the browser.
+
+   **Camera per screen:** Object Tracking and Autopilot share the camera they already use. GPS Mission has no camera on screen, so it opens one only while a browser watches and closes it when you turn the view off or close the page. That saves battery.
 5. **Script:** test from a laptop (Python, `pip install websocket-client`):
    ```python
    import websocket
@@ -144,6 +150,8 @@ ws://<address>:8080/gps
 
 **Things to know**
 - The link runs only while one of the three screens is open, and each sensor runs only while someone is connected to it. That saves battery.
+- More endpoints: `GET /camera.mjpg` (live MJPEG; works in an `<img>` tag, VLC or OpenCV `cv2.VideoCapture`), `GET /camera.jpg` (one picture), `WS /control` (settings; the phone sends `{"screen","settings":[...],"camera"}`, the page sends `{"set":"drive.speed","value":"slow"}`).
+- **Why MJPEG?** Every browser shows it with a plain `<img>`, with no video player or codec. It uses more data than a video codec, so lower *Stream quality* or *frames per second* on a weak hotspot.
 - In Client mode, GPS Mission goes back to the phone's own GPS and compass if the other phone stops sending for **3 seconds**.
 - The other phone must be mounted like the car's phone: standing up with its back camera facing forward, or lying flat with its top edge forward. Otherwise its compass heading is wrong.
 - The link has no password. Use it only on a Wi-Fi or hotspot you trust.
