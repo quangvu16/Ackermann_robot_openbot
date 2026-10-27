@@ -177,6 +177,10 @@ public final class LidarBehaviors {
   private int patrolTurns;
   private int patrolTurnStep; // 0 = not turning
   private int turnSide = 1; // +1 left, -1 right
+  // Avoid: the side to escape to, chosen when first blocked and kept for a while, so backing out
+  // and driving forward both swing the nose the same way (otherwise a car rocks in a corner).
+  private int escapeSide;
+  private double escapeUntil;
 
   public LidarBehaviors(Mode mode, Params params) {
     this.mode = mode;
@@ -266,23 +270,24 @@ public final class LidarBehaviors {
     d.targetDist = nearest;
     // Same decision table as the hoverboard's, with Ackermann turns: where the hoverboard spins on
     // the spot, this car backs out with the nose swinging the chosen way.
+    if (f && (escapeSide == 0 || now > escapeUntil)) {
+      escapeSide = left <= right ? 1 : -1; // towards the side with fewer close returns
+    }
+    if (f) escapeUntil = now + 4.0;
+    String side = escapeSide > 0 ? "left" : "right";
     if (f && l && r) {
-      d.set(-v * 0.6, -1, Mood.SCARED, "Boxed in: backing out, nose turning right");
-      return hold(d, now, 0.8);
+      d.set(-v * 0.6, escapeSide, Mood.SCARED, "Boxed in: backing out, nose turning " + side);
+      return hold(d, now, 1.2);
     } else if (f && frontMin < params.responseDist) {
-      boolean goLeft = left <= right;
-      d.set(-v * 0.6, goLeft ? +1 : -1, Mood.WORRIED,
-          goLeft ? "Too close ahead: backing out, nose turning left" : "Too close ahead: backing out, nose turning right");
-      return hold(d, now, 0.6);
-    } else if (f && r) {
-      d.set(v * 0.5, +1, Mood.WORRIED, "Front and right blocked: turning left");
-      return hold(d, now, 0.3);
-    } else if (f && l) {
-      d.set(v * 0.5, -1, Mood.WORRIED, "Front and left blocked: turning right");
-      return hold(d, now, 0.3);
+      d.set(-v * 0.6, escapeSide, Mood.WORRIED, "Too close ahead: backing out, nose turning " + side);
+      return hold(d, now, 0.8);
+    } else if (f && (r || l)) {
+      d.set(v * 0.5, escapeSide, Mood.WORRIED,
+          (r && !l ? "Front and right" : l && !r ? "Front and left" : "Front") + " blocked: turning " + side);
+      return hold(d, now, 0.4);
     } else if (f) {
-      d.set(v * 0.5, +1, Mood.WORRIED, "Front blocked: turning left");
-      return hold(d, now, 0.3);
+      d.set(v * 0.5, escapeSide, Mood.WORRIED, "Front blocked: turning " + side);
+      return hold(d, now, 0.4);
     } else if (l && r) {
       return d.set(v * 0.5, 0, Mood.FOCUSED, "Narrow gap: slowly straight through");
     } else if (l) {

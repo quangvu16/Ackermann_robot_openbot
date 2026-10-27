@@ -61,6 +61,10 @@ public final class Navigator {
   private double blockedSince = -1;
   private double backUntil = -1;
   private double backSteer;
+  // Turning round when the path is behind: a multi-point turn to one side (chosen once).
+  private int turnSide; // 0 = not turning, +1 nose left, -1 nose right
+  private double turnPhaseStart;
+  private boolean turnBacking;
 
   public Navigator(Params params) {
     this.params = params;
@@ -71,6 +75,7 @@ public final class Navigator {
   }
 
   public void setGoal(double x, double y) {
+    turnSide = 0;
     goal = new double[] {x, y};
     path = new ArrayList<>();
     lastPlan = -1e9;
@@ -166,10 +171,24 @@ public final class Navigator {
     state = State.DRIVING;
     c.state = state;
     double maxSteer = Math.toRadians(params.maxSteerDeg);
-    if (Math.abs(alpha) > Math.toRadians(100)) {
-      // Goal behind: reverse while turning the nose towards it (a car cannot turn on the spot).
-      c.throttle = -params.speed * 0.6;
-      c.steer = Math.signum(alpha);
+    // Path behind: a multi-point turn (a car cannot turn on the spot). The side is chosen once, so
+    // the turn does not flip left/right as the angle wobbles around 180°; back up and go forward in
+    // turns, the nose swinging the same way both times, until the path is within 60° of the nose.
+    if (turnSide == 0 && Math.abs(alpha) > Math.toRadians(100)) {
+      turnSide = alpha >= 0 ? 1 : -1;
+      turnBacking = true;
+      turnPhaseStart = now;
+    } else if (turnSide != 0 && Math.abs(alpha) < Math.toRadians(60)) {
+      turnSide = 0;
+    }
+    if (turnSide != 0) {
+      boolean roomAhead = frontMin > params.stopDistance * 1.6;
+      if (now - turnPhaseStart > 1.6 || (!turnBacking && !roomAhead)) {
+        turnBacking = !turnBacking || !roomAhead;
+        turnPhaseStart = now;
+      }
+      c.throttle = (turnBacking ? -0.6 : 0.5) * params.speed;
+      c.steer = turnSide;
       c.message = "Turning round towards the path";
       return c;
     }

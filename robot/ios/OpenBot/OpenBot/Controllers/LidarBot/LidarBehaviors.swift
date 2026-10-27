@@ -96,6 +96,9 @@ final class LidarBehaviors {
     private(set) var patrolTurns = 0
     private var patrolTurnStep = 0
     private var turnSide = 1.0
+    // Avoid: escape side chosen when first blocked and kept for a while (no rocking in corners).
+    private var escapeSide = 0.0
+    private var escapeUntil = 0.0
 
     init(mode: Mode, params: Params) {
         self.mode = mode
@@ -143,23 +146,22 @@ final class LidarBehaviors {
         let v = params.speed
         d.gazeDeg = nearest < near ? nearestAng : 0
         d.targetDist = nearest
+        if f && (escapeSide == 0 || now > escapeUntil) { escapeSide = left <= right ? 1 : -1 }
+        if f { escapeUntil = now + 4 }
+        let side = escapeSide > 0 ? "left" : "right"
         if f && l && r {
-            d.set(-v * 0.6, -1, .scared, "Boxed in: backing out, nose turning right")
-            return hold(d, now, 0.8)
+            d.set(-v * 0.6, escapeSide, .scared, "Boxed in: backing out, nose turning " + side)
+            return hold(d, now, 1.2)
         } else if f && frontMin < params.responseDist {
-            let goLeft = left <= right
-            d.set(-v * 0.6, goLeft ? 1 : -1, .worried,
-                  goLeft ? "Too close ahead: backing out, nose turning left" : "Too close ahead: backing out, nose turning right")
-            return hold(d, now, 0.6)
-        } else if f && r {
-            d.set(v * 0.5, 1, .worried, "Front and right blocked: turning left")
-            return hold(d, now, 0.3)
-        } else if f && l {
-            d.set(v * 0.5, -1, .worried, "Front and left blocked: turning right")
-            return hold(d, now, 0.3)
+            d.set(-v * 0.6, escapeSide, .worried, "Too close ahead: backing out, nose turning " + side)
+            return hold(d, now, 0.8)
+        } else if f && (r || l) {
+            let what = r && !l ? "Front and right" : (l && !r ? "Front and left" : "Front")
+            d.set(v * 0.5, escapeSide, .worried, what + " blocked: turning " + side)
+            return hold(d, now, 0.4)
         } else if f {
-            d.set(v * 0.5, 1, .worried, "Front blocked: turning left")
-            return hold(d, now, 0.3)
+            d.set(v * 0.5, escapeSide, .worried, "Front blocked: turning " + side)
+            return hold(d, now, 0.4)
         } else if l && r {
             d.set(v * 0.5, 0, .focused, "Narrow gap: slowly straight through")
         } else if l {

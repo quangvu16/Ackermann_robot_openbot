@@ -173,4 +173,26 @@ public class SlamTest {
     byte[] pgm = g.toPgm();
     assertTrue(new String(pgm, 0, 2, "US-ASCII").equals("P5"));
   }
+
+  /** Bicycle model with the firmware's servo flip in reverse (update_vehicle): returns x, y, th. */
+  static double[] drive(double[] st, double throttle, double steer) {
+    double v = throttle * 0.6, delta = steer * Math.toRadians(28);
+    if (throttle < 0) delta = -delta;
+    double th = st[2] + v / 0.26 * Math.tan(delta) * 0.1;
+    return new double[] {st[0] + v * Math.cos(th) * 0.1, st[1] + v * Math.sin(th) * 0.1, th};
+  }
+
+  @Test
+  public void turnsRoundAndReachesAGoalBehindIt() {
+    OccupancyGrid g = roomGrid();
+    Navigator nav = new Navigator(new Navigator.Params());
+    nav.setGoal(-1.0, 0.0); // behind the car
+    double[] st = {1.0, 0.0, 0.0};
+    for (int k = 0; k < 900; k++) {
+      Navigator.Command c = nav.step(new Pose(st[0], st[1], st[2]), g, Double.POSITIVE_INFINITY, k * 0.1);
+      if (c.state == Navigator.State.ARRIVED) return;
+      st = drive(st, c.throttle, c.steer);
+    }
+    throw new AssertionError("did not arrive; ended at " + st[0] + ", " + st[1]);
+  }
 }

@@ -186,6 +186,45 @@ Open it from the **LiDAR robot** tile on the home screen. The screen shows a **f
 
 ---
 
+## 2e. Indoor SLAM and navigation (Android and iOS)
+
+Open it from **More features > General > Indoor SLAM**. The car draws a map of the room with its LiDAR (**SLAM** = Simultaneous Localization And Mapping: it builds the map and works out where it is on that map at the same time). Then you **tap the map** and the car drives there on its own, going round walls and furniture.
+
+| Control | What it does |
+|---|---|
+| **Build map / Localize only** | *Build map* adds every scan to the map. *Localize only* keeps the map fixed and only works out where the car is (use it after **Load map**). |
+| **Explore** | The car wanders by itself (the LiDAR robot's Avoid behaviour) while the map grows. You can also drive by RC transmitter or game controller. |
+| **Tap** the map | Sets a goal (pink dot). The car plans a path (green line) and follows it. **Cancel goal** stops it. |
+| **Long-press** the map | "The car is here, facing this way": use it after loading a map or if the map slips. |
+| **Double-tap** / **Centre** | Keeps the view on the car. Pinch to zoom, drag to pan. |
+| Layers **Map / Scan / Path / Trail** | Show or hide the grid, the live scan (red dots), the planned path and where the car has been. |
+| **Save / Load / Clear map** | Keeps one map on the phone, so you don't have to map the flat every time. |
+| **Export for ROS** | Shares `map.pgm` + `map.yaml`, the same files `map_saver` writes. They open in ROS 2 `map_server`, Nav2 and RViz. |
+
+The status line shows the state, the **match %** (how many scan points land on known walls: above about 60 % the position is trustworthy) and the scan count.
+
+**How it works and where each idea comes from** (no code was copied: BreezySLAM and slam_toolbox are LGPL, so the ideas were rewritten for Java and Swift):
+
+- **Occupancy grid** (BreezySLAM / CoreSLAM, slam_toolbox): a 30 × 30 m grid of 5 cm cells. Each beam lowers "wall" odds along its path and raises it at the end (log-odds, Bresenham lines). *Example:* a chair leg seen once is faint grey; seen 20 times it is solid black.
+- **Scan matching** (BreezySLAM's RMHC, random-mutation hill climbing): it tries hundreds of small shifts and turns of the new scan and keeps the one that fits the map best. *Why:* the car has no wheel encoders, so the scan itself is the odometry.
+- **Phone gyro as a hint** (SmartphoneGraphSLAM uses phone sensors for dead reckoning): the phone's gyro gives the turn between scans, so the matcher starts close to the right answer.
+- **Costmap with inflation** (Nav2 `inflation_layer`): cells within 0.22 m of a wall are forbidden; cost fades out over 0.45 m more; unknown cells cost a little. *Why:* the path keeps to the middle of a doorway instead of scraping the frame.
+- **A\* planner** (Nav2 `NavFn` / Smac idea) on a 10 cm grid, then shortened with straight-line shortcuts.
+- **Regulated Pure Pursuit** (Nav2 controller): steers towards a point 0.55 m ahead on the path and slows in tight turns and near obstacles. Steering uses the car's real geometry (0.26 m wheelbase, 28° lock).
+- **Ackermann extras:** if the path starts behind the car it does a **multi-point turn** (back, forward, back) on one side, like a person turning a car in a narrow street. If something blocks it within 0.35 m it **backs up** and re-plans (Nav2 BackUp recovery).
+- **The map view** (PyRoboViz, RViz): grey = unknown, white = free, black = wall, the car as an arrow, scan dots, path and trail. *Example:* in RViz you would add Map, LaserScan, Path and RobotModel displays; here they are the four layer buttons.
+
+**Limits:**
+- **No loop closure** (slam_toolbox has it): after a long loop round a big flat the map can be slightly bent. Map one room at a time and drive slowly (about 30 % speed).
+- **Needs full scans:** USB LiDAR (Android) or the car's Wi-Fi. The 8 Bluetooth sectors are too coarse; the screen says so.
+- **Glass and mirrors** don't reflect the LiDAR well, so they may show as open space.
+- Checked in a simulated two-room flat (explore, then drive through the door: 0.05 m worst position error) and by unit tests, **not yet on the real car**. Try it with the wheels off the ground first, then in an open room. STOP and object avoidance still apply.
+- *Source:* Android `slam/` (`OccupancyGrid`, `SlamEngine`, `Navigator`, `SlamMapView`, `SlamFragment`, 8 unit tests). iOS `Controllers/Slam/` (`SlamCore.swift`, `SlamController.swift`).
+
+**Why build the map first?** A planner can only go round walls it knows about. With a map, a goal in the next room becomes a path through the door; without one, the car would only see the wall in front of it.
+
+---
+
 ## 3. Android app
 
 Source folder: `robot/android/` (the *robot* build). Build details: `robot/android/README.md`.

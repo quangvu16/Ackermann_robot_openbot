@@ -132,4 +132,29 @@ public class LidarBehaviorsTest {
     Decision d = new LidarBehaviors(Mode.WARN, LidarBehaviors.Params.defaults(Mode.WARN)).step(p, 0);
     assertTrue(d.alarm);
   }
+
+  @Test
+  public void avoidEscapesACornerInsteadOfRocking() {
+    // Facing into the corner of two walls: x = 1 (ahead) and y = 1 (left), car at the origin.
+    LidarBehaviors b = new LidarBehaviors(Mode.AVOID, LidarBehaviors.Params.defaults(Mode.AVOID));
+    double x = 0.45, y = 0.45, th = Math.toRadians(45);
+    for (int k = 0; k < 400; k++) {
+      int[] r = new int[360];
+      for (int i = 0; i < 360; i++) {
+        double g = th - Math.toRadians(i + 0.5), dx = Math.cos(g), dy = Math.sin(g), d = 8;
+        if (dx > 1e-6) d = Math.min(d, (1 - x) / dx);
+        if (dy > 1e-6) d = Math.min(d, (1 - y) / dy);
+        r[i] = (int) Math.round(d * 1000);
+      }
+      Decision dcs = b.step(pts(r), k * 0.1);
+      double v = dcs.throttle * 0.6, delta = dcs.steer * Math.toRadians(28);
+      if (dcs.throttle < 0) delta = -delta; // firmware flips the servo when reversing
+      th += v / 0.26 * Math.tan(delta) * 0.1;
+      x += v * Math.cos(th) * 0.1;
+      y += v * Math.sin(th) * 0.1;
+      double facingCorner = Math.cos(th - Math.toRadians(45));
+      if (facingCorner < -0.3 && x < 0.3 && y < 0.3) return; // turned away and left the corner
+    }
+    throw new AssertionError("still in the corner at " + x + ", " + y);
+  }
 }

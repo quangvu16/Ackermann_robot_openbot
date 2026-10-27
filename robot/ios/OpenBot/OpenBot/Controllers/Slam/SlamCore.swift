@@ -312,9 +312,11 @@ final class SlamNavigator {
     private(set) var path: [(Double, Double)] = []
     private(set) var state: State = .idle
     private var lastPlan = -1e9, blockedSince = -1.0, backUntil = -1.0, backSteer = 0.0
+    // Multi-point turn when the path is behind (side chosen once).
+    private var turnSide = 0.0, turnPhaseStart = 0.0, turnBacking = true
 
     func setGoal(_ x: Double, _ y: Double) {
-        goal = (x, y); path = []; lastPlan = -1e9; blockedSince = -1; backUntil = -1; state = .driving
+        goal = (x, y); path = []; lastPlan = -1e9; blockedSince = -1; backUntil = -1; state = .driving; turnSide = 0
     }
 
     func cancel() { goal = nil; path = []; state = .idle }
@@ -354,8 +356,19 @@ final class SlamNavigator {
         let alpha = angle(pose, la)
         let ld = max(0.15, pose.distance(to: la.0, la.1))
         state = .driving; c.state = state
-        if abs(alpha) > 100 * .pi / 180 {
-            c.throttle = -params.speed * 0.6; c.steer = alpha > 0 ? 1 : -1
+        if turnSide == 0 && abs(alpha) > 100 * .pi / 180 {
+            turnSide = alpha >= 0 ? 1 : -1; turnBacking = true; turnPhaseStart = now
+        } else if turnSide != 0 && abs(alpha) < 60 * .pi / 180 {
+            turnSide = 0
+        }
+        if turnSide != 0 {
+            let roomAhead = frontMin > params.stopDistance * 1.6
+            if now - turnPhaseStart > 1.6 || (!turnBacking && !roomAhead) {
+                turnBacking = !turnBacking || !roomAhead
+                turnPhaseStart = now
+            }
+            c.throttle = (turnBacking ? -0.6 : 0.5) * params.speed
+            c.steer = turnSide
             c.message = "Turning round towards the path"
             return c
         }
