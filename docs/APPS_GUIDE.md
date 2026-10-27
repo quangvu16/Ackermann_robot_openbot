@@ -163,6 +163,29 @@ ws://<address>:8080/gps
 
 ---
 
+## 2d. LiDAR robot: patrol, follow, avoid, track, warn (Android and iOS)
+
+Open it from the **LiDAR robot** tile on the home screen. The screen shows a **face** beside the **LiDAR map**, then the five behaviours, a big **Start / Stop** button and three sliders (speed, distance, angle). The behaviours come from the hoverboard robot's ROS 2 package `hoverboard_laser` (github.com/quangvu16/hoverboard-robot, `src/hoverboard_laser`: `laser_Avoidance`, `laser_Tracker`, `laser_Warning`). That package has no patrol node, so Patrol and Tracking were designed here on the same helpers.
+
+| Behaviour | What the car does | Face | Defaults |
+|---|---|---|---|
+| **Patrol** | Drives down the middle between walls. At a wall it turns round (back up, then forward, repeated) towards the side with more room, then carries on. | Focused blue eyes; worried at a wall | 35 % speed, turns at 0.9 m (1.5 × 0.6 m) |
+| **Follow** | Follows the nearest object in front, keeping the set distance: forward when it's far, backs off when it's too close (as `laser_Tracker`). | **Pink heart eyes** and a smile; searching eyes when there's nothing to follow | keeps 0.55 m, looks ±30° |
+| **Avoid** | Wanders and steers away from obstacles using front / left / right sectors (as `laser_Avoidance`). It backs out when boxed in. | Smiling when clear; worried amber eyes when turning away; scared red when boxed in | 35 % speed, reacts inside 0.8 m |
+| **Track** | Turns to face the nearest object without chasing it, creeping forward with the wheels turned until the object is straight ahead. | Focused eyes that look at the target | looks ±90°, never closer than 0.4 m |
+| **Warn** | Stays still. When something comes within the distance in front, the phone beeps and vibrates and the wheels point at it (as `laser_Warning`, without the buzzer). | Calm while watching; **wide red eyes and an open mouth** at the warning distance | 0.5 m, ±20° |
+
+- **The eyes look where the LiDAR is looking:** at the person being followed, the obstacle being avoided, the target being tracked.
+- **Ackermann, not hoverboard:** the hoverboard turns on the spot; this car can't. Wherever the original spins, this one backs out with the nose swinging the chosen way, or creeps forward with the wheels turned.
+- **Safety:** every command goes through the same path as the other screens, so the **STOP** button and **object avoidance** still apply. If object avoidance is on with a 1 m margin, Follow will hold at 1 m rather than 0.55 m. If the LiDAR stops sending (more than 0.5 s), the car stops and the face shows **X eyes**. Leaving the screen stops the car. **Run each behaviour with the wheels off the ground first.**
+- **LiDAR source:** a full scan over USB (Android) or the car's Wi-Fi works best. Over Bluetooth only the car's 8 sectors arrive; Avoid and Warn still work, but Follow and Track get coarse (45° steps).
+- *Example:* choose **Follow**, press Start and walk slowly in front of the car. The face shows hearts and the car keeps about half a metre behind you. Stop walking and it holds; step towards it and it backs off.
+- *Source:* Android `lidarbot/` (`LidarBehaviors.java`, `RobotFaceView.java`, `LidarBotFragment.java`, 9 unit tests). iOS `Controllers/LidarBot/` (`LidarBehaviors.swift`, `LidarBotController.swift`).
+
+**Why a face?** A person near the car can't read a status line, but they can see at a glance whether the car is happy, following them, worried or alarmed.
+
+---
+
 ## 3. Android app
 
 Source folder: `robot/android/` (the *robot* build). Build details: `robot/android/README.md`.

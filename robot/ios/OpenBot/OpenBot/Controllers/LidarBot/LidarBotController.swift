@@ -453,8 +453,9 @@ final class RobotFaceView: UIView {
         if mood == .worried {
             let by = c.y - eh * 0.62
             let p = UIBezierPath()
-            p.move(to: CGPoint(x: c.x - side * ew * 0.55, y: by + eh * 0.12))
-            p.addLine(to: CGPoint(x: c.x + side * ew * 0.45, y: by - eh * 0.1))
+            // Raised in the middle: the inner end (nearer the centre line) is higher.
+            p.move(to: CGPoint(x: c.x - side * ew * 0.55, y: by - eh * 0.12))
+            p.addLine(to: CGPoint(x: c.x + side * ew * 0.45, y: by + eh * 0.1))
             stroke(p, lw)
         } else if mood == .focused {
             let by = c.y - eh * 0.5

@@ -161,9 +161,9 @@ public class RobotFaceView extends View {
     r.set(ex - ew / 2, ey - hh / 2, ex + ew / 2, ey + hh / 2);
     c.drawRoundRect(r, ew * 0.35f, ew * 0.35f, eye);
     if (mood == LidarBehaviors.Mood.WORRIED) {
-      // Brows high in the middle.
+      // Brows raised in the middle (the inner end is the one nearer the centre line).
       float by = ey - eh * 0.62f;
-      c.drawLine(ex - side * ew * 0.55f, by + eh * 0.12f, ex + side * ew * 0.45f, by - eh * 0.1f, line);
+      c.drawLine(ex - side * ew * 0.55f, by - eh * 0.12f, ex + side * ew * 0.45f, by + eh * 0.1f, line);
     } else if (mood == LidarBehaviors.Mood.FOCUSED) {
       // A flat lid line: concentrating.
       float by = ey - eh * 0.5f;
