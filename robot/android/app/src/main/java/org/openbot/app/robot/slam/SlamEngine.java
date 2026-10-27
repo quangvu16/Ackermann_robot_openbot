@@ -32,7 +32,12 @@ import java.util.Set;
  * Cartographer. Defaults are Cartographer's trajectory_builder_2d.lua / pose_graph.lua unless noted.
  * Pure Java, unit tested; the same engine is in Swift (SlamCore.swift).
  */
-public final class SlamEngine {
+public final class SlamEngine implements Slam {
+
+  @Override
+  public Type type() {
+    return Type.CARTOGRAPHER;
+  }
 
   /** Beams beyond this are treated as "nothing seen". LD14: 8 m. */
   public static final double MAX_RANGE = 8.0;

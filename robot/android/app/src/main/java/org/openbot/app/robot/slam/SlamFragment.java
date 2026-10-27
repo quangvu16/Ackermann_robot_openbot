@@ -16,7 +16,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
@@ -53,8 +58,10 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
   private HandlerThread worker;
   private Handler work;
 
-  private final SlamEngine slam = new SlamEngine(OccupancyGrid.indoorDefault());
-  private final Navigator navigator = new Navigator(new Navigator.Params());
+  private final SlamSystem slam = new SlamSystem(Slam.Type.CARTOGRAPHER, OccupancyGrid.indoorDefault());
+  private final Navigator.Params navParams = new Navigator.Params();
+  private final Navigator navigator = new Navigator(navParams);
+  private volatile String algorithmsText = "";
   private final LidarBehaviors explorer =
       new LidarBehaviors(LidarBehaviors.Mode.AVOID, LidarBehaviors.Params.defaults(LidarBehaviors.Mode.AVOID));
   private volatile boolean exploring;
@@ -124,6 +131,7 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
       showButtons(false);
     });
     binding.centerButton.setOnClickListener(v -> binding.map.recentre());
+    binding.algorithmsButton.setOnClickListener(v -> showAlgorithms());
     binding.findButton.setOnClickListener(v -> {
       slam.requestGlobalLocalization();
       toast(R.string.slam_finding);
@@ -161,6 +169,7 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
       if (grav != null) sensors.registerListener(this, grav, SensorManager.SENSOR_DELAY_GAME);
     }
     requireActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    applySavedAlgorithms();
     main.post(tick);
   }
 
@@ -227,7 +236,8 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
         new ArrayList<>(navigator.getPath()), navigator.getGoal());
     binding.mapStatus.setText(getString(R.string.slam_status, pose.toString(),
         (int) Math.round(slam.getMatchQuality() * 100), slam.getScanCount())
-        + " · " + getString(R.string.slam_graph, slam.getSubmapCount(), slam.getLoopClosureCount()));
+        + " · " + getString(R.string.slam_graph, slam.getSubmapCount(), slam.getLoopClosureCount())
+        + "\n" + algorithmsText);
     int seq = slam.getRelocalizeSeq();
     if (seq != shownRelocalizeSeq) {
       shownRelocalizeSeq = seq;
@@ -385,6 +395,103 @@ public class SlamFragment extends ControlsFragment implements SensorEventListene
       Timber.e(e, "Exporting the SLAM map failed");
       toastText(e.getMessage());
     }
+  }
+
+  // endregion
+
+  // region Algorithm choices (saved on the phone)
+
+  private android.content.SharedPreferences prefs() {
+    return requireContext().getSharedPreferences("slam_algorithms", Context.MODE_PRIVATE);
+  }
+
+  private static <E extends Enum<E>> E saved(android.content.SharedPreferences p, String key, E def) {
+    try {
+      return Enum.valueOf(def.getDeclaringClass(), p.getString(key, def.name()));
+    } catch (IllegalArgumentException e) {
+      return def;
+    }
+  }
+
+  private void applySavedAlgorithms() {
+    android.content.SharedPreferences p = prefs();
+    applyAlgorithms(saved(p, "slam", Slam.Type.CARTOGRAPHER), saved(p, "localizer", SlamSystem.Localizer.SCAN_MATCHING),
+        saved(p, "planner", Navigator.Planner.NAVFN), saved(p, "controller", Navigator.Controller.RPP));
+  }
+
+  private void applyAlgorithms(Slam.Type t, SlamSystem.Localizer l, Navigator.Planner pl, Navigator.Controller co) {
+    algorithmsText = t.label + " · " + l.label + " · " + pl.label + " · " + co.label;
+    work(() -> {
+      slam.setEngine(t);
+      slam.setLocalizer(l);
+      navParams.planner = pl;
+      navParams.controller = co;
+      if (navigator.getGoal() != null) {
+        double[] g = navigator.getGoal();
+        navigator.setGoal(g[0], g[1]); // re-plan with the new planner
+      }
+    });
+  }
+
+  /** Four pickers: SLAM engine, localizer, planner, controller. */
+  private void showAlgorithms() {
+    android.content.SharedPreferences p = prefs();
+    LinearLayout box = new LinearLayout(requireContext());
+    box.setOrientation(LinearLayout.VERTICAL);
+    int pad = (int) (16 * getResources().getDisplayMetrics().density);
+    box.setPadding(pad, pad / 2, pad, 0);
+    Spinner sSlam = picker(box, R.string.slam_algo_slam, labels(Slam.Type.values()), saved(p, "slam", Slam.Type.CARTOGRAPHER).ordinal());
+    Spinner sLoc = picker(box, R.string.slam_algo_localizer, labels(SlamSystem.Localizer.values()),
+        saved(p, "localizer", SlamSystem.Localizer.SCAN_MATCHING).ordinal());
+    Spinner sPl = picker(box, R.string.slam_algo_planner, labels(Navigator.Planner.values()), saved(p, "planner", Navigator.Planner.NAVFN).ordinal());
+    Spinner sCo = picker(box, R.string.slam_algo_controller, labels(Navigator.Controller.values()),
+        saved(p, "controller", Navigator.Controller.RPP).ordinal());
+    TextView note = new TextView(requireContext());
+    note.setText(R.string.slam_algo_note);
+    note.setPadding(0, pad / 2, 0, 0);
+    box.addView(note);
+    new AlertDialog.Builder(requireContext())
+        .setTitle(R.string.slam_algorithms)
+        .setView(box)
+        .setPositiveButton(android.R.string.ok, (d, w) -> {
+          Slam.Type t = Slam.Type.values()[sSlam.getSelectedItemPosition()];
+          SlamSystem.Localizer l = SlamSystem.Localizer.values()[sLoc.getSelectedItemPosition()];
+          Navigator.Planner pl = Navigator.Planner.values()[sPl.getSelectedItemPosition()];
+          Navigator.Controller co = Navigator.Controller.values()[sCo.getSelectedItemPosition()];
+          p.edit().putString("slam", t.name()).putString("localizer", l.name()).putString("planner", pl.name())
+              .putString("controller", co.name()).apply();
+          applyAlgorithms(t, l, pl, co);
+        })
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
+  }
+
+  private static String[] labels(Enum<?>[] values) {
+    String[] out = new String[values.length];
+    for (int i = 0; i < values.length; i++) {
+      Object v = values[i];
+      if (v instanceof Slam.Type) out[i] = ((Slam.Type) v).label;
+      else if (v instanceof SlamSystem.Localizer) out[i] = ((SlamSystem.Localizer) v).label;
+      else if (v instanceof Navigator.Planner) out[i] = ((Navigator.Planner) v).label;
+      else out[i] = ((Navigator.Controller) v).label;
+    }
+    return out;
+  }
+
+  private Spinner picker(LinearLayout box, int title, String[] items, int selected) {
+    TextView t = new TextView(requireContext());
+    t.setText(title);
+    t.setTextSize(15);
+    t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+    t.setPadding(0, (int) (10 * getResources().getDisplayMetrics().density), 0, 0);
+    box.addView(t);
+    Spinner sp = new Spinner(requireContext());
+    ArrayAdapter<String> a = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, items);
+    a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    sp.setAdapter(a);
+    sp.setSelection(selected);
+    box.addView(sp);
+    return sp;
   }
 
   // endregion

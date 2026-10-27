@@ -296,4 +296,10 @@
     <string name="slam_found">已在地图上找到小车</string>
     <string name="slam_not_found">没找到小车：请长按它所在的位置</string>
     <string name="slam_graph">%1$d 个子图 · %2$d 次闭环</string>
+    <string name="slam_algorithms">算法</string>
+    <string name="slam_algo_slam">SLAM（建图）</string>
+    <string name="slam_algo_localizer">定位器（已保存地图）</string>
+    <string name="slam_algo_planner">路径规划器（Nav2）</string>
+    <string name="slam_algo_controller">控制器（Nav2）</string>
+    <string name="slam_algo_note">更换 SLAM 引擎会保留地图。AMCL 需要小车先开一小段才能确定位置。</string>
 </resources>

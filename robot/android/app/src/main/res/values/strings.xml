@@ -455,4 +455,10 @@
     <string name="slam_found">Found the car on the map</string>
     <string name="slam_not_found">Couldn\'t find the car: long-press where it is</string>
     <string name="slam_graph">%1$d submaps · %2$d loop closures</string>
+    <string name="slam_algorithms">Algorithms</string>
+    <string name="slam_algo_slam">SLAM (build the map)</string>
+    <string name="slam_algo_localizer">Localizer (saved map)</string>
+    <string name="slam_algo_planner">Path planner (Nav2)</string>
+    <string name="slam_algo_controller">Controller (Nav2)</string>
+    <string name="slam_algo_note">Changing the SLAM engine keeps the map. AMCL needs the car to drive a little before it is sure where it is.</string>
 </resources>

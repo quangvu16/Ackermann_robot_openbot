@@ -367,3 +367,9 @@
 "slam_found" = "Coche encontrado en el mapa";
 "slam_not_found" = "No se encontró el coche: mantén pulsado donde está";
 "slam_graph" = "%1$d submapas · %2$d cierres de bucle";
+"slam_algorithms" = "Algoritmos";
+"slam_algo_slam" = "SLAM (crear el mapa)";
+"slam_algo_localizer" = "Localizador (mapa guardado)";
+"slam_algo_planner" = "Planificador de ruta (Nav2)";
+"slam_algo_controller" = "Controlador (Nav2)";
+"slam_algo_note" = "Cambiar el motor SLAM conserva el mapa. AMCL necesita que el coche avance un poco antes de estar seguro.";

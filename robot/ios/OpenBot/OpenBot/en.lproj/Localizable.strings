@@ -367,3 +367,9 @@
 "slam_found" = "Found the car on the map";
 "slam_not_found" = "Couldn't find the car: long-press where it is";
 "slam_graph" = "%1$d submaps · %2$d loop closures";
+"slam_algorithms" = "Algorithms";
+"slam_algo_slam" = "SLAM (build the map)";
+"slam_algo_localizer" = "Localizer (saved map)";
+"slam_algo_planner" = "Path planner (Nav2)";
+"slam_algo_controller" = "Controller (Nav2)";
+"slam_algo_note" = "Changing the SLAM engine keeps the map. AMCL needs the car to drive a little before it is sure where it is.";

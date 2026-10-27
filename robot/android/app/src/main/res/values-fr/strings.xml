@@ -296,4 +296,10 @@
     <string name="slam_found">Voiture trouvée sur la carte</string>
     <string name="slam_not_found">Voiture introuvable : appui long là où elle est</string>
     <string name="slam_graph">%1$d sous-cartes · %2$d fermetures de boucle</string>
+    <string name="slam_algorithms">Algorithmes</string>
+    <string name="slam_algo_slam">SLAM (créer la carte)</string>
+    <string name="slam_algo_localizer">Localisation (carte enregistrée)</string>
+    <string name="slam_algo_planner">Planificateur de chemin (Nav2)</string>
+    <string name="slam_algo_controller">Contrôleur (Nav2)</string>
+    <string name="slam_algo_note">Changer de moteur SLAM garde la carte. AMCL a besoin que la voiture roule un peu avant d\'être sûr.</string>
 </resources>

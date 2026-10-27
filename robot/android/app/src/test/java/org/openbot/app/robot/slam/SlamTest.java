@@ -321,5 +321,131 @@ public class SlamTest {
     assertEquals(y, p.y, 0.1);
   }
 
+  // region Algorithm choices
+
+  @Test
+  public void everySlamEngineTracksADriveRoundTheRoom() {
+    for (Slam.Type t : Slam.Type.values()) {
+      Slam slam = Slam.create(t, OccupancyGrid.indoorDefault());
+      Random noise = new Random(1);
+      double x = 0, y = 0, th = 0;
+      for (int step = 0; step < 100; step++) {
+        double[][] s = scan(x, y, th, noise);
+        slam.update(s[0], s[1], th + step * 0.002, step * 0.1);
+        th += step > 30 && step < 70 ? 0.03 : 0;
+        x += 0.04 * Math.cos(th);
+        y += 0.04 * Math.sin(th);
+      }
+      double[][] s = scan(x, y, th, noise);
+      Pose p = slam.update(s[0], s[1], th + 0.2, 10.0);
+      assertEquals(t + " x", x, p.x, 0.15);
+      assertEquals(t + " y", y, p.y, 0.15);
+      assertEquals(t + " heading", 0, Math.toDegrees(Pose.wrap(p.theta - th)), 5);
+      assertTrue(t + " mapped", slam.getGrid().knownCells() > 1500);
+      assertEquals(t, slam.type());
+    }
+  }
+
+  @Test
+  public void switchingEngineKeepsTheMapAndPose() {
+    SlamSystem sys = new SlamSystem(Slam.Type.CARTOGRAPHER, OccupancyGrid.indoorDefault());
+    Random noise = new Random(2);
+    for (int i = 0; i < 10; i++) {
+      double[][] s = scan(0.03 * i, 0, 0, noise);
+      sys.update(s[0], s[1], 0, i * 0.1);
+    }
+    int known = sys.getGrid().knownCells();
+    Pose before = sys.getPose();
+    sys.setEngine(Slam.Type.HECTOR);
+    assertEquals(Slam.Type.HECTOR, sys.type());
+    assertTrue(sys.getGrid().knownCells() >= known * 0.9);
+    assertEquals(before.x, sys.getPose().x, 1e-9);
+    double[][] s = scan(0.33, 0, 0, noise);
+    Pose p = sys.update(s[0], s[1], 0, 1.0);
+    assertEquals(0.33, p.x, 0.08);
+  }
+
+  @Test
+  public void amclTracksTheCarOnASavedMap() {
+    SlamSystem sys = new SlamSystem(Slam.Type.CARTOGRAPHER, OccupancyGrid.indoorDefault());
+    sys.setGrid(roomGrid());
+    sys.setLocalizer(SlamSystem.Localizer.AMCL);
+    sys.setMapping(false);
+    sys.resetPose(new Pose(-1, 0, 0));
+    Random noise = new Random(4);
+    double x = -1, y = 0, th = 0;
+    Pose p = null;
+    for (int step = 0; step < 120; step++) {
+      double[][] s = scan(x, y, th, noise);
+      p = sys.update(s[0], s[1], th, step * 0.1);
+      th += step > 40 && step < 70 ? 0.025 : 0;
+      x += 0.03 * Math.cos(th);
+      y += 0.03 * Math.sin(th);
+    }
+    assertEquals(x, p.x, 0.15);
+    assertEquals(y, p.y, 0.15);
+    assertEquals(SlamSystem.Localizer.AMCL, sys.getLocalizer());
+  }
+
+  @Test
+  public void everyPlannerGoesAroundTheBox() {
+    OccupancyGrid g = roomGrid();
+    for (Navigator.Planner pl : Navigator.Planner.values()) {
+      Navigator.Params p = new Navigator.Params();
+      p.planner = pl;
+      List<double[]> path = Navigator.plan(g, new Pose(-1, 1.0, 0), 3.2, 1.0, p);
+      assertNotNull(pl.label, path);
+      for (double[] q : path) {
+        boolean inBox = q[0] > 1.35 && q[0] < 2.15 && q[1] > 0.35 && q[1] < 1.65;
+        assertTrue(pl + " enters the box", !inBox);
+      }
+      double[] end = path.get(path.size() - 1);
+      assertEquals(3.2, end[0], 1e-9);
+    }
+  }
+
+  @Test
+  public void hybridAStarPlansACarLikePathWithAReverse() {
+    // Facing the right wall from close by, goal behind: a car needs to reverse or loop.
+    OccupancyGrid g = roomGrid();
+    Navigator.Params p = new Navigator.Params();
+    p.planner = Navigator.Planner.HYBRID_ASTAR;
+    List<double[]> path = Navigator.plan(g, new Pose(3.3, -0.8, 0), 2.6, -0.8, p);
+    assertNotNull(path);
+    double minR = p.wheelbase / Math.tan(Math.toRadians(p.maxSteerDeg));
+    for (int i = 1; i + 1 < path.size() - 1; i++) {
+      double[] a = path.get(i - 1), b = path.get(i), c = path.get(i + 1);
+      if (a[2] != b[2] || b[2] != c[2]) continue; // cusp
+      double h1 = Math.atan2(b[1] - a[1], b[0] - a[0]), h2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
+      double turn = Math.abs(Pose.wrap(h2 - h1)), len = Math.hypot(c[0] - b[0], c[1] - b[1]);
+      assertTrue("tighter than the car can turn at " + i, turn <= len / minR * 1.3 + 1e-6);
+    }
+  }
+
+  @Test
+  public void everyPlannerAndControllerArrives() {
+    OccupancyGrid g = roomGrid();
+    for (Navigator.Planner pl : Navigator.Planner.values()) {
+      for (Navigator.Controller co : Navigator.Controller.values()) {
+        Navigator.Params p = new Navigator.Params();
+        p.planner = pl;
+        p.controller = co;
+        Navigator nav = new Navigator(p);
+        nav.setGoal(3.2, 1.0);
+        double[] st = {-1, 0, 0};
+        boolean arrived = false;
+        for (int k = 0; k < 900 && !arrived; k++) {
+          Navigator.Command c = nav.step(new Pose(st[0], st[1], st[2]), g, Double.POSITIVE_INFINITY, k * 0.1);
+          arrived = c.state == Navigator.State.ARRIVED;
+          st = drive(st, c.throttle, c.steer);
+          assertTrue(pl + "/" + co + " left the room", st[0] > -1.85 && st[0] < 3.85 && st[1] > -1.35 && st[1] < 2.35);
+        }
+        assertTrue(pl + "/" + co + " did not arrive", arrived);
+      }
+    }
+  }
+
+  // endregion
+
   // endregion
 }

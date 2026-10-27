@@ -3,19 +3,16 @@ package org.openbot.app.robot.slam;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.PriorityQueue;
 
 /**
  * Goal navigation on the SLAM map, a small version of Nav2's pieces for this car:
  *
  * <ul>
- *   <li><b>Costmap</b>: walls inflated by the car's radius (lethal) plus a cost that fades further
- *       out, so paths keep off walls (Nav2's inflation layer). Unknown space is allowed but costs
- *       more (allow_unknown).
- *   <li><b>Global planner</b>: A* on a 10 cm grid, then shortcuts where the straight line is clear
- *       (like NavFn / Smac 2D with smoothing).
- *   <li><b>Controller</b>: Regulated Pure Pursuit for an Ackermann car: steer = atan(2 L sin(a) /
- *       lookahead), slower on sharp turns, near obstacles and near the goal.
+ *   <li><b>Costmap</b> ({@link Costmap}): walls inflated by the car's radius plus a fading cost.
+ *   <li><b>Global planner</b>, chosen by the user ({@link Planners}): NavFn (A*), Theta* or Smac
+ *       Hybrid-A* (car-like arcs, forward and reverse).
+ *   <li><b>Controller</b>, chosen by the user: Regulated Pure Pursuit (here; it follows reversing
+ *       parts of a Hybrid-A* path too), DWB or MPPI ({@link Controllers}).
  *   <li><b>Recovery</b>: blocked in front for 2.5 s, back up for a second and re-plan (Nav2's
  *       BackUp behaviour; no Spin, a car cannot spin).
  * </ul>
@@ -34,8 +31,34 @@ public final class Navigator {
     NO_PATH
   }
 
+  public enum Planner {
+    NAVFN("NavFn (A*)"),
+    THETA_STAR("Theta*"),
+    HYBRID_ASTAR("Smac Hybrid-A*");
+
+    public final String label;
+
+    Planner(String label) {
+      this.label = label;
+    }
+  }
+
+  public enum Controller {
+    RPP("Regulated Pure Pursuit"),
+    DWB("DWB"),
+    MPPI("MPPI");
+
+    public final String label;
+
+    Controller(String label) {
+      this.label = label;
+    }
+  }
+
   /** Car and controller settings. */
   public static final class Params {
+    public Planner planner = Planner.NAVFN;
+    public Controller controller = Controller.RPP;
     public double speed = 0.35; // fraction of the speed mode
     public double wheelbase = 0.26; // m
     public double maxSteerDeg = 28; // front-wheel lock
@@ -65,6 +88,10 @@ public final class Navigator {
   private int turnSide; // 0 = not turning, +1 nose left, -1 nose right
   private double turnPhaseStart;
   private boolean turnBacking;
+  private Costmap costmap;
+  private int progress; // path index reached (paths with reversing parts are followed in order)
+  private final Controllers.Dwb dwb = new Controllers.Dwb();
+  private final Controllers.Mppi mppi = new Controllers.Mppi();
 
   public Navigator(Params params) {
     this.params = params;
@@ -81,6 +108,8 @@ public final class Navigator {
     lastPlan = -1e9;
     blockedSince = -1;
     backUntil = -1;
+    progress = 0;
+    mppi.reset();
     state = State.DRIVING;
   }
 
@@ -150,10 +179,13 @@ public final class Navigator {
     }
     blockedSince = -1;
 
-    // Re-plan every 2 s (the map keeps growing) or when there is no path.
-    if (path.isEmpty() || now - lastPlan > 2.0) {
-      List<double[]> p = plan(grid, pose.x, pose.y, goal[0], goal[1], params);
+    // Re-plan every 2 s (the map keeps growing; Hybrid-A* every 4 s, it costs more) or when there is no path.
+    double replan = params.planner == Planner.HYBRID_ASTAR ? 4.0 : 2.0;
+    if (path.isEmpty() || now - lastPlan > replan) {
+      costmap = new Costmap(grid, params);
+      List<double[]> p = Planners.plan(costmap, pose, goal[0], goal[1], params);
       lastPlan = now;
+      progress = 0;
       if (p == null) {
         state = State.NO_PATH;
         path = new ArrayList<>();
@@ -163,6 +195,20 @@ public final class Navigator {
       }
       path = p;
     }
+
+    if (params.controller != Controller.RPP) {
+      double[] u = params.controller == Controller.DWB
+          ? dwb.step(pose, path, costmap, params)
+          : mppi.step(pose, path, goal, costmap, params);
+      state = State.DRIVING;
+      c.state = state;
+      c.throttle = u[0];
+      c.steer = u[1];
+      if (frontMin < params.stopDistance * 2.5 && c.throttle > 0) c.throttle *= 0.55;
+      c.message = String.format(Locale.US, "%s: %.1f m to go", params.controller.label, toGoal);
+      return c;
+    }
+    if (hasReverse(path)) return followWithReverse(pose, toGoal, frontMin, c);
 
     double[] la = lookaheadPoint(pose);
     if (la == null) la = goal;
@@ -203,6 +249,64 @@ public final class Navigator {
     return c;
   }
 
+  private static boolean hasReverse(List<double[]> p) {
+    for (double[] q : p) if (q.length > 2 && q[2] < 0) return true;
+    return false;
+  }
+
+  private static int dirOf(double[] q) {
+    return q.length > 2 && q[2] < 0 ? -1 : 1;
+  }
+
+  /**
+   * Regulated Pure Pursuit with reversing (Nav2's allow_reversing): the path is followed in order,
+   * one direction at a time. In reverse the car aims its rear at the lookahead point; the lookahead
+   * never passes a cusp (where the direction changes), and the car moves on at the cusp.
+   */
+  private Command followWithReverse(Pose pose, double toGoal, double frontMin, Command c) {
+    // Nearest point, searching forward from the progress made (never back across a cusp).
+    int end = progress;
+    while (end < path.size() - 1 && dirOf(path.get(end + 1)) == dirOf(path.get(progress))) end++;
+    int near = progress;
+    double bd = Double.MAX_VALUE;
+    for (int i = progress; i <= end; i++) {
+      double d = pose.distanceTo(path.get(i)[0], path.get(i)[1]);
+      if (d < bd) {
+        bd = d;
+        near = i;
+      }
+    }
+    progress = near;
+    if (end < path.size() - 1 && pose.distanceTo(path.get(end)[0], path.get(end)[1]) < 0.15) {
+      progress = end + 1; // reached the cusp: switch direction
+      return followWithReverse(pose, toGoal, frontMin, c);
+    }
+    int dir = dirOf(path.get(progress));
+    double[] la = path.get(end);
+    for (int i = near; i <= end; i++) {
+      if (pose.distanceTo(path.get(i)[0], path.get(i)[1]) >= params.lookahead) {
+        la = path.get(i);
+        break;
+      }
+    }
+    // Angle to the point from the side the car drives towards (the rear when reversing).
+    double heading = dir > 0 ? pose.theta : pose.theta + Math.PI;
+    double alpha = Pose.wrap(Math.atan2(la[1] - pose.y, la[0] - pose.x) - heading);
+    double ld = Math.max(0.15, pose.distanceTo(la[0], la[1]));
+    double delta = Math.atan2(2 * params.wheelbase * Math.sin(alpha), ld);
+    double steer = clamp(delta / Math.toRadians(params.maxSteerDeg), -1, 1);
+    double v = params.speed * clamp(1 - 0.5 * Math.abs(steer), 0.4, 1);
+    if (toGoal < 0.8) v *= Math.max(0.45, toGoal / 0.8);
+    if (dir > 0 && frontMin < params.stopDistance * 2.5) v *= 0.55;
+    if (dir < 0) v *= 0.7;
+    state = State.DRIVING;
+    c.state = state;
+    c.throttle = dir * v;
+    c.steer = steer; // + turns the nose left in both directions, which swings the rear's path left in reverse
+    c.message = String.format(Locale.US, "%s to the goal: %.1f m to go", dir > 0 ? "Driving" : "Reversing", toGoal);
+    return c;
+  }
+
   /** First path point at least one lookahead away, searching from the point nearest the car. */
   private double[] lookaheadPoint(Pose pose) {
     if (path.isEmpty()) return null;
@@ -225,192 +329,14 @@ public final class Navigator {
     return Pose.wrap(Math.atan2(p[1] - pose.y, p[0] - pose.x) - pose.theta);
   }
 
-  // region Planning: inflated costmap + A*
-
-  /** Costs on a coarse grid: -1 lethal, otherwise 1 + extra. */
-  static final class Costmap {
-    final int w;
-    final int h;
-    final int factor;
-    final double res;
-    final OccupancyGrid grid;
-    final float[] cost;
-
-    Costmap(OccupancyGrid grid, Params p) {
-      this.grid = grid;
-      factor = Math.max(1, (int) Math.round(0.10 / grid.resolution));
-      res = grid.resolution * factor;
-      w = grid.width / factor;
-      h = grid.height / factor;
-      cost = new float[w * h];
-      boolean[] occ = new boolean[w * h];
-      boolean[] unknown = new boolean[w * h];
-      for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-          boolean o = false;
-          boolean known = false;
-          for (int dy = 0; dy < factor && !o; dy++) {
-            for (int dx = 0; dx < factor; dx++) {
-              float v = grid.get(x * factor + dx, y * factor + dy);
-              if (v > OccupancyGrid.OCC_THRESHOLD) {
-                o = true;
-                break;
-              }
-              if (v < OccupancyGrid.FREE_THRESHOLD) known = true;
-            }
-          }
-          occ[y * w + x] = o;
-          unknown[y * w + x] = !o && !known;
-        }
-      }
-      int rLethal = (int) Math.ceil(p.robotRadius / res);
-      int rSoft = (int) Math.ceil((p.robotRadius + p.inflation) / res);
-      for (int i = 0; i < cost.length; i++) cost[i] = unknown[i] ? 3f : 1f;
-      for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++) {
-          if (!occ[y * w + x]) continue;
-          for (int dy = -rSoft; dy <= rSoft; dy++) {
-            for (int dx = -rSoft; dx <= rSoft; dx++) {
-              int nx = x + dx;
-              int ny = y + dy;
-              if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-              double d = Math.hypot(dx, dy);
-              int i = ny * w + nx;
-              if (d <= rLethal) cost[i] = -1;
-              else if (d <= rSoft && cost[i] >= 0) {
-                float extra = (float) (8 * (1 - (d - rLethal) / (rSoft - rLethal + 1e-9)));
-                cost[i] = Math.max(cost[i], 1 + extra);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    int cx(double x) {
-      return (int) Math.floor((x - grid.originX) / res);
-    }
-
-    int cy(double y) {
-      return (int) Math.floor((y - grid.originY) / res);
-    }
-
-    boolean free(int x, int y) {
-      return x >= 0 && y >= 0 && x < w && y < h && cost[y * w + x] >= 0;
-    }
-
-    double wx(int x) {
-      return grid.originX + (x + 0.5) * res;
-    }
-
-    double wy(int y) {
-      return grid.originY + (y + 0.5) * res;
-    }
-  }
-
-  /** A* from start to goal; null when the goal cannot be reached. */
+  /** Plans with the chosen planner (start heading 0 for Hybrid-A*); null when unreachable. */
   public static List<double[]> plan(OccupancyGrid grid, double sx, double sy, double gx, double gy, Params p) {
-    Costmap m = new Costmap(grid, p);
-    int x0 = m.cx(sx);
-    int y0 = m.cy(sy);
-    int x1 = m.cx(gx);
-    int y1 = m.cy(gy);
-    if (!m.free(x1, y1)) return null;
-    // The car itself may sit in an inflated cell next to a wall: let it start from there.
-    if (x0 < 0 || y0 < 0 || x0 >= m.w || y0 >= m.h) return null;
-    int n = m.w * m.h;
-    float[] g = new float[n];
-    java.util.Arrays.fill(g, Float.MAX_VALUE);
-    int[] from = new int[n];
-    java.util.Arrays.fill(from, -1);
-    boolean[] closed = new boolean[n];
-    int start = y0 * m.w + x0;
-    int target = y1 * m.w + x1;
-    g[start] = 0;
-    PriorityQueue<double[]> open = new PriorityQueue<>((a, b) -> Double.compare(a[0], b[0]));
-    open.add(new double[] {octile(x0, y0, x1, y1), start});
-    int[] dxs = {1, -1, 0, 0, 1, 1, -1, -1};
-    int[] dys = {0, 0, 1, -1, 1, -1, 1, -1};
-    int expanded = 0;
-    while (!open.isEmpty() && expanded < 400_000) {
-      int cur = (int) open.poll()[1];
-      if (closed[cur]) continue;
-      closed[cur] = true;
-      expanded++;
-      if (cur == target) break;
-      int cx = cur % m.w;
-      int cy = cur / m.w;
-      for (int k = 0; k < 8; k++) {
-        int nx = cx + dxs[k];
-        int ny = cy + dys[k];
-        if (!m.free(nx, ny)) continue;
-        int ni = ny * m.w + nx;
-        if (closed[ni]) continue;
-        double step = (k < 4 ? 1.0 : Math.sqrt(2)) * m.cost[ni];
-        float ng = (float) (g[cur] + step);
-        if (ng < g[ni]) {
-          g[ni] = ng;
-          from[ni] = cur;
-          open.add(new double[] {ng + octile(nx, ny, x1, y1), ni});
-        }
-      }
-    }
-    if (from[target] < 0 && target != start) return null;
-    List<int[]> cells = new ArrayList<>();
-    for (int c = target; c != -1; c = from[c]) {
-      cells.add(0, new int[] {c % m.w, c / m.w});
-      if (c == start) break;
-    }
-    // Shortcut: keep a point only when the straight line to the next kept point is not clear.
-    List<double[]> out = new ArrayList<>();
-    int i = 0;
-    out.add(new double[] {sx, sy});
-    while (i < cells.size() - 1) {
-      int j = cells.size() - 1;
-      while (j > i + 1 && !lineFree(m, cells.get(i), cells.get(j))) j--;
-      out.add(new double[] {m.wx(cells.get(j)[0]), m.wy(cells.get(j)[1])});
-      i = j;
-    }
-    out.set(out.size() - 1, new double[] {gx, gy});
-    return densify(out, 0.1);
+    return Planners.plan(new Costmap(grid, p), new Pose(sx, sy, 0), gx, gy, p);
   }
 
-  private static double octile(int x0, int y0, int x1, int y1) {
-    int dx = Math.abs(x1 - x0);
-    int dy = Math.abs(y1 - y0);
-    return Math.max(dx, dy) + (Math.sqrt(2) - 1) * Math.min(dx, dy);
+  public static List<double[]> plan(OccupancyGrid grid, Pose start, double gx, double gy, Params p) {
+    return Planners.plan(new Costmap(grid, p), start, gx, gy, p);
   }
-
-  /** Clear and cheap all the way (soft cost keeps shortcuts from hugging walls). */
-  private static boolean lineFree(Costmap m, int[] a, int[] b) {
-    int steps = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]));
-    for (int s = 0; s <= steps; s++) {
-      double t = steps == 0 ? 0 : (double) s / steps;
-      int x = (int) Math.round(a[0] + (b[0] - a[0]) * t);
-      int y = (int) Math.round(a[1] + (b[1] - a[1]) * t);
-      if (!m.free(x, y) || m.cost[y * m.w + x] > 4) return false;
-    }
-    return true;
-  }
-
-  /** Points every {@code step} metres, so pure pursuit has a smooth line to follow. */
-  private static List<double[]> densify(List<double[]> pts, double step) {
-    List<double[]> out = new ArrayList<>();
-    for (int i = 0; i < pts.size() - 1; i++) {
-      double[] a = pts.get(i);
-      double[] b = pts.get(i + 1);
-      double d = Math.hypot(b[0] - a[0], b[1] - a[1]);
-      int n = Math.max(1, (int) Math.ceil(d / step));
-      for (int k = 0; k < n; k++) {
-        double t = (double) k / n;
-        out.add(new double[] {a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t});
-      }
-    }
-    out.add(pts.get(pts.size() - 1));
-    return out;
-  }
-
-  // endregion
 
   static double clamp(double v, double lo, double hi) {
     return Math.max(lo, Math.min(hi, v));

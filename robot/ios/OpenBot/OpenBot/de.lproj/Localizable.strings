@@ -367,3 +367,9 @@
 "slam_found" = "Auto auf der Karte gefunden";
 "slam_not_found" = "Auto nicht gefunden: dort lange drücken, wo es steht";
 "slam_graph" = "%1$d Teilkarten · %2$d Schleifenschlüsse";
+"slam_algorithms" = "Algorithmen";
+"slam_algo_slam" = "SLAM (Karte bauen)";
+"slam_algo_localizer" = "Lokalisierung (gespeicherte Karte)";
+"slam_algo_planner" = "Pfadplaner (Nav2)";
+"slam_algo_controller" = "Regler (Nav2)";
+"slam_algo_note" = "Ein SLAM-Wechsel behält die Karte. AMCL braucht etwas Fahrt, bis es sich sicher ist.";

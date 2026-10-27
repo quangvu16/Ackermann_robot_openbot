@@ -367,3 +367,9 @@
 "slam_found" = "नक्शे पर कार मिल गई";
 "slam_not_found" = "कार नहीं मिली: जहाँ है वहाँ देर तक दबाएँ";
 "slam_graph" = "%1$d उप-नक्शे · %2$d लूप क्लोज़र";
+"slam_algorithms" = "एल्गोरिदम";
+"slam_algo_slam" = "SLAM (नक्शा बनाना)";
+"slam_algo_localizer" = "स्थान-निर्धारण (सहेजा नक्शा)";
+"slam_algo_planner" = "पथ योजनाकार (Nav2)";
+"slam_algo_controller" = "नियंत्रक (Nav2)";
+"slam_algo_note" = "SLAM इंजन बदलने पर नक्शा बना रहता है। AMCL को पक्का होने से पहले कार को थोड़ा चलना होता है।";

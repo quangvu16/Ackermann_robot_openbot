@@ -111,6 +111,11 @@ public final class OccupancyGrid {
    * @param ranges metres
    */
   public void integrate(Pose pose, double[] angles, double[] ranges, double maxRange) {
+    integrate(pose, angles, ranges, maxRange, L_OCC, L_FREE);
+  }
+
+  /** As above with other log-odds steps (Hector SLAM uses 0.9 / 0.4 as probabilities). */
+  public void integrate(Pose pose, double[] angles, double[] ranges, double maxRange, float lOcc, float lFree) {
     int x0 = cellX(pose.x);
     int y0 = cellY(pose.y);
     for (int i = 0; i < angles.length; i++) {
@@ -120,14 +125,14 @@ public final class OccupancyGrid {
       double a = pose.theta + angles[i];
       int x1 = cellX(pose.x + d * Math.cos(a));
       int y1 = cellY(pose.y + d * Math.sin(a));
-      traceFree(x0, y0, x1, y1);
-      if (hit) add(x1, y1, L_OCC - L_FREE); // undo the free step on the end cell, then mark it
+      traceFree(x0, y0, x1, y1, lFree);
+      if (hit) add(x1, y1, lOcc - lFree); // undo the free step on the end cell, then mark it
     }
     version++;
   }
 
   /** Bresenham from (x0, y0) to (x1, y1), marking every cell free (the end cell included). */
-  private void traceFree(int x0, int y0, int x1, int y1) {
+  private void traceFree(int x0, int y0, int x1, int y1, float lFree) {
     int dx = Math.abs(x1 - x0);
     int dy = -Math.abs(y1 - y0);
     int sx = x0 < x1 ? 1 : -1;
@@ -136,7 +141,7 @@ public final class OccupancyGrid {
     int x = x0;
     int y = y0;
     for (int guard = 0; guard < 4096; guard++) {
-      add(x, y, L_FREE);
+      add(x, y, lFree);
       if (x == x1 && y == y1) return;
       int e2 = 2 * err;
       if (e2 >= dy) {
