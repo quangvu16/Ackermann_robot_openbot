@@ -74,6 +74,8 @@ final class SensorLinkServer {
                 c.onText = { [weak self] c, text in self?.received(c, text: text) }
                 c.onClose = { [weak self] c in self?.closed(c) }
                 c.httpInfo = { [weak self] in self?.infoPage() ?? "" }
+                // Held here from the start: its own callbacks only hold it weakly.
+                self.connections[ObjectIdentifier(c)] = c
                 c.start()
             }
             self.listener = listener
@@ -121,9 +123,8 @@ final class SensorLinkServer {
             c.close(code: 4000, reason: "Unknown path \(path)")
             return
         }
-        connections[ObjectIdentifier(c)] = c
-        let count = connections.count
-        report { self.onClientCount?(count) }
+        c.registered = true
+        reportCount()
     }
 
     private func received(_ c: WebSocketConnection, text: String) {
@@ -134,17 +135,21 @@ final class SensorLinkServer {
     }
 
     private func closed(_ c: WebSocketConnection) {
-        guard connections.removeValue(forKey: ObjectIdentifier(c)) != nil else { return }
+        guard connections.removeValue(forKey: ObjectIdentifier(c)) != nil, c.registered else { return }
         if c.wantsGps { sensors.releaseGps() }
         c.types.forEach { sensors.release($0) }
-        let count = connections.count
+        reportCount()
+    }
+
+    private func reportCount() {
+        let count = connections.values.filter { $0.registered }.count
         report { self.onClientCount?(count) }
     }
 
     private func broadcast(type: String, values: [Float], timestampNs: UInt64, accuracy: Int) {
         var single: String?
         var multi: String?
-        for c in connections.values where c.types.contains(type) {
+        for c in connections.values where c.registered && c.types.contains(type) {
             if c.multi {
                 if multi == nil {
                     multi = SensorLinkProtocol.sensorJSON(type: type, values: values, timestampNs: timestampNs, accuracy: accuracy)
@@ -161,7 +166,7 @@ final class SensorLinkServer {
 
     private func broadcastGps(_ fix: SensorLinkProtocol.GpsFix) {
         let text = SensorLinkProtocol.gpsJSON(fix)
-        for c in connections.values where c.wantsGps { c.send(text) }
+        for c in connections.values where c.registered && c.wantsGps { c.send(text) }
     }
 
     /// What a browser gets at http://phone:port/ - the endpoints and sensor names.
@@ -185,6 +190,8 @@ private final class WebSocketConnection {
     var onClose: ((WebSocketConnection) -> Void)?
     var httpInfo: (() -> String)?
 
+    /// True once the client asked for something we serve.
+    var registered = false
     var wantsGps = false
     var multi = false
     var types: Set<String> = []
@@ -367,12 +374,12 @@ private final class WebSocketConnection {
     }
 
     private func finish() {
-        let wasOpen = upgraded
         closed = true
         upgraded = false
         connection.cancel()
-        if wasOpen { onClose?(self) }
+        let callback = onClose
         onClose = nil
+        callback?(self)
     }
 }
 
@@ -525,7 +532,7 @@ private final class SensorLinkSensors: NSObject, CLLocationManagerDelegate {
             }
             if (self.counts[Self.rotationVector] ?? 0) > 0,
                d.magneticField.accuracy != .uncalibrated,
-               let q = Self.rotationVector(gravity: (gx, gy, gz), field: d.magneticField.field) {
+               let q = Self.androidRotationVector(gravity: (gx, gy, gz), field: d.magneticField.field) {
                 let accuracy: Int
                 switch d.magneticField.accuracy {
                 case .high: accuracy = 3
@@ -539,7 +546,7 @@ private final class SensorLinkSensors: NSObject, CLLocationManagerDelegate {
 
     /// Android's getRotationMatrix(gravity, geomagnetic) turned into its rotation
     /// vector [x, y, z, w], so SensorServer clients see the Android convention.
-    private static func rotationVector(gravity a: (Double, Double, Double), field e: CMMagneticField) -> [Double]? {
+    private static func androidRotationVector(gravity a: (Double, Double, Double), field e: CMMagneticField) -> [Double]? {
         let (ax0, ay0, az0) = a
         let ex = e.x, ey = e.y, ez = e.z
         var hx = ey * az0 - ez * ay0, hy = ez * ax0 - ex * az0, hz = ex * ay0 - ey * ax0

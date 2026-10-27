@@ -102,6 +102,51 @@ When a FlySky RC transmitter is connected to the car (see [FIRMWARE_GUIDE.md](FI
 
 ---
 
+## 2c. Sensor link: SensorServer over WebSocket (Android and iOS)
+
+The **GPS Mission**, **Object Tracking** and **Autopilot** screens have a **Sensor link**. On Android it is a row in the bottom panel with a **Sensor link** button. On iOS it is an antenna button in the top bar. The link speaks the WebSocket API of the [SensorServer](https://github.com/UmerCodez/SensorServer) app, so tools made for SensorServer work with OpenBot.
+
+| Mode | What it does | Example |
+|---|---|---|
+| **Off** | Nothing (default). | — |
+| **Server** | This phone shares its sensors and GPS. Other devices connect to `ws://<phone address>:8080`. | A laptop logs the car's IMU and GPS while Autopilot drives. |
+| **Client** | This phone reads GPS and compass from a SensorServer app on another phone. With **Use its GPS and compass for GPS Mission** turned on, missions drive on them. | A second phone sits high on the car, away from the motors, so its compass is cleaner. |
+
+**Endpoints** (the same in both apps; Server mode serves them, Client mode reads `/gps` and the rotation vector):
+
+```
+ws://<address>:8080/sensor/connect?type=android.sensor.accelerometer
+ws://<address>:8080/sensors/connect?types=["android.sensor.accelerometer","android.sensor.gyroscope"]
+ws://<address>:8080/gps
+```
+
+- Sensor messages look like `{"values":[x,y,z],"timestamp":<ns>,"accuracy":3}`. On `/sensors/connect` they also carry `"type"`.
+- GPS messages look like `{"latitude":..,"longitude":..,"altitude":..,"bearing":..,"accuracy":..,"speed":..,"time":<ms>}`. Send the text `getLastKnownLocation` to get the last fix at once.
+- **iPhone as server:** iOS sensors are published under the Android names, units and signs SensorServer clients expect: accelerometer, gyroscope, magnetic_field, gravity, linear_acceleration, rotation_vector and pressure. Open `http://<iphone address>:8080/` in a browser to see the list.
+- **Android as server:** every sensor the phone has, by its Android type name.
+
+**How to use it**
+1. Put both devices on the **same Wi-Fi**, or join one phone's **hotspot**.
+2. Open GPS Mission, Object Tracking or Autopilot, then tap **Sensor link**.
+3. Choose **Server** and note the address on the status line, for example `ws://192.168.43.1:8080`. Or choose **Client** and type the other phone's address.
+4. Test from a laptop (Python, `pip install websocket-client`):
+   ```python
+   import websocket
+   ws = websocket.create_connection("ws://192.168.43.1:8080/sensor/connect?type=android.sensor.gyroscope")
+   print(ws.recv())
+   ```
+
+**Things to know**
+- The link runs only while one of the three screens is open, and each sensor runs only while someone is connected to it. That saves battery.
+- In Client mode, GPS Mission goes back to the phone's own GPS and compass if the other phone stops sending for **3 seconds**.
+- The other phone must be mounted like the car's phone: standing up with its back camera facing forward, or lying flat with its top edge forward. Otherwise its compass heading is wrong.
+- The link has no password. Use it only on a Wi-Fi or hotspot you trust.
+- *Source:* Android `sensorlink/` (`SensorLinkServer.java` uses Java-WebSocket, MIT; `SensorLinkClient.java` uses OkHttp). iOS `Controllers/GpsNav/SensorLink*.swift`. The protocol is written from SensorServer's documentation; no SensorServer code is copied (SensorServer is GPL-3.0, this project is MIT).
+
+**Why WebSocket?** One small, always-open connection per sensor. It works from Python, a web page, Unity or ROS with no extra software on the phone.
+
+---
+
 ## 3. Android app
 
 Source folder: `robot/android/` (the *robot* build). Build details: `robot/android/README.md`.
