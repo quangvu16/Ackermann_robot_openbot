@@ -46,7 +46,7 @@ private final class IconHintPress: UILongPressGestureRecognizer {
 /// The bubble with the button's name (like Android's long-press tooltip).
 enum IconHint {
     static func show(_ text: String, above view: UIView, in host: UIView) {
-        let label = PaddedLabel()
+        let label = IconHintLabel()
         label.text = text
         label.font = .systemFont(ofSize: 14, weight: .medium)
         label.textColor = .white
@@ -71,7 +71,7 @@ enum IconHint {
     }
 }
 
-private final class PaddedLabel: UILabel {
+private final class IconHintLabel: UILabel {
     private let inset = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 10)
     override func drawText(in rect: CGRect) { super.drawText(in: rect.inset(by: inset)) }
     override func sizeThatFits(_ size: CGSize) -> CGSize {
