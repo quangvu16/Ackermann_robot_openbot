@@ -117,7 +117,7 @@ public final class SensorLink {
           return context.getString(R.string.sensor_link_server_no_ip, settings.port);
         }
         return context.getString(
-            R.string.sensor_link_server, "ws://" + ip + ":" + settings.port, serverClients);
+            R.string.sensor_link_server, "http://" + ip + ":" + settings.port, serverClients);
       case CLIENT:
         String base = SensorLinkProtocol.baseUrl(settings.address);
         if (base == null) return context.getString(R.string.sensor_link_client_no_address);

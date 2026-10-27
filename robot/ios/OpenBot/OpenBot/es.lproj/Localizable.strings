@@ -287,7 +287,7 @@
 "gps_mode_rtl" = "Volviendo a casa";
 "sensor_link_button" = "Enlace de sensores";
 "sensor_link_off" = "Enlace de sensores: apagado";
-"sensor_link_server" = "Compartiendo sensores en %1$@ · %2$d conectados";
+"sensor_link_server" = "Abre %1$@ en un navegador · %2$d conectados";
 "sensor_link_server_no_ip" = "Compartiendo sensores en el puerto %1$d · conéctate a la Wi-Fi o al punto de acceso del móvil";
 "sensor_link_server_failed" = "No se pudo iniciar el servidor de sensores: %1$@";
 "sensor_link_client_connecting" = "Conectando con %1$@…";
@@ -296,12 +296,12 @@
 "sensor_link_client_no_address" = "Enlace de sensores: indica la dirección del otro móvil";
 "sensor_link_title" = "Enlace de sensores (SensorServer)";
 "sensor_link_mode_off" = "Apagado";
-"sensor_link_mode_server" = "Compartir los sensores de este móvil (servidor)";
+"sensor_link_mode_server" = "Compartir los sensores de este móvil (servidor, página web)";
 "sensor_link_mode_client" = "Usar los sensores de otro móvil (cliente)";
 "sensor_link_port" = "Puerto";
 "sensor_link_address" = "Dirección del otro móvil, p. ej. 192.168.43.1:8080";
 "sensor_link_use_gps" = "Usar su GPS y brújula en la misión GPS";
-"sensor_link_help" = "Usa la API WebSocket de SensorServer (ws://dirección:puerto/sensor/connect, /sensors/connect, /gps). Ambos dispositivos deben estar en la misma Wi-Fi o punto de acceso. El enlace funciona mientras la misión GPS, el seguimiento de objetos o el piloto automático estén abiertos.";
+"sensor_link_help" = "Servidor: abre http://dirección-del-móvil:puerto en cualquier navegador de la misma Wi-Fi o punto de acceso para ver los sensores y el GPS en vivo. Los scripts pueden usar la API WebSocket de SensorServer (ws://dirección:puerto/sensor/connect, /sensors/connect, /gps). El enlace funciona mientras la misión GPS, el seguimiento de objetos o el piloto automático estén abiertos.";
 "sensor_link_save" = "Guardar";
 "sensor_link_cancel" = "Cancelar";
 "sensor_link_bad_port" = "El puerto debe estar entre 1024 y 65535";

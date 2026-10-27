@@ -305,7 +305,7 @@ final class SensorLink {
             guard let ip = SensorLink.localIPv4() else {
                 return String(format: L10n.string("sensor_link_server_no_ip"), Int32(settings.port))
             }
-            return String(format: L10n.string("sensor_link_server"), "ws://\(ip):\(settings.port)", Int32(serverClients))
+            return String(format: L10n.string("sensor_link_server"), "http://\(ip):\(settings.port)", Int32(serverClients))
         case .client:
             guard let base = SensorLinkProtocol.baseURL(settings.address) else {
                 return L10n.string("sensor_link_client_no_address")

@@ -109,7 +109,7 @@ The **GPS Mission**, **Object Tracking** and **Autopilot** screens have a **Sens
 | Mode | What it does | Example |
 |---|---|---|
 | **Off** | Nothing (default). | — |
-| **Server** | This phone shares its sensors and GPS. Other devices connect to `ws://<phone address>:8080`. | A laptop logs the car's IMU and GPS while Autopilot drives. |
+| **Server** | This phone shares its sensors and GPS. Open `http://<phone address>:8080` in any browser to watch them live, or connect a script to `ws://<phone address>:8080`. | A laptop browser shows the car's GPS, compass heading and IMU graphs while Autopilot drives. |
 | **Client** | This phone reads GPS and compass from a SensorServer app on another phone. With **Use its GPS and compass for GPS Mission** turned on, missions drive on them. | A second phone sits high on the car, away from the motors, so its compass is cleaner. |
 
 **Endpoints** (the same in both apps; Server mode serves them, Client mode reads `/gps` and the rotation vector):
@@ -122,14 +122,20 @@ ws://<address>:8080/gps
 
 - Sensor messages look like `{"values":[x,y,z],"timestamp":<ns>,"accuracy":3}`. On `/sensors/connect` they also carry `"type"`.
 - GPS messages look like `{"latitude":..,"longitude":..,"altitude":..,"bearing":..,"accuracy":..,"speed":..,"time":<ms>}`. Send the text `getLastKnownLocation` to get the last fix at once.
-- **iPhone as server:** iOS sensors are published under the Android names, units and signs SensorServer clients expect: accelerometer, gyroscope, magnetic_field, gravity, linear_acceleration, rotation_vector and pressure. Open `http://<iphone address>:8080/` in a browser to see the list.
+- **iPhone as server:** iOS sensors are published under the Android names, units and signs SensorServer clients expect: accelerometer, gyroscope, magnetic_field, gravity, linear_acceleration, rotation_vector and pressure.
+- `GET /sensors` returns the list as JSON, for example `[{"type":"android.sensor.gyroscope","name":"Gyroscope"}]`.
 - **Android as server:** every sensor the phone has, by its Android type name.
 
 **How to use it**
 1. Put both devices on the **same Wi-Fi**, or join one phone's **hotspot**.
 2. Open GPS Mission, Object Tracking or Autopilot, then tap **Sensor link**.
-3. Choose **Server** and note the address on the status line, for example `ws://192.168.43.1:8080`. Or choose **Client** and type the other phone's address.
-4. Test from a laptop (Python, `pip install websocket-client`):
+3. Choose **Server** and note the address on the status line, for example `http://192.168.43.1:8080`. Or choose **Client** and type the other phone's address.
+4. **Browser:** open that address on a laptop, tablet or another phone on the same Wi-Fi. The page shows:
+   - a **GPS** card (latitude, longitude, accuracy, speed, course, time since the last fix, and an *Open map* link);
+   - one card per sensor with a switch. Turned on, it shows live values, a graph of the last 3 seconds and the readings per second. The rotation vector card also shows the compass heading;
+   - a **Pause** button, to freeze the numbers while you read them.
+   The page needs no internet: the phone serves it. Your switch choices are remembered in that browser.
+5. **Script:** test from a laptop (Python, `pip install websocket-client`):
    ```python
    import websocket
    ws = websocket.create_connection("ws://192.168.43.1:8080/sensor/connect?type=android.sensor.gyroscope")
@@ -141,7 +147,7 @@ ws://<address>:8080/gps
 - In Client mode, GPS Mission goes back to the phone's own GPS and compass if the other phone stops sending for **3 seconds**.
 - The other phone must be mounted like the car's phone: standing up with its back camera facing forward, or lying flat with its top edge forward. Otherwise its compass heading is wrong.
 - The link has no password. Use it only on a Wi-Fi or hotspot you trust.
-- *Source:* Android `sensorlink/` (`SensorLinkServer.java` uses Java-WebSocket, MIT; `SensorLinkClient.java` uses OkHttp). iOS `Controllers/GpsNav/SensorLink*.swift`. The protocol is written from SensorServer's documentation; no SensorServer code is copied (SensorServer is GPL-3.0, this project is MIT).
+- *Source:* Android `sensorlink/` (`MiniWebServer.java` is the built-in HTTP + WebSocket server, `SensorLinkClient.java` uses OkHttp, the page is `assets/sensorlink/index.html`). iOS `Controllers/GpsNav/SensorLink*.swift` and `SensorLinkDashboard.html` (CI checks the two pages are identical). The protocol is written from SensorServer's documentation; no SensorServer code is copied (SensorServer is GPL-3.0, this project is MIT).
 
 **Why WebSocket?** One small, always-open connection per sensor. It works from Python, a web page, Unity or ROS with no extra software on the phone.
 

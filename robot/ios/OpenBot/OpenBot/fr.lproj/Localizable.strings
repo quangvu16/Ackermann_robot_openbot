@@ -287,7 +287,7 @@
 "gps_mode_rtl" = "Retour au départ";
 "sensor_link_button" = "Lien capteurs";
 "sensor_link_off" = "Lien capteurs : désactivé";
-"sensor_link_server" = "Capteurs partagés sur %1$@ · %2$d connectés";
+"sensor_link_server" = "Ouvrez %1$@ dans un navigateur · %2$d connectés";
 "sensor_link_server_no_ip" = "Capteurs partagés sur le port %1$d · rejoignez le Wi-Fi ou le partage de connexion du téléphone";
 "sensor_link_server_failed" = "Le serveur de capteurs n'a pas pu démarrer : %1$@";
 "sensor_link_client_connecting" = "Connexion à %1$@…";
@@ -296,12 +296,12 @@
 "sensor_link_client_no_address" = "Lien capteurs : saisissez l'adresse de l'autre téléphone";
 "sensor_link_title" = "Lien capteurs (SensorServer)";
 "sensor_link_mode_off" = "Désactivé";
-"sensor_link_mode_server" = "Partager les capteurs de ce téléphone (serveur)";
+"sensor_link_mode_server" = "Partager les capteurs de ce téléphone (serveur, page web)";
 "sensor_link_mode_client" = "Utiliser les capteurs d'un autre téléphone (client)";
 "sensor_link_port" = "Port";
 "sensor_link_address" = "Adresse de l'autre téléphone, ex. 192.168.43.1:8080";
 "sensor_link_use_gps" = "Utiliser son GPS et sa boussole pour la mission GPS";
-"sensor_link_help" = "Utilise l'API WebSocket de SensorServer (ws://adresse:port/sensor/connect, /sensors/connect, /gps). Les deux appareils doivent être sur le même Wi-Fi ou partage de connexion. Le lien fonctionne tant que la mission GPS, le suivi d'objet ou le pilote automatique est ouvert.";
+"sensor_link_help" = "Serveur : ouvrez http://adresse-du-téléphone:port dans un navigateur sur le même Wi-Fi ou partage de connexion pour voir capteurs et GPS en direct. Les scripts peuvent utiliser l'API WebSocket de SensorServer (ws://adresse:port/sensor/connect, /sensors/connect, /gps). Le lien fonctionne tant que la mission GPS, le suivi d'objet ou le pilote automatique est ouvert.";
 "sensor_link_save" = "Enregistrer";
 "sensor_link_cancel" = "Annuler";
 "sensor_link_bad_port" = "Le port doit être entre 1024 et 65535";

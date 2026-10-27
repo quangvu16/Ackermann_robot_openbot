@@ -16,6 +16,7 @@
 		202ADFEAAAEDF465B47E680C /* Pods_OpenBot_OpenBotUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 33E6B08B2CB917BF3DADC757 /* Pods_OpenBot_OpenBotUITests.framework */; };
 		3A3C9E0D29E803AC008758C9 /* projectCollectionViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = 3A3C9E0C29E803AC008758C9 /* projectCollectionViewCell.xib */; };
 		3A70CA1229C98E5800E4192B /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3A70CA1129C98E5800E4192B /* GoogleService-Info.plist */; };
+		6A00000000000000000000CB /* SensorLinkDashboard.html in Resources */ = {isa = PBXBuildFile; fileRef = 6A00000000000000000000CA /* SensorLinkDashboard.html */; };
 		3A8EF46C2A6FD0FD00F60B3D /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = 3A8EF46B2A6FD0FD00F60B3D /* Starscream */; };
 		3A8EF46F2A6FE22F00F60B3D /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 3A8EF46E2A6FE22F00F60B3D /* SocketIO */; };
 		3AA7193929DD42CF00DE8336 /* openCode.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3AA7193829DD42CF00DE8336 /* openCode.storyboard */; };
@@ -186,6 +187,7 @@
 		3851548982D6168C4AE03B23 /* LocalizationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LocalizationManager.swift; sourceTree = "<group>"; };
 		3A3C9E0C29E803AC008758C9 /* projectCollectionViewCell.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = projectCollectionViewCell.xib; sourceTree = "<group>"; };
 		3A70CA1129C98E5800E4192B /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		6A00000000000000000000CA /* SensorLinkDashboard.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; path = SensorLinkDashboard.html; sourceTree = "<group>"; };
 		3AA7193829DD42CF00DE8336 /* openCode.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = openCode.storyboard; sourceTree = "<group>"; };
 		3BB0877EC1CEBF363E89AC40 /* fr.lproj */ = {isa = PBXFileReference; explicitFileType = folder; includeInIndex = 1; path = fr.lproj; sourceTree = "<group>"; };
 		3FDBC2A41BB7D226A4447AD8 /* Pods-OpenBot-OpenBotUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OpenBot-OpenBotUITests.release.xcconfig"; path = "Target Support Files/Pods-OpenBot-OpenBotUITests/Pods-OpenBot-OpenBotUITests.release.xcconfig"; sourceTree = "<group>"; };
@@ -445,6 +447,7 @@
 			children = (
 				0666F18B2C295BCB006D88C7 /* Models */,
 				3A70CA1129C98E5800E4192B /* GoogleService-Info.plist */,
+				6A00000000000000000000CA /* SensorLinkDashboard.html */,
 				66AC71E129B885410022108A /* Controllers */,
 				BF9BAED628AF94A800EF3E48 /* Frameworks */,
 				4FEF42AB3B7AC14D55B7DBA3 /* Utils */,
@@ -1017,6 +1020,7 @@
 				3AA7193929DD42CF00DE8336 /* openCode.storyboard in Resources */,
 				4FEF4209E4568C06F71C8E86 /* config.json in Resources */,
 				3A70CA1229C98E5800E4192B /* GoogleService-Info.plist in Resources */,
+				6A00000000000000000000CB /* SensorLinkDashboard.html in Resources */,
 				0132784A30CAD8239CA1F112 /* en.lproj in Resources */,
 				4D0CB1162AED2754BD84D5EC /* de.lproj in Resources */,
 				4794ACBDCA29E3CDD282D7D7 /* es.lproj in Resources */,

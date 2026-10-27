@@ -166,7 +166,20 @@ public final class SensorLinkProtocol {
   }
 
   private static String escape(String s) {
-    return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    return escapeJson(s);
+  }
+
+  /** Escapes a string for use inside JSON double quotes. */
+  public static String escapeJson(String s) {
+    if (s == null) return "";
+    StringBuilder b = new StringBuilder(s.length() + 8);
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if (c == '"' || c == '\\') b.append('\\').append(c);
+      else if (c < 0x20) b.append(String.format("\\u%04x", (int) c));
+      else b.append(c);
+    }
+    return b.toString();
   }
 
   // endregion

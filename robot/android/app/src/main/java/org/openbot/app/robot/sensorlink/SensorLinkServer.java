@@ -16,27 +16,25 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import java.net.InetSocketAddress;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-import org.java_websocket.WebSocket;
-import org.java_websocket.handshake.ClientHandshake;
-import org.java_websocket.server.WebSocketServer;
 import timber.log.Timber;
 
 /**
- * A SensorServer-compatible WebSocket server: any SensorServer client (Python scripts, the
- * SensorServer web page, Unity, ROS bridges...) can read this phone's sensors and GPS while the car
- * is driving. See {@link SensorLinkProtocol} for the API.
+ * A SensorServer-compatible server for this phone's sensors and GPS, plus a live dashboard for
+ * browsers at {@code http://<phone>:<port>/}. Any SensorServer client (Python scripts, Unity, ROS
+ * bridges...) can read the same data. See {@link SensorLinkProtocol} for the API.
  *
  * <p>Sensors are only switched on while someone is connected to them, and off again when the last
  * client leaves, so an idle server costs no battery.
  */
-final class SensorLinkServer extends WebSocketServer {
+final class SensorLinkServer extends MiniWebServer {
 
   interface Callback {
     void onServerStarted();
@@ -51,14 +49,17 @@ final class SensorLinkServer extends WebSocketServer {
   private static final int CLOSE_NO_SENSOR = 4001;
   private static final int CLOSE_NO_PERMISSION = 4002;
 
+  private static final String DASHBOARD_ASSET = "sensorlink/index.html";
+
   private final Context context;
   private final Callback callback;
   private final SensorManager sensorManager;
   private final FusedLocationProviderClient locationClient;
   private final HandlerThread sensorThread = new HandlerThread("SensorLinkServer");
   private final Handler sensorHandler;
+  private byte[] dashboard;
 
-  /** Which sensors each connection asked for; {@code multi} adds the type to each message. */
+  /** What one connection asked for; {@code multi} adds the type to each message. */
   private static final class Subscription {
     final boolean multi;
     final boolean gps;
@@ -69,51 +70,110 @@ final class SensorLinkServer extends WebSocketServer {
     }
   }
 
-  private final Map<WebSocket, Subscription> subscriptions = new ConcurrentHashMap<>();
   private final Map<String, TypeListener> listeners = new HashMap<>(); // guarded by this
-  private final Set<WebSocket> gpsClients = new CopyOnWriteArraySet<>();
+  private final Set<Connection> clients = new CopyOnWriteArraySet<>();
+  private final Set<Connection> gpsClients = new CopyOnWriteArraySet<>();
   private LocationCallback locationCallback; // guarded by this
   private volatile Location lastLocation;
 
   SensorLinkServer(Context context, int port, Callback callback) {
-    super(new InetSocketAddress(port));
+    super(port);
     this.context = context.getApplicationContext();
     this.callback = callback;
     this.sensorManager = (SensorManager) this.context.getSystemService(Context.SENSOR_SERVICE);
     this.locationClient = LocationServices.getFusedLocationProviderClient(this.context);
     sensorThread.start();
     sensorHandler = new Handler(sensorThread.getLooper());
-    setReuseAddr(true);
-    setConnectionLostTimeout(15);
   }
 
   /** Stops the server and every sensor it switched on. Safe to call more than once. */
   void shutdown() {
-    try {
-      stop(500);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    stop();
     synchronized (this) {
-      for (TypeListener l : listeners.values()) sensorManager.unregisterListener(l);
+      if (sensorManager != null) {
+        for (TypeListener l : listeners.values()) sensorManager.unregisterListener(l);
+      }
       listeners.clear();
       stopGpsLocked();
     }
-    subscriptions.clear();
+    clients.clear();
     gpsClients.clear();
     sensorThread.quitSafely();
   }
 
   @Override
-  public void onStart() {
-    Timber.i("Sensor link server listening on %s", getAddress());
+  protected void onStarted() {
+    Timber.i("Sensor link server listening");
     callback.onServerStarted();
   }
 
   @Override
-  public void onOpen(WebSocket conn, ClientHandshake handshake) {
-    SensorLinkProtocol.Request request =
-        SensorLinkProtocol.parse(handshake.getResourceDescriptor());
+  protected void onFailed(Exception e) {
+    Timber.e(e, "Sensor link server failed");
+    callback.onServerFailed(e.getMessage() == null ? e.toString() : e.getMessage());
+  }
+
+  // region HTTP: dashboard and sensor list
+
+  @Override
+  protected HttpResponse onHttpRequest(String path) {
+    int q = path.indexOf('?');
+    String p = q >= 0 ? path.substring(0, q) : path;
+    switch (p) {
+      case "/":
+      case "/index.html":
+        byte[] page = dashboard();
+        return page == null
+            ? HttpResponse.text(500, "text/plain", "Dashboard missing from the app\n")
+            : new HttpResponse(200, "text/html; charset=utf-8", page);
+      case "/sensors":
+        return HttpResponse.text(200, "application/json", sensorListJson());
+      default:
+        return null;
+    }
+  }
+
+  private synchronized byte[] dashboard() {
+    if (dashboard == null) {
+      try (InputStream in = context.getAssets().open(DASHBOARD_ASSET)) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        dashboard = out.toByteArray();
+      } catch (IOException e) {
+        Timber.e(e, "Sensor link dashboard asset missing");
+      }
+    }
+    return dashboard;
+  }
+
+  /** {@code [{"type":"android.sensor.accelerometer","name":"..."}]}, one entry per type. */
+  private String sensorListJson() {
+    StringBuilder b = new StringBuilder("[");
+    if (sensorManager != null) {
+      Set<String> seen = new java.util.HashSet<>();
+      for (Sensor s : sensorManager.getSensorList(Sensor.TYPE_ALL)) {
+        String type = s.getStringType();
+        if (type == null || !type.startsWith("android.sensor.") || !seen.add(type)) continue;
+        if (b.length() > 1) b.append(',');
+        b.append("{\"type\":\"")
+            .append(SensorLinkProtocol.escapeJson(type))
+            .append("\",\"name\":\"")
+            .append(SensorLinkProtocol.escapeJson(s.getName()))
+            .append("\"}");
+      }
+    }
+    return b.append(']').toString();
+  }
+
+  // endregion
+
+  // region WebSocket: SensorServer API
+
+  @Override
+  protected void onOpen(Connection conn, String path) {
+    SensorLinkProtocol.Request request = SensorLinkProtocol.parse(path);
     switch (request.kind) {
       case GPS:
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -121,11 +181,14 @@ final class SensorLinkServer extends WebSocketServer {
           conn.close(CLOSE_NO_PERMISSION, "Location permission not granted on the phone");
           return;
         }
-        subscriptions.put(conn, new Subscription(false, true));
+        conn.tag = new Subscription(false, true);
+        clients.add(conn);
         gpsClients.add(conn);
         synchronized (this) {
           startGpsLocked();
         }
+        Location l = lastLocation;
+        if (l != null) conn.send(SensorLinkProtocol.gpsJson(toFix(l)));
         break;
       case SENSOR:
       case SENSORS:
@@ -135,27 +198,24 @@ final class SensorLinkServer extends WebSocketServer {
             return;
           }
         }
-        subscriptions.put(conn, new Subscription(request.kind == SensorLinkProtocol.Kind.SENSORS, false));
+        conn.tag = new Subscription(request.kind == SensorLinkProtocol.Kind.SENSORS, false);
+        clients.add(conn);
         synchronized (this) {
           for (String type : request.types) subscribeLocked(type, conn);
         }
         break;
       default:
-        conn.close(CLOSE_UNKNOWN_PATH, "Unknown path " + handshake.getResourceDescriptor());
+        conn.close(CLOSE_UNKNOWN_PATH, "Unknown path " + path);
         return;
     }
-    callback.onClientCountChanged(subscriptions.size());
+    callback.onClientCountChanged(clients.size());
   }
 
   @Override
-  public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-    Subscription sub = subscriptions.remove(conn);
-    if (sub == null) return;
+  protected void onClose(Connection conn) {
+    if (!clients.remove(conn)) return;
     synchronized (this) {
-      if (sub.gps) {
-        gpsClients.remove(conn);
-        if (gpsClients.isEmpty()) stopGpsLocked();
-      }
+      if (gpsClients.remove(conn) && gpsClients.isEmpty()) stopGpsLocked();
       for (Map.Entry<String, TypeListener> e : new HashMap<>(listeners).entrySet()) {
         TypeListener l = e.getValue();
         l.clients.remove(conn);
@@ -165,28 +225,19 @@ final class SensorLinkServer extends WebSocketServer {
         }
       }
     }
-    callback.onClientCountChanged(subscriptions.size());
+    callback.onClientCountChanged(clients.size());
   }
 
   @Override
-  public void onMessage(WebSocket conn, String message) {
-    Subscription sub = subscriptions.get(conn);
-    if (sub != null && sub.gps && SensorLinkProtocol.GET_LAST_KNOWN_LOCATION.equals(message.trim())) {
+  protected void onMessage(Connection conn, String message) {
+    if (gpsClients.contains(conn)
+        && SensorLinkProtocol.GET_LAST_KNOWN_LOCATION.equals(message.trim())) {
       Location l = lastLocation;
       if (l != null) conn.send(SensorLinkProtocol.gpsJson(toFix(l)));
     }
   }
 
-  @Override
-  public void onError(WebSocket conn, Exception ex) {
-    if (conn == null) {
-      // The server itself failed, most often "address already in use".
-      Timber.e(ex, "Sensor link server failed");
-      callback.onServerFailed(ex.getMessage() == null ? ex.toString() : ex.getMessage());
-    } else {
-      Timber.w(ex, "Sensor link client error");
-    }
-  }
+  // endregion
 
   // region Sensors
 
@@ -199,7 +250,7 @@ final class SensorLinkServer extends WebSocketServer {
     return null;
   }
 
-  private void subscribeLocked(String type, WebSocket conn) {
+  private void subscribeLocked(String type, Connection conn) {
     TypeListener l = listeners.get(type);
     if (l == null) {
       Sensor sensor = findSensor(type);
@@ -214,7 +265,7 @@ final class SensorLinkServer extends WebSocketServer {
   /** One registered sensor, fanned out to every client that asked for it. */
   private final class TypeListener implements SensorEventListener {
     final String type;
-    final Set<WebSocket> clients = new CopyOnWriteArraySet<>();
+    final Set<Connection> clients = new CopyOnWriteArraySet<>();
 
     TypeListener(String type) {
       this.type = type;
@@ -224,24 +275,17 @@ final class SensorLinkServer extends WebSocketServer {
     public void onSensorChanged(SensorEvent event) {
       String single = null;
       String multi = null;
-      for (WebSocket c : clients) {
+      for (Connection c : clients) {
         if (!c.isOpen()) continue;
-        Subscription sub = subscriptions.get(c);
-        boolean withType = sub != null && sub.multi;
-        String msg;
-        if (withType) {
+        Subscription sub = (Subscription) c.tag;
+        if (sub != null && sub.multi) {
           if (multi == null)
             multi = SensorLinkProtocol.sensorJson(type, event.values, event.timestamp, event.accuracy);
-          msg = multi;
+          c.send(multi);
         } else {
           if (single == null)
             single = SensorLinkProtocol.sensorJson(null, event.values, event.timestamp, event.accuracy);
-          msg = single;
-        }
-        try {
-          c.send(msg);
-        } catch (RuntimeException e) {
-          Timber.d(e, "Sensor link send failed");
+          c.send(single);
         }
       }
     }
@@ -265,9 +309,7 @@ final class SensorLinkServer extends WebSocketServer {
             if (l == null) return;
             lastLocation = l;
             String msg = SensorLinkProtocol.gpsJson(toFix(l));
-            for (WebSocket c : gpsClients) {
-              if (c.isOpen()) c.send(msg);
-            }
+            for (Connection c : gpsClients) c.send(msg);
           }
         };
     LocationRequest request = new LocationRequest();
@@ -280,7 +322,11 @@ final class SensorLinkServer extends WebSocketServer {
           .getLastLocation()
           .addOnSuccessListener(
               l -> {
-                if (l != null && lastLocation == null) lastLocation = l;
+                if (l != null && lastLocation == null) {
+                  lastLocation = l;
+                  String msg = SensorLinkProtocol.gpsJson(toFix(l));
+                  for (Connection c : gpsClients) c.send(msg);
+                }
               });
     } catch (SecurityException e) {
       Timber.w(e, "Sensor link: no location permission");

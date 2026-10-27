@@ -378,7 +378,7 @@
     <string name="gps_panel_connection">Car connection</string>
     <string name="sensor_link_button">Sensor link</string>
     <string name="sensor_link_off">Sensor link: off</string>
-    <string name="sensor_link_server">Sharing sensors at %1$s · %2$d connected</string>
+    <string name="sensor_link_server">Open %1$s in a browser · %2$d connected</string>
     <string name="sensor_link_server_no_ip">Sharing sensors on port %1$d · join the phone\'s Wi-Fi or hotspot</string>
     <string name="sensor_link_server_failed">Sensor server could not start: %1$s</string>
     <string name="sensor_link_client_connecting">Connecting to %1$s…</string>
@@ -387,12 +387,12 @@
     <string name="sensor_link_client_no_address">Sensor link: set the other phone\'s address</string>
     <string name="sensor_link_title">Sensor link (SensorServer)</string>
     <string name="sensor_link_mode_off">Off</string>
-    <string name="sensor_link_mode_server">Share this phone\'s sensors (server)</string>
+    <string name="sensor_link_mode_server">Share this phone\'s sensors (server, browser page)</string>
     <string name="sensor_link_mode_client">Use another phone\'s sensors (client)</string>
     <string name="sensor_link_port">Port</string>
     <string name="sensor_link_address">Other phone\'s address, e.g. 192.168.43.1:8080</string>
     <string name="sensor_link_use_gps">Use its GPS and compass for GPS Mission</string>
-    <string name="sensor_link_help">Uses the SensorServer WebSocket API (ws://address:port/sensor/connect, /sensors/connect, /gps). Both devices must be on the same Wi-Fi or hotspot. The link runs while GPS Mission, Object Tracking or Autopilot is open.</string>
+    <string name="sensor_link_help">Server: open http://phone-address:port in any browser on the same Wi-Fi or hotspot to see live sensors and GPS. Scripts can use the SensorServer WebSocket API (ws://address:port/sensor/connect, /sensors/connect, /gps). The link runs while GPS Mission, Object Tracking or Autopilot is open.</string>
     <string name="sensor_link_save">Save</string>
     <string name="sensor_link_cancel">Cancel</string>
     <string name="sensor_link_bad_port">Port must be 1024–65535</string>

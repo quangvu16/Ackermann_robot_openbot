@@ -287,7 +287,7 @@
 "gps_mode_rtl" = "Returning home";
 "sensor_link_button" = "Sensor link";
 "sensor_link_off" = "Sensor link: off";
-"sensor_link_server" = "Sharing sensors at %1$@ · %2$d connected";
+"sensor_link_server" = "Open %1$@ in a browser · %2$d connected";
 "sensor_link_server_no_ip" = "Sharing sensors on port %1$d · join the phone's Wi-Fi or hotspot";
 "sensor_link_server_failed" = "Sensor server could not start: %1$@";
 "sensor_link_client_connecting" = "Connecting to %1$@…";
@@ -296,12 +296,12 @@
 "sensor_link_client_no_address" = "Sensor link: set the other phone's address";
 "sensor_link_title" = "Sensor link (SensorServer)";
 "sensor_link_mode_off" = "Off";
-"sensor_link_mode_server" = "Share this phone's sensors (server)";
+"sensor_link_mode_server" = "Share this phone's sensors (server, browser page)";
 "sensor_link_mode_client" = "Use another phone's sensors (client)";
 "sensor_link_port" = "Port";
 "sensor_link_address" = "Other phone's address, e.g. 192.168.43.1:8080";
 "sensor_link_use_gps" = "Use its GPS and compass for GPS Mission";
-"sensor_link_help" = "Uses the SensorServer WebSocket API (ws://address:port/sensor/connect, /sensors/connect, /gps). Both devices must be on the same Wi-Fi or hotspot. The link runs while GPS Mission, Object Tracking or Autopilot is open.";
+"sensor_link_help" = "Server: open http://phone-address:port in any browser on the same Wi-Fi or hotspot to see live sensors and GPS. Scripts can use the SensorServer WebSocket API (ws://address:port/sensor/connect, /sensors/connect, /gps). The link runs while GPS Mission, Object Tracking or Autopilot is open.";
 "sensor_link_save" = "Save";
 "sensor_link_cancel" = "Cancel";
 "sensor_link_bad_port" = "Port must be 1024–65535";

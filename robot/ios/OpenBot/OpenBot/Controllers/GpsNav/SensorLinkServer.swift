@@ -73,7 +73,7 @@ final class SensorLinkServer {
                 c.onOpen = { [weak self] c, path in self?.opened(c, path: path) }
                 c.onText = { [weak self] c, text in self?.received(c, text: text) }
                 c.onClose = { [weak self] c in self?.closed(c) }
-                c.httpInfo = { [weak self] in self?.infoPage() ?? "" }
+                c.httpHandler = { [weak self] path in self?.httpResponse(path) ?? HTTPReply(status: 503, contentType: "text/plain", body: Data()) }
                 // Held here from the start: its own callbacks only hold it weakly.
                 self.connections[ObjectIdentifier(c)] = c
                 c.start()
@@ -169,18 +169,35 @@ final class SensorLinkServer {
         for c in connections.values where c.registered && c.wantsGps { c.send(text) }
     }
 
-    /// What a browser gets at http://phone:port/ - the endpoints and sensor names.
-    private func infoPage() -> String {
-        let types = SensorLinkSensors.allTypes.filter { sensors.isAvailable($0) }
-        return "OpenBot sensor server (SensorServer WebSocket API)\n\n"
-            + "ws://<this phone>:\(port)/sensor/connect?type=<type>\n"
-            + "ws://<this phone>:\(port)/sensors/connect?types=[\"<type>\",...]\n"
-            + "ws://<this phone>:\(port)/gps\n\nSensors:\n"
-            + types.map { "  " + $0 }.joined(separator: "\n") + "\n"
+    /// Plain HTTP: the live dashboard at `/` and the sensor list it reads at `/sensors`.
+    private func httpResponse(_ path: String) -> HTTPReply {
+        let route = path.split(separator: "?", maxSplits: 1).first.map(String.init) ?? path
+        switch route {
+        case "/", "/index.html":
+            if let url = Bundle.main.url(forResource: "SensorLinkDashboard", withExtension: "html"),
+               let page = try? Data(contentsOf: url) {
+                return HTTPReply(status: 200, contentType: "text/html; charset=utf-8", body: page)
+            }
+            return HTTPReply(status: 500, contentType: "text/plain", body: Data("Dashboard missing from the app\n".utf8))
+        case "/sensors":
+            let list = SensorLinkSensors.allTypes.filter { sensors.isAvailable($0) }.map {
+                "{\"type\":\"\($0)\",\"name\":\"\(SensorLinkSensors.displayName($0))\"}"
+            }
+            return HTTPReply(status: 200, contentType: "application/json", body: Data(("[" + list.joined(separator: ",") + "]").utf8))
+        default:
+            return HTTPReply(status: 404, contentType: "text/plain", body: Data("Not found\n".utf8))
+        }
     }
 }
 
 // MARK: - WebSocket connection
+
+/// A plain HTTP answer.
+private struct HTTPReply {
+    let status: Int
+    let contentType: String
+    let body: Data
+}
 
 /// One client: HTTP upgrade, then RFC 6455 frames. Server frames are never
 /// masked; client frames always are.
@@ -188,7 +205,7 @@ private final class WebSocketConnection {
     var onOpen: ((WebSocketConnection, String) -> Void)?
     var onText: ((WebSocketConnection, String) -> Void)?
     var onClose: ((WebSocketConnection) -> Void)?
-    var httpInfo: (() -> String)?
+    var httpHandler: ((String) -> HTTPReply)?
 
     /// True once the client asked for something we serve.
     var registered = false
@@ -262,10 +279,13 @@ private final class WebSocketConnection {
             headers[name] = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
         }
         guard headers["upgrade"]?.lowercased() == "websocket", let key = headers["sec-websocket-key"] else {
-            // A plain browser visit: say what is here.
-            let body = httpInfo?() ?? ""
-            writeRaw("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\n"
-                + "Content-Length: \(body.utf8.count)\r\nConnection: close\r\n\r\n" + body, thenClose: true)
+            // A plain browser visit: the dashboard page, or the sensor list it asks for.
+            let reply = httpHandler?(path) ?? HTTPReply(status: 404, contentType: "text/plain", body: Data())
+            let reason = reply.status == 200 ? "OK" : reply.status == 404 ? "Not Found" : "Error"
+            let head = "HTTP/1.1 \(reply.status) \(reason)\r\nContent-Type: \(reply.contentType)\r\n"
+                + "Content-Length: \(reply.body.count)\r\nCache-Control: no-store\r\n"
+                + "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"
+            write(Data(head.utf8) + reply.body, thenClose: true)
             return
         }
         let digest = Insecure.SHA1.hash(data: Data((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").utf8))
@@ -396,6 +416,19 @@ private final class SensorLinkSensors: NSObject, CLLocationManagerDelegate {
     static let rotationVector = SensorLinkProtocol.rotationVector
     static let pressure = "android.sensor.pressure"
     static let allTypes = [accelerometer, gyroscope, magneticField, gravity, linearAcceleration, rotationVector, pressure]
+
+    static func displayName(_ type: String) -> String {
+        switch type {
+        case accelerometer: return "Accelerometer"
+        case gyroscope: return "Gyroscope"
+        case magneticField: return "Magnetometer"
+        case gravity: return "Gravity"
+        case linearAcceleration: return "Linear acceleration"
+        case rotationVector: return "Rotation vector"
+        case pressure: return "Barometer"
+        default: return type
+        }
+    }
     private static let deviceMotionTypes: Set<String> = [gravity, linearAcceleration, rotationVector]
     private static let g = 9.80665
 

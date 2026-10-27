@@ -219,7 +219,7 @@
     <string name="gps_panel_connection">Connexion à la voiture</string>
     <string name="sensor_link_button">Lien capteurs</string>
     <string name="sensor_link_off">Lien capteurs : désactivé</string>
-    <string name="sensor_link_server">Capteurs partagés sur %1$s · %2$d connectés</string>
+    <string name="sensor_link_server">Ouvrez %1$s dans un navigateur · %2$d connectés</string>
     <string name="sensor_link_server_no_ip">Capteurs partagés sur le port %1$d · rejoignez le Wi-Fi ou le partage de connexion du téléphone</string>
     <string name="sensor_link_server_failed">Le serveur de capteurs n\'a pas pu démarrer : %1$s</string>
     <string name="sensor_link_client_connecting">Connexion à %1$s…</string>
@@ -228,12 +228,12 @@
     <string name="sensor_link_client_no_address">Lien capteurs : saisissez l\'adresse de l\'autre téléphone</string>
     <string name="sensor_link_title">Lien capteurs (SensorServer)</string>
     <string name="sensor_link_mode_off">Désactivé</string>
-    <string name="sensor_link_mode_server">Partager les capteurs de ce téléphone (serveur)</string>
+    <string name="sensor_link_mode_server">Partager les capteurs de ce téléphone (serveur, page web)</string>
     <string name="sensor_link_mode_client">Utiliser les capteurs d\'un autre téléphone (client)</string>
     <string name="sensor_link_port">Port</string>
     <string name="sensor_link_address">Adresse de l\'autre téléphone, ex. 192.168.43.1:8080</string>
     <string name="sensor_link_use_gps">Utiliser son GPS et sa boussole pour la mission GPS</string>
-    <string name="sensor_link_help">Utilise l\'API WebSocket de SensorServer (ws://adresse:port/sensor/connect, /sensors/connect, /gps). Les deux appareils doivent être sur le même Wi-Fi ou partage de connexion. Le lien fonctionne tant que la mission GPS, le suivi d\'objet ou le pilote automatique est ouvert.</string>
+    <string name="sensor_link_help">Serveur : ouvrez http://adresse-du-téléphone:port dans un navigateur sur le même Wi-Fi ou partage de connexion pour voir capteurs et GPS en direct. Les scripts peuvent utiliser l\'API WebSocket de SensorServer (ws://adresse:port/sensor/connect, /sensors/connect, /gps). Le lien fonctionne tant que la mission GPS, le suivi d\'objet ou le pilote automatique est ouvert.</string>
     <string name="sensor_link_save">Enregistrer</string>
     <string name="sensor_link_cancel">Annuler</string>
     <string name="sensor_link_bad_port">Le port doit être entre 1024 et 65535</string>
