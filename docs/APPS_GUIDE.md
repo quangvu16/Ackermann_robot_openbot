@@ -204,6 +204,50 @@ Open it from **More features > General > Indoor SLAM**. The car draws a map of t
 
 The status line shows the state, the **match %** (how many scan points land on known walls: above about 60 % the position is trustworthy), the scan count, the number of **submaps** and **loop closures**.
 
+### Choosing the algorithms
+
+Tap **Algorithms** (next to Find me) and pick one option in each of the four lists. The choice is saved on the phone. Changing the SLAM engine keeps the current map and the car's position.
+
+| Step | Option | How it works (simple) | Good for | Source |
+|---|---|---|---|---|
+| **SLAM** | **Cartographer** (default) | Small local maps; a branch-and-bound search finds old places again (loop closure) and straightens the map | Whole flats, loops | Hess et al., ICRA 2016; cartographer_ros |
+| | **slam_toolbox (Karto)** | A graph of scans every 0.5 m; a new scan is matched to the last 10 scans; chains of old scans close loops | Medium flats; the ROS 2 default | Macenski, JOSS 2021; Konolige, IROS 2010 |
+| | **Hector SLAM** | Every scan is matched to the whole map by Gauss-Newton, coarse to fine (20 → 10 → 5 cm); no odometry, no loop closure | One or two rooms; the fastest | Kohlbrecher et al., SSRR 2011 |
+| | **GMapping** | 12 particles, each a guess of the path with its own map; bad guesses die, good ones copy | Rooms where scan matching alone gets confused | Grisetti et al., T-RO 2007 |
+| | **CoreSLAM / BreezySLAM** | One map; random "hill climbing" tries; no loop closure | Single rooms, oldest phones | Steux, ICARCV 2010 |
+| **Localizer** (Localize only) | **Scan matching** (default) | The chosen engine matches each scan to the saved map | Most cases | — |
+| | **AMCL** | 500–2000 particles moved by LiDAR odometry and weighted by a likelihood field | Busy rooms (people, moved chairs); Nav2's default | Nav2 amcl; Thrun, *Probabilistic Robotics* |
+| **Planner** | **NavFn (A\*)** (default) | Shortest cheap path over 10 cm cells, then straightened | General use | Nav2 nav2_navfn_planner |
+| | **Theta\*** | A\* that may draw straight lines past corners, so it takes fewer, longer straight segments | Open rooms | Nash et al., AAAI 2007; Nav2 |
+| | **Smac Hybrid-A\*** | Searches car poses with arcs this car can really drive (0.49 m minimum radius), forward **and reverse** | Tight spots, U-turns, goals behind the car | Dolgov et al., IJRR 2010; Nav2 Smac |
+| **Controller** | **Regulated Pure Pursuit** (default) | Steer towards a point 0.55 m ahead; slow in turns and near walls; follows reverse parts of Hybrid-A\* paths | Smooth, cheap | Nav2 RPP |
+| | **DWB** | Tries 66 (speed, steer) pairs for 1.7 s and scores them by path distance, goal distance and obstacles | Quick reactions | Fox et al., IEEE RAM 1997; Nav2 DWB |
+| | **MPPI** | 300 noisy variations of its plan, 5.6 s ahead; averages the good ones, weighted by score | Smooth avoiding; chooses to reverse by itself | Williams et al., ICRA 2017; Nav2 MPPI |
+
+The default settings come from each project: Cartographer's `trajectory_builder_2d.lua` / `pose_graph.lua`, slam_toolbox's `mapper_params_online_async.yaml`, gmapping and hector_mapping source, and the Nav2 configuration guide. Where the phone or the car needed a change, it is listed:
+- GMapping: 12 particles instead of 30, and updates every 0.5 m instead of 1 m.
+- Cartographer: a smaller loop-search window indoors.
+- MPPI: 300 samples instead of 1000, 0.1 s steps, and a doubled PathFollow weight, because this car drives slowly.
+
+*Example:* the default combination works for a flat. If the car must squeeze between a sofa and a table, or reach a goal behind it, choose **Smac Hybrid-A\*** with **Regulated Pure Pursuit**: the path then includes the reversing the car needs.
+
+**Simulation results** (unit tests and a simulator, not the real car yet):
+
+| SLAM, corridor ring, 2 laps, noisy LiDAR | End error | Worst error | Time per scan (PC) |
+|---|---|---|---|
+| Cartographer | 0.03 m | 0.17 m | 10 ms |
+| slam_toolbox | 0.02 m | 0.11 m | 5 ms |
+| Hector | 0.03 m | 0.09 m | 0.7 ms |
+| GMapping | 0.02 m | 0.08 m | 4 ms |
+| CoreSLAM | 0.09 m | 0.23 m | 1.5 ms |
+
+All 9 planner/controller pairs reached the goal in 4 test drives in a room with a box: round the box, goal behind, U-turn, goal to the side. None came closer than 0.28 m to a wall.
+- Pure Pursuit and DWB took about 20 s.
+- MPPI took 30–70 s: it is careful and slow with the defaults, and is the heaviest (about 8 ms per step on a PC).
+- With **Hybrid-A\***, every controller was quickest on the U-turn.
+
+**Why give a choice?** Each method fails in a different place. Hector is fast but can't fix a bent map on a long loop. Cartographer and slam_toolbox fix loops but cost more. A planner that only draws straight lines can't plan a three-point turn; Hybrid-A\* can. Trying them on your own flat is the best way to learn which suits it.
+
 **How it works and where each idea comes from.** The SLAM part follows Google **Cartographer** (`cartographer_ros`, Apache-2.0) with its default settings from `trajectory_builder_2d.lua` and `pose_graph.lua`. The ideas were rewritten in Java and Swift from the Cartographer paper (Hess et al., *Real-Time Loop Closure in 2D LIDAR SLAM*, ICRA 2016). BreezySLAM and slam_toolbox are LGPL, so no code was copied from any of these projects:
 
 - **Submaps** (Cartographer): each scan goes into a small local map of about 90 scans (`num_range_data = 90`), and two submaps are active at a time. The **motion filter** adds a scan only after the car moves 0.2 m, turns 1° or 5 s pass. *Example:* one lap of a living room makes about 5 submaps. *Why:* a small map that never changes again can be moved as one piece later.
@@ -229,7 +273,7 @@ The status line shows the state, the **match %** (how many scan points land on k
   - Corridor ring, 2 laps, noisy LiDAR, drifting gyro: the end error was 0.17 m without loop closure and 0.03 m with it; the old RMHC engine ended at 0.09 m.
   - Each scan takes about 10 ms on a PC, so expect several times that on a phone.
   - Try it with the wheels off the ground first, then in an open room. STOP and object avoidance still apply.
-- *Source:* Android `slam/` (`OccupancyGrid`, `ScanMatcher`, `FastCorrelativeMatcher`, `PoseGraph`, `SlamEngine`, `Navigator`, `SlamMapView`, `SlamFragment`, 14 unit tests). iOS `Controllers/Slam/` (`SlamCore.swift`, `SlamController.swift`).
+- *Source:* Android `slam/`: `Slam`, `SlamEngine` (Cartographer), `KartoSlam`, `HectorSlam`, `GMappingSlam`, `CoreSlam`, `Amcl`, `SlamSystem`, `Costmap`, `Planners`, `Controllers`, `Navigator`, `SlamFragment` (30 unit tests). iOS `Controllers/Slam/`: `SlamCore.swift`, `SlamAlgorithms.swift`, `NavAlgorithms.swift`, `SlamController.swift`.
 
 **Why build the map first?** A planner can only go round walls it knows about. With a map, a goal in the next room becomes a path through the door; without one, the car would only see the wall in front of it.
 
