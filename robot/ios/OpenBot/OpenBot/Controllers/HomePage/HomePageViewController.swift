@@ -340,6 +340,10 @@ class HomePageViewController: CameraController, UICollectionViewDataSource, UICo
             navigationController?.pushViewController(SlamController(), animated: true)
             return
         }
+        if identifier == Strings.ScreenRooms {
+            navigationController?.pushViewController(RoomsController(), animated: true)
+            return
+        }
         let viewController = (storyboard?.instantiateViewController(withIdentifier: identifier))!
         navigationController?.pushViewController(viewController, animated: true);
     }

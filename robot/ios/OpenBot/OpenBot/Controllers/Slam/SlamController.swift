@@ -604,7 +604,7 @@ final class PaddedLabel: UILabel {
 /// RViz-style map: grid (white free, black wall, grey unknown), 1 m lines,
 /// trail, path, goal, scan and the car. Pan, pinch, double-tap to follow,
 /// tap = goal, long-press = place the car.
-final class SlamMapView: UIView {
+class SlamMapView: UIView {
     struct Snapshot {
         var pose = SlamPose.zero
         var scan: [(Double, Double)] = []
@@ -620,8 +620,12 @@ final class SlamMapView: UIView {
     var follow = true
     private var image: CGImage?
     private var gridInfo: (originX: Double, originY: Double, res: Double, w: Int, h: Int)?
-    private var scale: CGFloat = 60 // points per metre
+    private(set) var scale: CGFloat = 60 // points per metre
     private var focus = (0.0, 0.0)
+    /// Rooms & Zones: while true a one-finger drag draws (onDraw) instead of panning; pinch still zooms.
+    var drawsWithPan = false
+    var onDraw: ((UIGestureRecognizer.State, (Double, Double), (Double, Double)) -> Void)?
+    private var drawStart: (Double, Double)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -669,14 +673,21 @@ final class SlamMapView: UIView {
                        provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent)
     }
 
-    private func sx(_ x: Double) -> CGFloat { bounds.midX + CGFloat(x - focus.0) * scale }
-    private func sy(_ y: Double) -> CGFloat { bounds.midY - CGFloat(y - focus.1) * scale }
-    private func world(_ p: CGPoint) -> (Double, Double) {
+    func sx(_ x: Double) -> CGFloat { bounds.midX + CGFloat(x - focus.0) * scale }
+    func sy(_ y: Double) -> CGFloat { bounds.midY - CGFloat(y - focus.1) * scale }
+    func world(_ p: CGPoint) -> (Double, Double) {
         (focus.0 + Double((p.x - bounds.midX) / scale), focus.1 - Double((p.y - bounds.midY) / scale))
     }
 
     @objc private func pan(_ g: UIPanGestureRecognizer) {
         let t = g.translation(in: self)
+        if drawsWithPan {
+            let loc = g.location(in: self)
+            if g.state == .began { drawStart = world(CGPoint(x: loc.x - t.x, y: loc.y - t.y)) }
+            if let start = drawStart { onDraw?(g.state, start, world(loc)) }
+            if g.state == .ended || g.state == .cancelled || g.state == .failed { drawStart = nil }
+            return
+        }
         follow = false
         focus.0 -= Double(t.x / scale)
         focus.1 += Double(t.y / scale)
@@ -703,6 +714,9 @@ final class SlamMapView: UIView {
         onLongPress?(w.0, w.1)
     }
 
+    /// Drawn over the map and grid lines, under the trail, path, scan and car (Rooms & Zones).
+    func drawOverlay(_ ctx: CGContext) {}
+
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
         let s = snapshot
@@ -727,6 +741,7 @@ final class SlamMapView: UIView {
             p.lineWidth = 1
             p.stroke()
         }
+        drawOverlay(ctx)
         func polyline(_ pts: [(Double, Double)], _ color: UIColor, _ width: CGFloat) {
             guard pts.count > 1 else { return }
             let p = UIBezierPath()

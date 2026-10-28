@@ -1119,6 +1119,8 @@ final class SlamNavigator {
         var planner = NavPlanner.navfn, controller = NavController.rpp
         var speed = 0.35, wheelbase = 0.26, maxSteerDeg = 28.0, lookahead = 0.55
         var robotRadius = 0.22, inflation = 0.45, goalTolerance = 0.25, stopDistance = 0.35
+        /// Optional: places that are lethal in the costmap (no-go areas and virtual walls, RoomMap).
+        var keepOut: ((Double, Double) -> Bool)?
     }
 
     struct Command {

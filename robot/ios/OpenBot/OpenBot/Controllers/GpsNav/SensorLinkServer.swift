@@ -96,6 +96,10 @@ final class SensorLinkServer: RemoteSettingsProvider {
                 c.onText = { [weak self] c, text in self?.received(c, text: text) }
                 c.onClose = { [weak self] c in self?.closed(c) }
                 c.httpHandler = { [weak self] path in self?.httpResponse(path) ?? HTTPReply(status: 503, contentType: "text/plain", body: Data()) }
+                c.apiHandler = { method, path, body in
+                    let r = ValetudoHub.shared.handle(method: method, path: path, body: body)
+                    return HTTPReply(status: r.status, contentType: r.contentType, body: Data(r.body.utf8))
+                }
                 c.onStream = { [weak self] c in self?.startedStream(c) }
                 c.onSnapshot = { [weak self] c in self?.wantsSnapshot(c) }
                 // Held here from the start: its own callbacks only hold it weakly.
@@ -430,6 +434,10 @@ private final class WebSocketConnection {
     var onText: ((WebSocketConnection, String) -> Void)?
     var onClose: ((WebSocketConnection) -> Void)?
     var httpHandler: ((String) -> HTTPReply)?
+    /// Valetudo REST API (/api/v2/...): method, path, body.
+    var apiHandler: ((String, String, String?) -> HTTPReply)?
+    /// A PUT / POST waiting for the rest of its body.
+    private var pendingBody: (method: String, path: String, length: Int)?
 
     /// True once the client asked for something we serve.
     var registered = false
@@ -477,7 +485,7 @@ private final class WebSocketConnection {
             guard let self = self else { return }
             if let data = data, !data.isEmpty {
                 self.buffer.append(data)
-                if self.upgraded { self.readFrames() } else { self.readHandshake() }
+                if self.upgraded { self.readFrames() } else if self.pendingBody != nil { self.readBody() } else { self.readHandshake() }
             }
             if isComplete || error != nil {
                 self.finish()
@@ -498,7 +506,8 @@ private final class WebSocketConnection {
         buffer.removeSubrange(buffer.startIndex..<end.upperBound)
         let lines = head.components(separatedBy: "\r\n")
         let requestLine = lines.first?.split(separator: " ") ?? []
-        guard requestLine.count >= 2, requestLine[0] == "GET" else {
+        let method = requestLine.first.map(String.init) ?? ""
+        guard requestLine.count >= 2, ["GET", "PUT", "POST", "OPTIONS"].contains(method) else {
             writeRaw("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\n\r\n", thenClose: true)
             return
         }
@@ -508,6 +517,27 @@ private final class WebSocketConnection {
             guard let colon = line.firstIndex(of: ":") else { continue }
             let name = line[..<colon].trimmingCharacters(in: .whitespaces).lowercased()
             headers[name] = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+        }
+        if method == "OPTIONS" { // CORS pre-flight, so pages elsewhere can PUT
+            writeRaw("HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\n"
+                + "Access-Control-Allow-Methods: GET, PUT, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n"
+                + "Content-Length: 0\r\nConnection: close\r\n\r\n", thenClose: true)
+            return
+        }
+        if method != "GET" {
+            let length = Int(headers["content-length"] ?? "0") ?? 0
+            guard length >= 0, length <= Self.maxFrame else {
+                respond(status: 413, contentType: "text/plain", body: Data("Body too large\n".utf8))
+                return
+            }
+            pendingBody = (method, path, length)
+            readBody()
+            return
+        }
+        if path.hasPrefix("/api/v2") {
+            let reply = apiHandler?("GET", path, nil) ?? HTTPReply(status: 404, contentType: "text/plain", body: Data())
+            respond(status: reply.status, contentType: reply.contentType, body: reply.body)
+            return
         }
         guard headers["upgrade"]?.lowercased() == "websocket", let key = headers["sec-websocket-key"] else {
             // A plain browser visit: the page, the sensor list, or the camera.
@@ -582,9 +612,22 @@ private final class WebSocketConnection {
         }
     }
 
+    /// The body of a PUT / POST, once all of it has arrived.
+    private func readBody() {
+        guard let p = pendingBody, buffer.count >= p.length else { return }
+        let body = String(decoding: buffer.prefix(p.length), as: UTF8.self)
+        buffer.removeFirst(p.length)
+        pendingBody = nil
+        let reply = p.path.hasPrefix("/api/v2") ? (apiHandler?(p.method, p.path, body)
+            ?? HTTPReply(status: 503, contentType: "text/plain", body: Data()))
+            : HTTPReply(status: 405, contentType: "text/plain", body: Data("Method not allowed\n".utf8))
+        respond(status: reply.status, contentType: reply.contentType, body: reply.body)
+    }
+
     /// A complete HTTP answer, then hang up.
     func respond(status: Int, contentType: String, body: Data) {
-        let reason = status == 200 ? "OK" : status == 404 ? "Not Found" : "Error"
+        let reason = status == 200 ? "OK" : status == 404 ? "Not Found" : status == 400 ? "Bad Request"
+            : status == 405 ? "Method Not Allowed" : "Error"
         let head = "HTTP/1.1 \(status) \(reason)\r\nContent-Type: \(contentType)\r\n"
             + "Content-Length: \(body.count)\r\nCache-Control: no-store\r\n"
             + "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n"

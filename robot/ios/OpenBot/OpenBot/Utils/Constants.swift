@@ -100,6 +100,10 @@ struct Constants {
                          icon: UIImage(systemName: "map")?.withTintColor(.white, renderingMode: .alwaysOriginal) ?? UIImage(),
                          identifier: Strings.ScreenSlam,
                          color: UIColor(red: 0, green: 0.54, blue: 0.48, alpha: 1)),
+                ModeItem(label: L10n.string("rooms_title"),
+                         icon: UIImage(systemName: "square.split.2x2")?.withTintColor(.white, renderingMode: .alwaysOriginal) ?? UIImage(),
+                         identifier: Strings.ScreenRooms,
+                         color: UIColor(red: 0.36, green: 0.42, blue: 0.75, alpha: 1)),
             ],
             // AI
             [

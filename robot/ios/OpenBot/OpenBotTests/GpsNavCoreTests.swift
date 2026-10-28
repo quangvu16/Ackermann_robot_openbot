@@ -894,3 +894,126 @@ final class SlamCoreTests: XCTestCase {
         XCTAssertNil(SlamWire.parse("junk").kind)
     }
 }
+
+/// Rooms & Zones (Valetudo-style): same cases as Android's RoomsTest and ValetudoApiTest.
+final class RoomsCoreTests: XCTestCase {
+    /// Two rooms joined by a 1 m doorway: A is x 0..4, B is x 4..7, both y 0..4.
+    static func twoRooms() -> OccupancyGrid {
+        let g = OccupancyGrid.indoorDefault()
+        for cy in g.cellY(0)...g.cellY(4) { for cx in g.cellX(0)...g.cellX(7) { g.set(cx, cy, -2) } }
+        let walls: [[Double]] = [[0, 0, 7, 0], [7, 0, 7, 4], [7, 4, 0, 4], [0, 4, 0, 0], [4, 0, 4, 1.5], [4, 2.5, 4, 4]]
+        for s in walls {
+            let n = Int(hypot(s[2] - s[0], s[3] - s[1]) / 0.02) + 1
+            for k in 0...n {
+                let t = Double(k) / Double(n)
+                g.set(g.cellX(s[0] + (s[2] - s[0]) * t), g.cellY(s[1] + (s[3] - s[1]) * t), 3)
+            }
+        }
+        return g
+    }
+
+    func testSplitsTwoRoomsAtTheDoorway() {
+        let g = RoomsCoreTests.twoRooms()
+        let r = RoomSegmenter.segment(g)
+        XCTAssertEqual(r.count, 2)
+        let m = RoomMap()
+        m.setRooms(r, stamp: RoomMap.stamp(of: g))
+        XCTAssertEqual(m.roomAt(2, 2), 1)
+        XCTAssertEqual(m.roomAt(5.5, 2), 2)
+        XCTAssertEqual(m.area(1), 15, accuracy: 1.5)
+        let back = RoomMap.fromJson(m.toJson())
+        XCTAssertEqual(back.roomAt(5.5, 2), 2)
+        XCTAssertEqual(back.mapStamp, m.mapStamp)
+    }
+
+    func testRestrictionsBlockTheDoorway() {
+        let g = RoomsCoreTests.twoRooms()
+        var p = SlamNavigator.Params()
+        XCTAssertNotNil(SlamNavigator.plan(g, from: (2, 2), to: (5.5, 2), p))
+        let m = RoomMap()
+        m.walls.append([4, 1.4, 4, 2.6])
+        p.keepOut = { x, y in m.blocked(x, y) }
+        XCTAssertNil(SlamNavigator.plan(g, from: (2, 2), to: (5.5, 2), p))
+        m.walls = []
+        m.noGo.append(RoomMap.box(3.6, 1.3, 4.4, 2.7))
+        XCTAssertNil(SlamNavigator.plan(g, from: (2, 2), to: (5.5, 2), p))
+    }
+
+    func testLanesStayInTheRoom() {
+        let g = RoomsCoreTests.twoRooms()
+        let m = RoomMap()
+        m.setRooms(RoomSegmenter.segment(g), stamp: "")
+        let wps = CoveragePlanner.plan(g, SlamNavigator.Params(), spacing: 0.5, start: SlamPose(0.6, 0.6, 0)) { x, y in m.roomAt(x, y) == 1 }
+        XCTAssertTrue(wps.count >= 8 && wps.count <= 20, "\(wps.count) waypoints")
+        for q in wps { XCTAssertEqual(m.roomAt(q.0, q.1), 1) }
+    }
+
+    func testUnreachableGoToIsAnError() {
+        let g = RoomsCoreTests.twoRooms()
+        let nav = SlamNavigator()
+        let m = RoomMap()
+        m.walls.append([4, 1.4, 4, 2.6])
+        nav.params.keepOut = { x, y in m.blocked(x, y) }
+        let job = CleaningMission(navigator: nav)
+        job.goTo(5.5, 2)
+        var k = 0
+        while k < 50 && job.isBusy { _ = job.step(pose: SlamPose(2, 2, 0), grid: g, frontMin: .infinity, now: Double(k) * 0.1); k += 1 }
+        XCTAssertEqual(job.status(at: nil), .error)
+    }
+
+    final class FakeRobot: ValetudoRobot {
+        let grid = RoomsCoreTests.twoRooms()
+        let rooms = RoomMap()
+        var lastAction: String?
+        var lastGoTo: (Double, Double)?
+        var lastSegments: [Int] = []
+        init() { rooms.setRooms(RoomSegmenter.segment(grid), stamp: "") }
+        var vGrid: OccupancyGrid? { grid }
+        var vRooms: RoomMap { rooms }
+        var vPose: SlamPose { SlamPose(2, 2, 0) }
+        var vStatus: CleaningMission.Status { .idle }
+        var vFlag: CleaningMission.Flag { .none }
+        var vError: String { "" }
+        var vPlannedPath: [(Double, Double)] { [] }
+        var vGoToTarget: (Double, Double)? { nil }
+        var vActiveZones: [[Double]] { [] }
+        func basicControl(_ action: String) -> String? { lastAction = action; return nil }
+        func goTo(_ x: Double, _ y: Double) -> String? { lastGoTo = (x, y); return nil }
+        func cleanSegments(_ ids: [Int]) -> String? { lastSegments = ids; return nil }
+        func cleanZones(_ zones: [[Double]]) -> String? { nil }
+        func renameSegment(_ id: Int, _ name: String) -> String? { rooms.names[id] = name; return nil }
+        func setRestrictions(walls: [[Double]], noGo: [[Double]]) -> String? { rooms.walls = walls; rooms.noGo = noGo; return nil }
+        func locate() -> String? { lastAction = "locate"; return nil }
+    }
+
+    func testValetudoApiAndMqtt() throws {
+        let robot = FakeRobot()
+        let api = ValetudoApi(robot: robot)
+        XCTAssertEqual(api.handle(method: "GET", path: "/api/v2/robot", body: nil).status, 200)
+        XCTAssertEqual(api.handle(method: "PUT", path: "/api/v2/robot/capabilities/BasicControlCapability", body: "{\"action\":\"home\"}").status, 200)
+        XCTAssertEqual(robot.lastAction, "home")
+        _ = api.handle(method: "PUT", path: "/api/v2/robot/capabilities/GoToLocationCapability",
+                       body: "{\"action\":\"goto\",\"coordinates\":{\"x\":2050,\"y\":1300}}")
+        XCTAssertEqual(robot.lastGoTo?.0 ?? 0, 5.5, accuracy: 1e-9)
+        XCTAssertEqual(robot.lastGoTo?.1 ?? 0, 2.0, accuracy: 1e-9)
+        _ = api.handle(method: "PUT", path: "/api/v2/robot/capabilities/MapSegmentRenameCapability",
+                       body: "{\"action\":\"rename_segment\",\"segment_id\":\"2\",\"name\":\"Kitchen\"}")
+        let map = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(api.mapJson().utf8)) as? [String: Any])
+        let layers = try XCTUnwrap(map["layers"] as? [[String: Any]])
+        let names = layers.compactMap { ($0["metaData"] as? [String: Any])?["name"] as? String }
+        XCTAssertTrue(names.contains("Kitchen"))
+        XCTAssertEqual(map["pixelSize"] as? Int, 5)
+
+        XCTAssertEqual(MqttLite.remainingLength(321), [0xC1, 0x02])
+        var c = MqttLite.Config()
+        c.clientId = "ob"
+        XCTAssertEqual([UInt8](MqttLite.connectPacket(c)), [0x10, 14, 0, 4, 77, 81, 84, 84, 4, 2, 0, 30, 0, 2, 111, 98])
+        XCTAssertEqual([UInt8](MqttLite.publishPacket("a/b", "hi", retain: true)), [0x31, 7, 0, 3, 97, 47, 98, 104, 105])
+        let m = ValetudoMqtt(robot: robot, api: api, settings: ValetudoMqtt.Settings())
+        XCTAssertEqual(m.base, "valetudo/openbot")
+        XCTAssertNil(m.handle("BasicControlCapability/operation", "START"))
+        XCTAssertEqual(robot.lastAction, "start")
+        XCTAssertNil(m.handle("MapSegmentationCapability/clean", "{\"segment_ids\":[\"2\"]}"))
+        XCTAssertEqual(robot.lastSegments, [2])
+    }
+}

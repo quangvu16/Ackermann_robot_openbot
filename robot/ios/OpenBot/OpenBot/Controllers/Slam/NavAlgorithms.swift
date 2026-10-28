@@ -66,6 +66,10 @@ final class NavCostmap {
                 }
             }
         }
+        // No-go areas and virtual walls (Rooms & Zones): lethal, like Nav2's keepout filter.
+        if let keepOut = p.keepOut {
+            for y in 0..<h { for x in 0..<w where keepOut(wx(x), wy(y)) { cost[y * w + x] = -1 } }
+        }
     }
 
     func cx(_ v: Double) -> Int { Int(floor((v - grid.originX) / res)) }
