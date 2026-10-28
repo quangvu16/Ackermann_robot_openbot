@@ -62,6 +62,15 @@ final class Costmap {
         }
       }
     }
+    // No-go areas and virtual walls (Rooms & Zones): lethal, like Nav2's keepout filter.
+    Navigator.KeepOut keepOut = p.keepOut;
+    if (keepOut != null) {
+      for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+          if (keepOut.blocked(wx(x), wy(y))) cost[y * w + x] = -1;
+        }
+      }
+    }
   }
 
   int cx(double x) {

@@ -170,26 +170,43 @@ public class SlamMapView extends View {
     invalidate();
   }
 
+  /** For subclasses that draw on the map (Rooms & Zones): consume a touch to edit instead of pan. */
+  protected boolean onEditTouch(MotionEvent e) {
+    return false;
+  }
+
+  /** Drawn over the map and grid lines, under the trail, path, scan and car. */
+  protected void drawOverlay(Canvas c, float dp) {}
+
+  protected float getScale() {
+    return scale;
+  }
+
+  protected OccupancyGrid getGrid() {
+    return grid;
+  }
+
   @Override
   public boolean onTouchEvent(MotionEvent e) {
+    if (e.getPointerCount() == 1 && onEditTouch(e)) return true;
     scaler.onTouchEvent(e);
     if (!scaler.isInProgress()) gestures.onTouchEvent(e);
     return true;
   }
 
-  private float sx(double x) {
+  protected float sx(double x) {
     return (float) (getWidth() / 2.0 + (x - focusX) * scale);
   }
 
-  private float sy(double y) {
+  protected float sy(double y) {
     return (float) (getHeight() / 2.0 - (y - focusY) * scale);
   }
 
-  private double toWorldX(float px) {
+  protected double toWorldX(float px) {
     return focusX + (px - getWidth() / 2.0) / scale;
   }
 
-  private double toWorldY(float py) {
+  protected double toWorldY(float py) {
     return focusY - (py - getHeight() / 2.0) / scale;
   }
 
@@ -256,6 +273,7 @@ public class SlamMapView extends View {
     }
 
     float dp = getResources().getDisplayMetrics().density;
+    drawOverlay(c, dp);
     if (showTrail && trail != null && trail.size() > 1) {
       linePaint.setColor(0xFFFF9800);
       linePaint.setStrokeWidth(2 * dp);

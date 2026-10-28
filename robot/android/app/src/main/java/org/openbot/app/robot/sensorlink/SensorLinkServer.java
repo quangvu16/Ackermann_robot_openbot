@@ -153,6 +153,12 @@ final class SensorLinkServer extends MiniWebServer implements RemoteSettings.Pro
   // region HTTP: dashboard and sensor list
 
   @Override
+  protected HttpResponse onHttpRequest(String method, String path, String body) {
+    if (path.startsWith("/api/v2/") || path.equals("/api/v2")) return ValetudoHub.get().handle(method, path, body);
+    return super.onHttpRequest(method, path, body);
+  }
+
+  @Override
   protected HttpResponse onHttpRequest(String path) {
     int q = path.indexOf('?');
     String p = q >= 0 ? path.substring(0, q) : path;

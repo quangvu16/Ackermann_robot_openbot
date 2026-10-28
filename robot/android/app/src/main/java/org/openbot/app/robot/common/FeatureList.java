@@ -28,6 +28,7 @@ public class FeatureList {
   public static final String GPS_NAVIGATION = "GPS Mission Navigation";
   public static final String LIDAR_ROBOT = "LiDAR Robot";
   public static final String INDOOR_SLAM = "Indoor SLAM";
+  public static final String ROOMS_ZONES = "Rooms & Zones";
 
   // Data Collection
   public static final String DATA_COLLECTION = "Data Collection";
@@ -87,6 +88,8 @@ public class FeatureList {
             LIDAR_ROBOT, R.string.lidarbot_title, R.drawable.ic_lidar_robot, "#7E57C2"));
     subCategories.add(
         new SubCategory(INDOOR_SLAM, R.string.slam_title, R.drawable.ic_slam_map, "#00897B"));
+    subCategories.add(
+        new SubCategory(ROOMS_ZONES, R.string.rooms_title, R.drawable.ic_btn_meeting_room, "#5C6BC0"));
 
     subCategories.add(
         new SubCategory(

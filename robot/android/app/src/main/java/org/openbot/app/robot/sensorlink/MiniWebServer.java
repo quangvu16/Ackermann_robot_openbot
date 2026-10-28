@@ -67,6 +67,7 @@ public abstract class MiniWebServer {
 
   private static final String GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   private static final int MAX_HEADER = 16 * 1024;
+  private static final int MAX_BODY = 1024 * 1024;
   private static final int MAX_FRAME = 1 << 20;
   private static final int SEND_QUEUE = 256;
 
@@ -221,8 +222,9 @@ public abstract class MiniWebServer {
       }
       String[] lines = head.split("\r\n");
       String[] requestLine = lines[0].split(" ");
-      if (requestLine.length < 2 || !"GET".equals(requestLine[0])) {
-        writeHttp(out, HttpResponse.text(405, "text/plain", "Only GET is supported\n"));
+      String method = requestLine.length < 2 ? "" : requestLine[0];
+      if (!"GET".equals(method) && !"PUT".equals(method) && !"POST".equals(method) && !"OPTIONS".equals(method)) {
+        writeHttp(out, HttpResponse.text(405, "text/plain", "Method not allowed\n"));
         socket.close();
         return;
       }
@@ -236,10 +238,41 @@ public abstract class MiniWebServer {
               lines[i].substring(colon + 1).trim());
         }
       }
+      if ("OPTIONS".equals(method)) { // CORS pre-flight, so browser pages elsewhere can PUT
+        out.write(("HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\n"
+                + "Access-Control-Allow-Methods: GET, PUT, POST, OPTIONS\r\n"
+                + "Access-Control-Allow-Headers: Content-Type\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+            .getBytes(StandardCharsets.US_ASCII));
+        out.flush();
+        socket.close();
+        return;
+      }
+      String body = null;
+      if (!"GET".equals(method)) {
+        int len = 0;
+        try {
+          len = Integer.parseInt(headers.getOrDefault("content-length", "0"));
+        } catch (NumberFormatException ignored) {
+          // no body
+        }
+        if (len < 0 || len > MAX_BODY) {
+          writeHttp(out, HttpResponse.text(413, "text/plain", "Body too large\n"));
+          socket.close();
+          return;
+        }
+        byte[] b = new byte[len];
+        int at = 0;
+        while (at < len) {
+          int n = in.read(b, at, len - at);
+          if (n < 0) break;
+          at += n;
+        }
+        body = new String(b, 0, at, StandardCharsets.UTF_8);
+      }
       String key = headers.get("sec-websocket-key");
       String upgrade = headers.get("upgrade");
-      if (key == null || upgrade == null || !upgrade.equalsIgnoreCase("websocket")) {
-        HttpResponse r = onHttpRequest(path);
+      if (!"GET".equals(method) || key == null || upgrade == null || !upgrade.equalsIgnoreCase("websocket")) {
+        HttpResponse r = onHttpRequest(method, path, body);
         if (r == null) r = HttpResponse.text(404, "text/plain", "Not found\n");
         if (r.streamer != null) {
           streams.add(socket);
@@ -359,7 +392,8 @@ public abstract class MiniWebServer {
   }
 
   private static void writeHttp(OutputStream out, HttpResponse r) throws IOException {
-    String reason = r.status == 200 ? "OK" : r.status == 404 ? "Not Found" : "Error";
+    String reason = r.status == 200 ? "OK" : r.status == 404 ? "Not Found" : r.status == 400 ? "Bad Request"
+        : r.status == 405 ? "Method Not Allowed" : "Error";
     String head =
         "HTTP/1.1 "
             + r.status
@@ -438,6 +472,11 @@ public abstract class MiniWebServer {
 
   /** Answer for a plain HTTP GET, or null for 404. */
   protected abstract HttpResponse onHttpRequest(String path);
+
+  /** Any request (GET, PUT, POST with its body). By default GETs go to {@link #onHttpRequest(String)}. */
+  protected HttpResponse onHttpRequest(String method, String path, String body) {
+    return "GET".equals(method) ? onHttpRequest(path) : HttpResponse.text(405, "text/plain", "Method not allowed\n");
+  }
 
   // endregion
 }

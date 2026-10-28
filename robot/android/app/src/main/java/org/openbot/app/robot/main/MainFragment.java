@@ -293,6 +293,10 @@ public class MainFragment extends Fragment implements OnItemClickListener<SubCat
         Navigation.findNavController(requireView()).navigate(R.id.action_mainFragment_to_slamFragment);
         break;
 
+      case FeatureList.ROOMS_ZONES:
+        Navigation.findNavController(requireView()).navigate(R.id.action_mainFragment_to_roomsFragment);
+        break;
+
       case FeatureList.DATA_COLLECTION:
         Navigation.findNavController(requireView())
             .navigate(R.id.action_mainFragment_to_loggerFragment);

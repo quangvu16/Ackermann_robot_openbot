@@ -55,8 +55,15 @@ public final class Navigator {
     }
   }
 
+  /** Places the car must not go (no-go areas and virtual walls, see {@link RoomMap}). */
+  public interface KeepOut {
+    boolean blocked(double x, double y);
+  }
+
   /** Car and controller settings. */
   public static final class Params {
+    /** Optional: cells where this answers true are lethal in the costmap. */
+    public KeepOut keepOut;
     public Planner planner = Planner.NAVFN;
     public Controller controller = Controller.RPP;
     public double speed = 0.35; // fraction of the speed mode
